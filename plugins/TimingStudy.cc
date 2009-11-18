@@ -499,6 +499,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
     std::cout << std::endl;
 
+    meas.missing= (recHit->getType()==TrackingRecHit::missing) ? 1 : 0;
+    meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
+    meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
+
     //
     // Dealing only with pixel measurements from here on
     //

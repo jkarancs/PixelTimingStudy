@@ -245,6 +245,9 @@ class TimingStudy : public edm::EDAnalyzer
    public:
     int i; // serial num of trajectory measurement on the (single) track of the event
     int validhit;
+    int missing;
+    int inactive;
+    int badhit;
     float alpha;
     float beta;
     float norm_charge;
@@ -262,6 +265,9 @@ class TimingStudy : public edm::EDAnalyzer
     void init() {
       i=NOVAL_I;
       validhit=NOVAL_I;
+      missing=NOVAL_I;
+      inactive=NOVAL_I;
+      badhit=NOVAL_I;
       alpha=NOVAL_F;
       beta=NOVAL_F;
       norm_charge=NOVAL_F;
@@ -272,8 +278,8 @@ class TimingStudy : public edm::EDAnalyzer
       sig_hit=NOVAL_F;
       telescope=NOVAL_I;
       telescope_valid=NOVAL_I;
-      list="i/I:validhit:alpha/F:beta:norm_charge:glx:gly:glz:res_hit:sig_hit:"	\
-	   "telescope/I:telescope_valid";
+      list="i/I:validhit:missing:inactive:badhit:alpha/F:beta:norm_charge:glx:gly:glz:"
+	"res_hit:sig_hit:telescope/I:telescope_valid";
     }
 
   };
