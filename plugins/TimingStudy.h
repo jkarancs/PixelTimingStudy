@@ -54,8 +54,11 @@ class TimingStudy : public edm::EDAnalyzer
   TTree* trackTree_;
   TTree* clustTree_;
   TTree* trajTree_;
+  TTree* digiTree_;
 
-  std::map<std::string, std::string> portcardmap;
+  std::map<std::string,std::string> portcardmap;
+  std::map<size_t,int> wbc;
+  std::map<size_t,int> globaldelay;
 
  public:
 
@@ -69,6 +72,11 @@ class TimingStudy : public edm::EDAnalyzer
     float tecal;
     float tecal_raw;
     float tecal_err;
+    float field;
+    int wbc;
+    int delay;
+    int bx;
+    int orb;
 
     std::string list;
 
@@ -81,7 +89,12 @@ class TimingStudy : public edm::EDAnalyzer
       tecal=NOVAL_F;
       tecal_raw=NOVAL_F;
       tecal_err=NOVAL_F;
-      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err";
+      field=NOVAL_F;
+      wbc=NOVAL_I;
+      delay=NOVAL_I;
+      bx=NOVAL_I;
+      orb=NOVAL_I;
+      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb";
     }
 
   } evt_;
@@ -185,6 +198,8 @@ class TimingStudy : public edm::EDAnalyzer
     int edge;     // set if there is a valid hit
     int badpix;   // set if there is a valid hit
     int tworoc;   // set if there is a valid hit
+    // must be the last part of the object
+    float adc[30];
 
     std::string list;
 
@@ -196,7 +211,30 @@ class TimingStudy : public edm::EDAnalyzer
       edge=NOVAL_I;
       badpix=NOVAL_I;
       tworoc=NOVAL_I;
-      list="i/I:charge/F:size/I:edge:badpix:tworoc";
+      for (size_t i=0; i<30; i++) adc[i]=NOVAL_F;
+      list="i/I:charge/F:size/I:edge:badpix:tworoc:adc[size]/F";
+    }
+
+  };
+
+
+  // Digi info
+  class DigiData {
+   public:
+    int i; // serial num of digi in the given module
+    int row;
+    int col;
+    int adc;
+
+    std::string list;
+
+    DigiData() { init(); }
+    void init() {
+      i=NOVAL_I;
+      row=NOVAL_I;
+      col=NOVAL_I;
+      adc=NOVAL_I;
+      list="i/I:row:col:adc";
     }
 
   };
@@ -259,6 +297,24 @@ class TimingStudy : public edm::EDAnalyzer
   std::vector<Cluster> clusts_;
 
 
+  class Digi : public DigiData {
+   public:
+
+    ModuleData mod; // offline module number
+    ModuleData mod_on; // online module number
+    
+    Digi() { mod.init(); mod_on.init(); }
+    void init() {
+      DigiData::init();
+      mod.init();
+      mod_on.init();
+    }
+    
+  };
+
+  std::vector<Digi> digis_;
+
+
   class TrajMeasurement : public TrajMeasData {
    public:
     ModuleData mod; // offline module number
@@ -284,6 +340,7 @@ class TimingStudy : public edm::EDAnalyzer
     track_.init();
     trajmeas_.clear();
     clusts_.clear();
+    digis_.clear();
   }
 
   ModuleData getModuleData(uint32_t rawId, std::string scheme="offline");

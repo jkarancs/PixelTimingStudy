@@ -16,9 +16,14 @@ class EventData {
   float tecal;
   float tecal_raw;
   float tecal_err;
+  float field;
+  int wbc;
+  int delay;
+  int bx;
+  int orb;
   
   std::string list;
-  
+
   EventData() { init(); };
   void init() {
     run=NOVAL_I;
@@ -28,8 +33,13 @@ class EventData {
     tecal=NOVAL_F;
     tecal_raw=NOVAL_F;
     tecal_err=NOVAL_F;
-    list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err";
-  }   
+    field=NOVAL_F;
+    wbc=NOVAL_I;
+    delay=NOVAL_I;
+    bx=NOVAL_I;
+    orb=NOVAL_I;
+    list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb";
+  }
 };
 
 
@@ -130,7 +140,9 @@ class ClustData {
   int edge;     // set if there is a valid hit
   int badpix;   // set if there is a valid hit
   int tworoc;   // set if there is a valid hit
-  
+  // must be the last part of the object
+  float adc[30];
+
   std::string list;
   
   ClustData() { init(); }
@@ -141,7 +153,8 @@ class ClustData {
     edge=NOVAL_I;
     badpix=NOVAL_I;
     tworoc=NOVAL_I;
-    list="i/I:charge/F:size/I:edge:badpix:tworoc";
+    for (size_t i=0; i<30; i++) adc[i]=NOVAL_F;
+    list="i/I:charge/F:size/I:edge:badpix:tworoc:adc[size]/F";
   }
 };
 

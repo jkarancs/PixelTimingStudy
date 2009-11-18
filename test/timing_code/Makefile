@@ -1,6 +1,6 @@
 include Makefile.arch
 
-#CXXFLAGS += -I $(BUILD_HOME)/pixel -I $(XDAQ_ROOT)/include
+CXXFLAGS += -I $(CMSSW_BASE)
 #LIBS  += -L$(XDAQ_ROOT)/lib -L$(BUILD_HOME)/pixel/lib -lPixelConfigDBInterface -lSiPixelObjects
 
 #ROOTCFLAGS   := $(shell $(ROOTCONFIG) --cflags)

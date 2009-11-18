@@ -38,6 +38,8 @@
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
 
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
@@ -67,6 +69,7 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   trackTree_=NULL;
   clustTree_=NULL;
   trajTree_=NULL;
+  digiTree_=NULL;
 }
 
 
@@ -110,6 +113,17 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
   trajTree_->Branch("track", &trajmeas.trk, trajmeas.trk.list.data());
 
 
+  Digi digi;
+  digiTree_ = fs->make<TTree>("digiTree", "Pixel digis");
+  digiTree_->Branch("event", &evt_, evt_.list.data());
+  digiTree_->Branch("digi", &digi, digi.list.data());
+  digiTree_->Branch("module", &digi.mod, digi.mod.list.data());
+  digiTree_->Branch("module_on", &digi.mod_on, digi.mod_on.list.data());
+
+
+  // Some external information until I figure out how to do this inside CMSSW
+
+  // Defining read-out groups
   std::cout << "\nReading portcardmap.dat\n";
   std::ifstream portcardmap_file;
   portcardmap_file.open ("portcardmap.dat", ifstream::in);
@@ -129,6 +143,81 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
     }
   }
   portcardmap_file.close();
+
+
+  // Get the configured delays for each run in 2009 until Oct23
+  std::cout << "\nReading Runs_and_delays.txt\n";
+  std::ifstream runsndelays_file;
+  runsndelays_file.open ("Runs_and_delays.txt", ifstream::in);
+  int delay=NOVAL_I;
+
+  while (runsndelays_file.good()) {
+    std::string var=""; 
+    runsndelays_file >> var;
+    //std::cout << "Read " << var;
+
+    if (var.find(".log")!=std::string::npos) { // Reset delay when reading a new log file
+      delay=NOVAL_I;
+      //std::cout << " - Reset delay" << endl;
+    } else if (var.find("elay")!=std::string::npos) { // Read delay
+      runsndelays_file >> std::hex >> delay;
+      //std::cout << " - Delay set to " << delay << endl;
+    } else if (var.find("Run")!=std::string::npos) { // Read delay
+      size_t run=0;
+      runsndelays_file >> std::dec >> run;
+      //std::cout << " - Run " << run;
+
+      std::map<size_t,int>::iterator it=globaldelay.find(run);
+      if (it==globaldelay.end()) {
+	globaldelay.insert(std::pair<size_t,int>(run, delay));
+	//std::cout << " new run, delay " << delay << endl;
+      } else {
+	//if (it->second!=delay) std::cout << " old run with new delay!!!";
+	//std::cout << std::endl;
+      }
+    }
+  }
+  runsndelays_file.close();
+
+
+  // Get the configured WBC for each run in 2009 until Oct23
+  std::cout << "\nReading Runs_and_dacs.txt\n";
+  std::ifstream runsndacs_file;
+  runsndacs_file.open ("Runs_and_dacs.txt", ifstream::in);
+  int dac=NOVAL_I;
+
+  while (runsndacs_file.good()) {
+    std::string var=""; 
+    runsndacs_file >> var;
+    //std::cout << "Read " << var;
+
+    if (var.find(".log")!=std::string::npos) { // Reset wbc when reading a new log file
+      dac=NOVAL_I;
+      //std::cout << " - Reset wbc" << endl;
+    } else if (var.find("WBC")!=std::string::npos) { // Read WBC
+      runsndacs_file >> dac;
+      //std::cout << " - WBC set to " << dac << endl;
+    } else if (var.find("dac")!=std::string::npos) { // Read dac
+      runsndacs_file >> dac;
+      dac*=-1;
+      //std::cout << " - WBC set to " << dac << endl;
+    } else if (var.find("Run")!=std::string::npos) { // Read delay
+      size_t run=0;
+      runsndacs_file >> run;
+      //std::cout << " - Run " << run;
+
+      std::map<size_t,int>::iterator it=wbc.find(run);
+      if (it==wbc.end()) {
+	wbc.insert(std::pair<size_t,int>(run, dac));
+	//std::cout << " new run, WBC " << dac << endl;
+      } else {
+	//if (it->second!=dac) std::cout << " old run with new WBC!!!";
+	//std::cout << std::endl;
+      }
+    }
+  }
+  runsndacs_file.close();
+
 
   edm::LogInfo("TimingStudy") << "Begin Job Finished" << std::endl;
 
@@ -150,12 +239,15 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   iEvent.getByLabel(iConfig_.getParameter<std::string>("trajectoryInput"),
 		    trajTrackCollectionHandle);
 
+
   //
   // Consider events with exactly one track
   //
   std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
   std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
   if (trajTrackCollectionHandle->size()!=1) return;
+
+  // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
 
 
 
@@ -164,7 +256,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   evt_.run=iEvent.id().run();
   evt_.evt=iEvent.id().event();
-
+  evt_.wbc=wbc[iEvent.id().run()];
+  evt_.delay=globaldelay[iEvent.id().run()];
+  evt_.bx=iEvent.bunchCrossing();
+  evt_.orb=iEvent.orbitNumber();
 
   //
   // Fill event with muon time
@@ -197,6 +292,66 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       } // ecal time only in the barrel
     } // loop along muons
   } // if there is a muon
+
+  edm::ESHandle<MagneticField> magFieldHandle;
+  iSetup.get<IdealMagneticFieldRecord>().get(magFieldHandle);
+  const MagneticField& magField = *magFieldHandle;
+
+  float mag_x = magField.inTesla(GlobalPoint(0,0,0)).x();
+  float mag_y = magField.inTesla(GlobalPoint(0,0,0)).y();
+  float mag_z = magField.inTesla(GlobalPoint(0,0,0)).z();
+ 
+  evt_.field=sqrt(mag_x*mag_x+mag_y*mag_y+mag_z*mag_z);
+
+
+
+  //
+  // Read digi information
+  //
+
+  edm::Handle<edm::DetSetVector<PixelDigi> >  digiCollectionHandle;
+  iEvent.getByLabel("siPixelDigis", digiCollectionHandle);
+
+  const edm::DetSetVector<PixelDigi>& digiCollection = *digiCollectionHandle;
+  edm::DetSetVector<PixelDigi>::const_iterator itDigiSet = digiCollection.begin();
+
+  for (; itDigiSet!=digiCollection.end(); itDigiSet++) {
+
+    DetId detId(itDigiSet->detId());
+    unsigned int subDetId=detId.subdetId();
+
+    // Take only pixel digis
+    if (subDetId!=PixelSubdetector::PixelBarrel &&
+	subDetId!=PixelSubdetector::PixelEndcap) {
+      std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
+      continue;
+    }
+
+    ModuleData module=getModuleData(detId.rawId());
+
+    std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
+    if (module.det==0) {
+      std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
+      std::cout << " module " << module.module << " ";
+    } else {
+      std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
+      std::cout << " panel " << module.panel << " module " << module.module << " ";
+    }
+    ModuleData module_on=getModuleData(detId.rawId(), "online");
+    std::cout << ": " << itDigiSet->size() << std::endl;
+
+    edm::DetSet<PixelDigi>::const_iterator itDigi=itDigiSet->begin();
+
+    for(; itDigi!=itDigiSet->end(); ++itDigi) {
+      Digi digi;
+      digi.i=itDigi-itDigiSet->begin();
+      digi.row=itDigi->row();
+      digi.col=itDigi->column();
+      digi.adc=itDigi->adc();
+      std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
+      std::cout<<std::endl;
+    }
+  } // loop on cluster sets
 
 
 
@@ -242,6 +397,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clust.i=itCluster-itClusterSet->begin();
       clust.charge=itCluster->charge()/1000.0;
       clust.size=itCluster->size();
+      for (int i=0; i<itCluster->size(); i++) {
+	clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
+      }
 
       clust.mod=module;
       clust.mod_on=module_on;
@@ -277,6 +435,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   track_.d0=track.d0();
   track_.dz=track.dz();
   track_.pt=track.pt();
+
 
 
   //
@@ -406,6 +565,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
       if (trajmeas_[i].gly>0 && track_.pixhit[0]>1) {
 	trajmeas_[i].telescope=1;
+
 	std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
 		  << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
 		  << ") passed telescope" << std::endl;
@@ -431,6 +591,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
 
 
+  
   //
   // Fill the trees
   //
@@ -443,6 +604,14 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     clustTree_->SetBranchAddress("module", &clusts_[i].mod);
     clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
     clustTree_->Fill();
+  }
+
+  for (size_t i=0; i<digis_.size(); i++) {
+    digiTree_->SetBranchAddress("event", &evt_);
+    digiTree_->SetBranchAddress("clust", &digis_[i]);
+    digiTree_->SetBranchAddress("module", &digis_[i].mod);
+    digiTree_->SetBranchAddress("module_on", &digis_[i].mod_on);
+    digiTree_->Fill();
   }
 
   for (size_t i=0; i<trajmeas_.size(); i++) {
