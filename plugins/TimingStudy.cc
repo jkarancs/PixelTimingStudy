@@ -397,7 +397,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       clust.i=itCluster-itClusterSet->begin();
       clust.charge=itCluster->charge()/1000.0;
       clust.size=itCluster->size();
-      for (int i=0; i<itCluster->size(); i++) {
+      for (int i=0; i<itCluster->size() && i<1000; i++) {
 	clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
       }
 

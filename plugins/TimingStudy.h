@@ -199,7 +199,7 @@ class TimingStudy : public edm::EDAnalyzer
     int badpix;   // set if there is a valid hit
     int tworoc;   // set if there is a valid hit
     // must be the last part of the object
-    float adc[30];
+    float adc[1000];
 
     std::string list;
 
@@ -211,7 +211,7 @@ class TimingStudy : public edm::EDAnalyzer
       edge=NOVAL_I;
       badpix=NOVAL_I;
       tworoc=NOVAL_I;
-      for (size_t i=0; i<30; i++) adc[i]=NOVAL_F;
+      for (size_t i=0; i<1000; i++) adc[i]=NOVAL_F;
       list="i/I:charge/F:size/I:edge:badpix:tworoc:adc[size]/F";
     }
 
