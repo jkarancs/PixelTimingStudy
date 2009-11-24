@@ -141,7 +141,7 @@ class ClustData {
   int badpix;   // set if there is a valid hit
   int tworoc;   // set if there is a valid hit
   // must be the last part of the object
-  float adc[30];
+  float adc[1000];
 
   std::string list;
   
@@ -153,7 +153,7 @@ class ClustData {
     edge=NOVAL_I;
     badpix=NOVAL_I;
     tworoc=NOVAL_I;
-    for (size_t i=0; i<30; i++) adc[i]=NOVAL_F;
+    for (size_t i=0; i<1000; i++) adc[i]=NOVAL_F;
     list="i/I:charge/F:size/I:edge:badpix:tworoc:adc[size]/F";
   }
 };
@@ -164,6 +164,9 @@ class TrajMeasData {
  public:
   int i;//serial num of trajectory measurement on the (single)track of the event
   int validhit;
+  int missing;
+  int inactive;
+  int badhit;
   float alpha;
   float beta;
   float norm_charge;
@@ -177,23 +180,26 @@ class TrajMeasData {
   
   std::string list;
   
-  TrajMeasData() { init(); }
-  void init() {
-    i=NOVAL_I;
-    validhit=NOVAL_I;
-    alpha=NOVAL_F;
-    beta=NOVAL_F;
-    norm_charge=NOVAL_F;
-    glx=NOVAL_F;
-    gly=NOVAL_F;
-    glz=NOVAL_F;
-    res_hit=NOVAL_F;
-    sig_hit=NOVAL_F;
-    telescope=NOVAL_I;
-    telescope_valid=NOVAL_I;
-    list="i/I:validhit:alpha/F:beta:norm_charge:glx:gly:glz:res_hit:sig_hit:" \
-      "telescope/I:telescope_valid";
-  }
+    TrajMeasData() { init(); }
+    void init() {
+      i=NOVAL_I;
+      validhit=NOVAL_I;
+      missing=NOVAL_I;
+      inactive=NOVAL_I;
+      badhit=NOVAL_I;
+      alpha=NOVAL_F;
+      beta=NOVAL_F;
+      norm_charge=NOVAL_F;
+      glx=NOVAL_F;
+      gly=NOVAL_F;
+      glz=NOVAL_F;
+      res_hit=NOVAL_F;
+      sig_hit=NOVAL_F;
+      telescope=NOVAL_I;
+      telescope_valid=NOVAL_I;
+      list="i/I:validhit:missing:inactive:badhit:alpha/F:beta:norm_charge:"
+	"glx:gly:glz:res_hit:sig_hit:telescope/I:telescope_valid";
+    }
 };
 
 

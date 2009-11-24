@@ -13,6 +13,7 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TROOT.h"
+#include "TF1.h"
 
 #include "DataStructures.h"
 #include "debDataMaker/interface/Histogram.hh"
@@ -85,14 +86,12 @@ int doRecHitPlots(TChain *trajTree) {
   //
 
   // 1. Hit Efficiency vs DT time
-  deb::Plot<deb::Histogram<TH1F> > dttimeeff(100, 100, 
+  deb::Plot<TH1F> dttimeeff(100, 100, 
 					     "%s_dttimeeff\\TDR", plotType.data());
   dttimeeff.add(35,-35.,35., "@6;Hit efficiency in the @#1. Barrel @#2. pixel;"
 		"DT time [ns];Efficiency");
   dttimeeff.efficiency();
-  std::cout << "dttimeeff created" <<std::endl;
-
-
+  std::cout<<"dttimeeff created\n";
 
   // 2. Efficiency vs run
   plotName.str("");
@@ -262,7 +261,7 @@ int doRecHitPlots(TChain *trajTree) {
 // 	rogeff_num->Fill(trajmeas.mod_on.sec, rogeff_y);
 //       }
 
-      deleff.den()->Fill(delays[evt.run]);
+      if (trajmeas.validhit||trajmeas.missing) deleff.den()->Fill(delays[evt.run]);
       if (trajmeas.validhit) deleff.num()->Fill(delays[evt.run]);
     }
 
@@ -279,13 +278,21 @@ int doRecHitPlots(TChain *trajTree) {
   //
   // Post-processing and drawing histograms
   //
+  std::cout<<"dttimeeff efficiency"<<std::endl;
   dttimeeff.efficiency();
+  std::cout<<"dttimeeff sclae"<<std::endl;
   dttimeeff.scaleMaximumTo("denominator");
+  std::cout<<"dttimeeff set color"<<std::endl;
   dttimeeff.setColor("Line", 1);
+  std::cout<<"dttimeeff range axis"<<std::endl;
   dttimeeff.setAxisRange(0., 1.1, "Y");
-  dttimeeff.Draw("[0],[1],[2], [3], [4], [5];overlay HIST\\"
-		 "[0].den,[1].den,[2].den,[3].den,[4].den,[5].den;overlayHISTL",
+  std::cout<<"dttimeeff draw"<<std::endl;
+
+  dttimeeff.Draw("[0]|delay 0|Delays,[1]|delay 1,[2]| delay 2|later delays:, [3], [4], [5];overlay HIST;Hit efficiency in BPix\\"
+		 "[0].den|delay0,[1].den,[2].den,[3].den|delay 3,[4].den,[5].den;stackHISTL;DT time distribution of muons;time",
 		 1);
+
+  std::cout<<"dttimeeff write"<<std::endl;
   dttimeeff.Write();
 
 
@@ -368,6 +375,7 @@ int doRecHitPlots(TChain *trajTree) {
 
 
   deleff.efficiency();
+  deleff.SetAxisRange(0, 1.0, "Y");
   deleff_can.Draw();
   deleff_can.cd();
   deleff.Draw();
@@ -518,7 +526,7 @@ int doClusterPlots(TChain *clustTree) {
 
 
   // 4. Average cluster size per event vs delay
-  deb::Histogram<TH1F> delavgclussize("","Average cluster size in the Barrel pixel (for clusters >12 ke);Delay[ns];<Size>",
+  deb::Histogram<TH1F> delavgclussize("","Average cluster size in the Barrel pixel (clusters >12 ke);Delay[ns];Mean cluster size [pixels]",
 			      6, -15, 21);
   delavgclussize.setLabel("Name", "%s_delavgclussize", plotType.data());
   delavgclussize.efficiency();
@@ -565,18 +573,31 @@ int doClusterPlots(TChain *clustTree) {
   
 
   // 9. Cluster charge
-  deb::Plot<deb::Histogram<TH1F> > chrgClus(600, 600, 
+  deb::Plot<TH1F> chrgClus(600, 600, 
 					    "%s_chrgClus", plotType.data());
-  chrgClus.add(200, 0., 200., 
-	       "@6;Cluster charge at delay step @#1;Charge [ke];Nclus");
+  chrgClus.add(160, 0., 160., 
+	       "@4@6;Cluster charge at delay step @#2 (size=@#1);Charge [ke];N_{clusters}");
+
+  // 10. Cluster charge
+  deb::Plot<TH1F> chrgClus1(600, 600, 
+					    "%s_chrgClus1", plotType.data());
+  chrgClus1.add(160, 0., 160., 
+	      "@6;Cluster charge at delay step @#1 (size=1);Charge [ke];N_{clusters}");
 
 
-  // 10. pixel charge in clusters
-  deb::Plot<deb::Histogram<TH1F> > chrgPix(600, 600, 
+  // 10. Cluster charge
+  deb::Plot<TH1F> chrgClus2(600, 600, 
+					    "%s_chrgClus2", plotType.data());
+  chrgClus2.add(160, 0., 160., 
+		"@6;Cluster charge at delay step @#1;Charge [ke];N_{clusters}");
+
+
+  // 11. pixel charge in clusters
+  deb::Plot<TH1F> chrgPix(600, 600, 
 					   "%s_chrgPix", plotType.data());
-  chrgPix.add(200, 0., 200., 
+  chrgPix.add(50, 0., 25., 
 	      "@6;Pixel charge at delay step @#1 in Clusters;"
-	      "Charge [ke];Nclus");
+	      "Charge [ke];N_{clusters}");
 
 
   //
@@ -616,17 +637,22 @@ int doClusterPlots(TChain *clustTree) {
     if (clust.mod_on.sec!=4&&clust.mod_on.sec!=5&&clust.charge>12.) {
       delavgclussize.num()->Fill(delays[evt.run], clust.size);
       delavgclussize.den()->Fill(delays[evt.run]);
-      if (clust.charge>12.) {
-	delavgcluschrg.num()->Fill(delays[evt.run], clust.charge);
-	delavgcluschrg.den()->Fill(delays[evt.run]);
-      }
+    }
+    if (clust.mod_on.sec!=4&&clust.mod_on.sec!=5&&(clust.size>0)) {
+      delavgcluschrg.num()->Fill(delays[evt.run], clust.charge);
+      delavgcluschrg.den()->Fill(delays[evt.run]);
     }
     sizeClusVsDelay.num()->Fill(delays[evt.run], clust.size);
     chrgClusVsDelay.num()->Fill(delays[evt.run], clust.charge);
 
-    chrgClus(step).Fill(clust.charge);
-    for (int p=0; p<clust.size; p++) {
-      chrgPix(step).Fill(clust.adc[p]);
+    if (clust.size==1) chrgClus1(step).Fill(clust.charge);
+    chrgClus2(step).Fill(clust.charge);
+    int size= (clust.size>2) ? 3 : clust.size;
+    chrgClus("[%d][%d]", size, step).Fill(clust.charge);
+    if (clust.size>0) {
+      for (int p=0; p<clust.size; p++) {
+	chrgPix(step).Fill(clust.adc[p]);
+      }
     }
   }
 
@@ -696,14 +722,56 @@ int doClusterPlots(TChain *clustTree) {
   chrgClusVsDelay_can.Write();
   
 
-  chrgClus.scaleMaximumTo();
-  chrgClus.setAxisRange(0., 1.1, "Y");
-  chrgClus.Draw("[0],[1],[2], [3], [4], [5]", 2);
+  //chrgClus.scaleMaximumTo();
+  //chrgClus.setAxisRange(0., 1.1, "Y");
+
+  deb::Plot<TH1F> 
+    chrgLandVsDelay(600, 600, 6, -15., 21., "%s_chrgLandVsDelay;"
+		    "Fit of cluster charge in Barrel;chrgLandVsDelay;"
+		    "Fit of cluster charge in Barrel;Charge [ke];Delay [ns]", 
+		    plotType.data());
+  Double_t par[5];
+  TF1* land = new TF1("land", "landau(0)", 3, 200);
+  TF1* expo = new TF1("expo", "expo(0)", 3, 200);
+  TF1 *total = new TF1("total","expo(0)+landau(2)", 3, 200);
+
+  deb::Plot<TH1F>::iterator it;
+  size_t step=1;
+  for (it=chrgClus2.begin(); it!=chrgClus2.end(); it++) {
+//     it->second.Fit(expo, "WR", "", 3, 200);
+//     expo->GetParameters(&par[0]);
+    it->second.Fit(land, "WR", "", 15, 160); //15, 160
+    land->GetParameters(&par[2]);
+//     total->SetParameters(&par[0]);
+//     it->second.Fit(total, "WR", "", 3, 200);
+//     total->GetParameters(&par[0]);
+    chrgLandVsDelay.begin()->second.SetBinContent(step, par[3]);
+    chrgLandVsDelay.begin()->second.SetBinError(step, land->GetParError(3));
+    step++;
+  }
+  chrgLandVsDelay.Draw("chrgLandVsDelay;PE");
+  chrgLandVsDelay.Write();
+
+  chrgClus.Draw("[1][0], [2][0], [3][0];overlay\\"
+		"[1][1], [2][1], [3][1];overlay\\"
+		"[1][2], [2][2], [3][2];overlay\\"
+		"[1][3], [2][3], [3][3];overlay\\"
+		"[1][4], [2][4], [3][4];overlay\\"
+		"[1][5], [2][5], [3][5];overlay\\", 2);
   chrgClus.Write();
 
-  //  chrgPix.scaleMaximumTo();
+
+  chrgClus1.Draw("[0],[1],[2], [3], [4], [5]", 2);
+  chrgClus1.Write();
+
+  chrgClus2.Draw("[0],[1],[2], [3], [4], [5]", 2);
+  chrgClus2.Write();
+
+
+  //chrgPix.scaleMaximumTo();
   //  chrgPix.setAxisRange(0., 1.1, "Y");
-  chrgPix.Draw("[0],[1],[2], [3], [4], [5]", 2);
+  chrgPix.setColor("Line", 1);
+  chrgPix.Draw("[0],[1],[2],[3], [4], [5]", 2);
   chrgPix.Write();
   //
   // The end
