@@ -6,7 +6,7 @@
 
 //
 //
-// ----------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
@@ -90,6 +90,7 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
   edm::Service<TFileService> fs;
 
 
+  TrackData track_;
   trackTree_ = fs->make<TTree>("trackTree", "The track in the event");
   trackTree_->Branch("event", &evt_, evt_.list.data());
   trackTree_->Branch("track", &track_, track_.list.data());
@@ -231,26 +232,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   init_all(); // clear all containers
 
 
-
-  //
-  // Read track info
-  //
-  edm::Handle<TrajTrackAssociationCollection> trajTrackCollectionHandle;
-  iEvent.getByLabel(iConfig_.getParameter<std::string>("trajectoryInput"),
-		    trajTrackCollectionHandle);
-
-
-  //
-  // Consider events with exactly one track
-  //
-  std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
-  std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
-  if (trajTrackCollectionHandle->size()!=1) return;
-
-  // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
-
-
-
   //
   // Read event info
   //
@@ -260,6 +241,36 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.delay=globaldelay[iEvent.id().run()];
   evt_.bx=iEvent.bunchCrossing();
   evt_.orb=iEvent.orbitNumber();
+
+
+
+  //
+  // Read track info
+  //
+  edm::Handle<TrajTrackAssociationCollection> trajTrackCollectionHandle;
+  std::string trajTrackCollectionInput=
+    iConfig_.getParameter<std::string>("trajectoryInput");
+  iEvent.getByLabel(trajTrackCollectionInput, trajTrackCollectionHandle);
+
+
+  if (trajTrackCollectionHandle.isValid()) {
+    std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
+    std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
+
+    evt_.ntracks=trajTrackCollectionHandle->size();
+
+    if (trajTrackCollectionInput=="ctfRefitter") {
+      //
+      // Consider events with exactly one track
+      //
+      //if (trajTrackCollectionHandle->size()!=1) return;
+    }
+  }
+
+
+
+  // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
+
 
   //
   // Fill event with muon time
@@ -271,13 +282,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     const MuonCollection& muons=*muonCollectionHandle;
     for (size_t i=0; i<muons.size(); i++) {
       if (!muons[i].isGlobalMuon()) continue;
-
+      
       MuonTime time=muons[i].time();
       if (muons[i].isTimeValid() && fabs(evt_.tmuon_err)>time.timeAtIpInOutErr) {
 	evt_.tmuon=time.timeAtIpInOut;
 	evt_.tmuon_err=time.timeAtIpInOutErr;
       }
-
+      
       if (!muons[i].isEnergyValid()) continue;
       if (muons[i].calEnergy().ecal_id.subdetId()==EcalBarrel) {
 	float tecal_err=33./(muons[i].calEnergy().emMax/0.3);
@@ -293,6 +304,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     } // loop along muons
   } // if there is a muon
 
+
+
+
+  //
+  // Magnetic field
+  //
+
   edm::ESHandle<MagneticField> magFieldHandle;
   iSetup.get<IdealMagneticFieldRecord>().get(magFieldHandle);
   const MagneticField& magField = *magFieldHandle;
@@ -305,6 +323,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 
 
+
   //
   // Read digi information
   //
@@ -312,101 +331,110 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   edm::Handle<edm::DetSetVector<PixelDigi> >  digiCollectionHandle;
   iEvent.getByLabel("siPixelDigis", digiCollectionHandle);
 
-  const edm::DetSetVector<PixelDigi>& digiCollection = *digiCollectionHandle;
-  edm::DetSetVector<PixelDigi>::const_iterator itDigiSet = digiCollection.begin();
+  if (digiCollectionHandle.isValid()) {
+    const edm::DetSetVector<PixelDigi>& digiCollection = *digiCollectionHandle;
+    edm::DetSetVector<PixelDigi>::const_iterator itDigiSet = digiCollection.begin();
 
-  for (; itDigiSet!=digiCollection.end(); itDigiSet++) {
+    for (; itDigiSet!=digiCollection.end(); itDigiSet++) {
+      
+      DetId detId(itDigiSet->detId());
+      unsigned int subDetId=detId.subdetId();
+      
+      // Take only pixel digis
+      if (subDetId!=PixelSubdetector::PixelBarrel &&
+	  subDetId!=PixelSubdetector::PixelEndcap) {
+	std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
+	continue;
+      }
+      
+      ModuleData module=getModuleData(detId.rawId());
+      
+      std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
+      if (module.det==0) {
+	std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
+	std::cout << " module " << module.module << " ";
+      } else {
+	std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
+	std::cout << " panel " << module.panel << " module " << module.module << " ";
+      }
+      ModuleData module_on=getModuleData(detId.rawId(), "online");
+      std::cout << ": " << itDigiSet->size() << std::endl;
+      
+      edm::DetSet<PixelDigi>::const_iterator itDigi=itDigiSet->begin();
+      
+      for(; itDigi!=itDigiSet->end(); ++itDigi) {
+	Digi digi;
+	digi.i=itDigi-itDigiSet->begin();
+	digi.row=itDigi->row();
+	digi.col=itDigi->column();
+	digi.adc=itDigi->adc();
+	digis_.push_back(digi);
+	std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
+	std::cout<<std::endl;
+      }
+    } // loop on digis
+  }
 
-    DetId detId(itDigiSet->detId());
-    unsigned int subDetId=detId.subdetId();
-
-    // Take only pixel digis
-    if (subDetId!=PixelSubdetector::PixelBarrel &&
-	subDetId!=PixelSubdetector::PixelEndcap) {
-      std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
-      continue;
-    }
-
-    ModuleData module=getModuleData(detId.rawId());
-
-    std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
-    if (module.det==0) {
-      std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
-      std::cout << " module " << module.module << " ";
-    } else {
-      std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
-      std::cout << " panel " << module.panel << " module " << module.module << " ";
-    }
-    ModuleData module_on=getModuleData(detId.rawId(), "online");
-    std::cout << ": " << itDigiSet->size() << std::endl;
-
-    edm::DetSet<PixelDigi>::const_iterator itDigi=itDigiSet->begin();
-
-    for(; itDigi!=itDigiSet->end(); ++itDigi) {
-      Digi digi;
-      digi.i=itDigi-itDigiSet->begin();
-      digi.row=itDigi->row();
-      digi.col=itDigi->column();
-      digi.adc=itDigi->adc();
-      std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
-      std::cout<<std::endl;
-    }
-  } // loop on cluster sets
 
 
 
   //
   // Read cluster information
   //
+
+
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
 
-  const edmNew::DetSetVector<SiPixelCluster>& clusterCollection = *clusterCollectionHandle;
-  edmNew::DetSetVector<SiPixelCluster>::const_iterator itClusterSet = 
-    clusterCollection.begin();
+  if (clusterCollectionHandle.isValid()) {
+    const edmNew::DetSetVector<SiPixelCluster>& clusterCollection=*clusterCollectionHandle;
+    edmNew::DetSetVector<SiPixelCluster>::const_iterator itClusterSet= clusterCollection.begin();
 
-  for (; itClusterSet!=clusterCollection.end(); itClusterSet++) {
-
-    DetId detId(itClusterSet->id());
-    unsigned int subDetId=detId.subdetId();
-
-    // Take only pixel clusters
-    if (subDetId!=PixelSubdetector::PixelBarrel &&
-	subDetId!=PixelSubdetector::PixelEndcap) {
-      std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
-      continue;
-    }
-
-    ModuleData module=getModuleData(detId.rawId());
-
-    std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of clusters on ";
-    if (module.det==0) {
-      std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
-      std::cout << " module " << module.module << " ";
-    } else {
-      std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
-      std::cout << " panel " << module.panel << " module " << module.module << " ";
-    }
-    ModuleData module_on=getModuleData(detId.rawId(), "online");
-    std::cout << ": " << itClusterSet->size() << std::endl;
-
-    edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();
-
-    for(; itCluster!=itClusterSet->end(); ++itCluster) {
-      Cluster clust;
-      clust.i=itCluster-itClusterSet->begin();
-      clust.charge=itCluster->charge()/1000.0;
-      clust.size=itCluster->size();
-      for (int i=0; i<itCluster->size() && i<1000; i++) {
-	clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
+    for (; clusterCollectionHandle.isValid() && itClusterSet!=clusterCollection.end(); 
+	 itClusterSet++) {
+      
+      DetId detId(itClusterSet->id());
+      unsigned int subDetId=detId.subdetId();
+      
+      // Take only pixel clusters
+      if (subDetId!=PixelSubdetector::PixelBarrel &&
+	  subDetId!=PixelSubdetector::PixelEndcap) {
+	std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
+	continue;
       }
+      
+      ModuleData module=getModuleData(detId.rawId());
+      
+      std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of clusters on ";
+      if (module.det==0) {
+	std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
+	std::cout << " module " << module.module << " ";
+      } else {
+	std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
+	std::cout << " panel " << module.panel << " module " << module.module << " ";
+      }
+      ModuleData module_on=getModuleData(detId.rawId(), "online");
+      std::cout << ": " << itClusterSet->size() << std::endl;
 
-      clust.mod=module;
-      clust.mod_on=module_on;
-      clusts_.push_back(clust);
-      std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
-    }
-  } // loop on cluster sets
+      edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();
+      
+      for(; itCluster!=itClusterSet->end(); ++itCluster) {
+	Cluster clust;
+	clust.i=itCluster-itClusterSet->begin();
+	clust.charge=itCluster->charge()/1000.0;
+	clust.size=itCluster->size();
+	for (int i=0; i<itCluster->size() && i<1000; i++) {
+	  clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
+	}
+	
+	clust.mod=module;
+	clust.mod_on=module_on;
+	clusts_.push_back(clust);
+	std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
+      }
+    } // loop on cluster sets
+  }
+
 
 
 
@@ -414,193 +442,218 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Process tracks
   //
 
-  TrajTrackAssociationCollection::const_iterator itTrajTrack;
-  itTrajTrack = trajTrackCollectionHandle->begin();
-
-  const Trajectory& traj  = *itTrajTrack->key;
-  const Track&      track = *itTrajTrack->val;
-
-
-  //
-  // Read track info - USED BY TrajMeasurement!!!
-  //
-  track_.pix=0;
-  track_.strip=0;
-  track_.pixhit[0]=0;
-  track_.pixhit[1]=0;
-  track_.validpixhit[0]=0;
-  track_.validpixhit[1]=0;
-  track_.ndof=track.ndof();
-  track_.chi2=track.chi2();
-  track_.d0=track.d0();
-  track_.dz=track.dz();
-  track_.pt=track.pt();
-
-
-
-  //
-  // Loop along trajectory measurements
-  //
-
-  std::vector<TrajectoryMeasurement> trajMeasurements = traj.measurements();
-  TrajectoryStateCombiner trajStateComb;
-
-  std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-  std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
-
-  //int nTopHits=0; int nBottomHits=0; int nTopValidHits=0; int nBottomValidHits=0;
-  //int nValidStripHits=0;
-  std::vector<TrajectoryMeasurement>::const_iterator itTraj;
   
-  for(itTraj=trajMeasurements.begin(); itTraj!=trajMeasurements.end(); ++itTraj) {
+  if (trajTrackCollectionHandle.isValid()) {
 
-    TrajMeasurement meas;
-    meas.i=itTraj-trajMeasurements.begin();
+    TrajTrackAssociationCollection::const_iterator itTrajTrack=trajTrackCollectionHandle->begin();
 
-    std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-    std::cout << " TrajMeas #" << meas.i;
+    int itrack=0;
+    for (;itTrajTrack!=trajTrackCollectionHandle->end(); itTrajTrack++) {
+      
+      const Trajectory& traj  = *itTrajTrack->key;
+      const Track&      track = *itTrajTrack->val;
+      
+      TrackData track_;
+      trajmeas_.clear();
+      //
+      // Read track info - USED BY TrajMeasurement!!!
+      //
+      track_.i=itrack++;
+      track_.pix=0;
+      track_.strip=0;
+      track_.pixhit[0]=0;
+      track_.pixhit[1]=0;
+      track_.validpixhit[0]=0;
+      track_.validpixhit[1]=0;
+      track_.ndof=track.ndof();
+      track_.chi2=track.chi2();
+      track_.d0=track.d0();
+      track_.dz=track.dz();
+      track_.pt=track.pt();
 
-    TransientTrackingRecHit::ConstRecHitPointer recHit = itTraj->recHit();
-    if (recHit->geographicalId().det()!=DetId::Tracker) continue;
 
-    meas.mod=getModuleData(recHit->geographicalId().rawId(), "offline");
 
-    uint subDetId = recHit->geographicalId().subdetId();
+      //
+      // Loop along trajectory measurements
+      //
+    
+      std::vector<TrajectoryMeasurement> trajMeasurements = traj.measurements();
+      TrajectoryStateCombiner trajStateComb;
+    
+      std::cout << "Run " << evt_.run << " Event " << evt_.evt;
+      std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
+    
+      //int nTopHits=0; int nBottomHits=0; int nTopValidHits=0; int nBottomValidHits=0;
+      //int nValidStripHits=0;
+      std::vector<TrajectoryMeasurement>::const_iterator itTraj;
+    
+      for(itTraj=trajMeasurements.begin(); itTraj!=trajMeasurements.end(); ++itTraj) {
+	
+	TrajMeasurement meas;
+	meas.i=itTraj-trajMeasurements.begin();
+      
+	std::cout << "Run " << evt_.run << " Event " << evt_.evt;
+	std::cout << " TrajMeas #" << meas.i;
 
-    if (subDetId == PixelSubdetector::PixelBarrel) {
-      std::cout << " PixelBarrel layer " << meas.mod.layer;
-      std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
-      if (recHit->isValid()) track_.pix++;
-    } else if (subDetId == PixelSubdetector::PixelEndcap) {
-      std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
-      std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
-      if (recHit->isValid()) track_.pix++;
-    } else if (subDetId == StripSubdetector::TIB) { 
-      std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
-      if (recHit->isValid()) track_.strip++;
-    } else if (subDetId == StripSubdetector::TOB) {
-      std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
-      if (recHit->isValid()) track_.strip++;
-    } else if (subDetId == StripSubdetector::TID) { 
-      std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
-      if (recHit->isValid()) track_.strip++;
-    } else if (subDetId == StripSubdetector::TEC) {
-      std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
-      if (recHit->isValid()) track_.strip++;
-    }
-
-    meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
-
-    if (!itTraj->updatedState().isValid()) std::cout<<", updatedState is invalid";
-    meas.validhit=1;
-    if (!recHit->isValid()) {
-      meas.validhit=0;
-      std::cout << ", RecHit is invalid";
-    }
-    std::cout << std::endl;
-
-    meas.missing= (recHit->getType()==TrackingRecHit::missing) ? 1 : 0;
-    meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
-    meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
-
-    //
-    // Dealing only with pixel measurements from here on
-    //
-    if (subDetId!=PixelSubdetector::PixelBarrel && 
-	subDetId!=PixelSubdetector::PixelEndcap) continue;
-
-    TrajectoryStateOnSurface predTrajState=trajStateComb(itTraj->forwardPredictedState(),
-							 itTraj->backwardPredictedState());
-
-    meas.glx=predTrajState.globalPosition().x();
-    meas.gly=predTrajState.globalPosition().y();
-    meas.glz=predTrajState.globalPosition().z();    
-    meas.telescope=0;
-    meas.telescope_valid=0;
-
-    //
-    // Count hits for track (also used by telescope cut)
-    //
-    if (meas.gly<0) {
-      track_.pixhit[1]++;
-      if (recHit->isValid()) track_.validpixhit[1]++;
-    } else {
-      track_.pixhit[0]++;
-      if (recHit->isValid()) track_.validpixhit[0]++;
-    }
-
-    // Read associated cluster parameters
-    if (recHit->isValid() && recHit->hit()!=0) {
-      const SiPixelRecHit *hit=(const SiPixelRecHit*)recHit->hit();
-      SiPixelRecHit::ClusterRef const& clust=hit->cluster();
-      if (clust.isNonnull()) {
-	meas.clu.charge=(*clust).charge()/1000.0;
-	meas.clu.size=(*clust).size();
-	meas.clu.edge=hit->isOnEdge() ? 1 : 0;
-	meas.clu.badpix=hit->hasBadPixels() ? 1 : 0;
-	meas.clu.tworoc=hit->spansTwoROCs() ? 1 : 0;
-
-	LocalTrajectoryParameters predTrajParam= predTrajState.localParameters();
-	LocalVector dir = predTrajParam.momentum()/predTrajParam.momentum().mag();
-
-	meas.alpha = atan2(dir.z(), dir.x());
-	meas.beta = atan2(dir.z(), dir.y());	
-	meas.norm_charge = meas.clu.charge*
-	  sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
+	TransientTrackingRecHit::ConstRecHitPointer recHit = itTraj->recHit();
+	if (recHit->geographicalId().det()!=DetId::Tracker) continue;
+      
+	meas.mod=getModuleData(recHit->geographicalId().rawId(), "offline");
+      
+	uint subDetId = recHit->geographicalId().subdetId();
+      
+	if (subDetId == PixelSubdetector::PixelBarrel) {
+	  std::cout << " PixelBarrel layer " << meas.mod.layer;
+	  std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
+	  if (recHit->isValid()) track_.pix++;
+	} else if (subDetId == PixelSubdetector::PixelEndcap) {
+	  std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
+	  std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
+	  if (recHit->isValid()) track_.pix++;
+	} else if (subDetId == StripSubdetector::TIB) { 
+	  std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
+	  if (recHit->isValid()) track_.strip++;
+	} else if (subDetId == StripSubdetector::TOB) {
+	  std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
+	  if (recHit->isValid()) track_.strip++;
+	} else if (subDetId == StripSubdetector::TID) { 
+	  std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
+	  if (recHit->isValid()) track_.strip++;
+	} else if (subDetId == StripSubdetector::TEC) {
+	  std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
+	  if (recHit->isValid()) track_.strip++;
+	}
+	
+	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
+      
+	if (!itTraj->updatedState().isValid()) std::cout<<", updatedState is invalid";
+	meas.validhit=1;
+	if (!recHit->isValid()) {
+	  meas.validhit=0;
+	  std::cout << ", RecHit is invalid";
+	}
+	std::cout << std::endl;
+	
+	meas.missing= (recHit->getType()==TrackingRecHit::missing) ? 1 : 0;
+	meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
+	meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
+      
+	//
+	// Dealing only with pixel measurements from here on
+	//
+	if (subDetId!=PixelSubdetector::PixelBarrel && 
+	    subDetId!=PixelSubdetector::PixelEndcap) continue;
+	
+	TrajectoryStateOnSurface predTrajState=trajStateComb(itTraj->forwardPredictedState(),
+							     itTraj->backwardPredictedState());
+	
+	meas.glx=predTrajState.globalPosition().x();
+	meas.gly=predTrajState.globalPosition().y();
+	meas.glz=predTrajState.globalPosition().z();    
+	meas.telescope=0;
+	meas.telescope_valid=0;
+      
+	//
+	// Count hits for track (also used by telescope cut)
+	//
+	if (meas.gly<0) {
+	  track_.pixhit[1]++;
+	  if (recHit->isValid()) track_.validpixhit[1]++;
+	} else {
+	  track_.pixhit[0]++;
+	  if (recHit->isValid()) track_.validpixhit[0]++;
+	}
+	
+	// Read associated cluster parameters
+	if (recHit->isValid() && recHit->hit()!=0) {
+	  const SiPixelRecHit *hit=(const SiPixelRecHit*)recHit->hit();
+	  SiPixelRecHit::ClusterRef const& clust=hit->cluster();
+	  if (clust.isNonnull()) {
+	    meas.clu.charge=(*clust).charge()/1000.0;
+	    meas.clu.size=(*clust).size();
+	    meas.clu.edge=hit->isOnEdge() ? 1 : 0;
+	    meas.clu.badpix=hit->hasBadPixels() ? 1 : 0;
+	    meas.clu.tworoc=hit->spansTwoROCs() ? 1 : 0;
+	    
+	    LocalTrajectoryParameters predTrajParam= predTrajState.localParameters();
+	    LocalVector dir = predTrajParam.momentum()/predTrajParam.momentum().mag();
+	    
+	    meas.alpha = atan2(dir.z(), dir.x());
+	    meas.beta = atan2(dir.z(), dir.y());	
+	    meas.norm_charge = meas.clu.charge*
+	      sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
+	  }
+	}
+	
+	meas.trk=track_;
+	trajmeas_.push_back(meas);
+      } // loop on trajectory measurements
+      
+    
+      //
+      // Make telescope cut for Trajectory Measurements
+      //
+    
+      if (track_.pixhit[0]>0 && track_.pixhit[1]>0) {
+	for (size_t i=0; i<trajmeas_.size(); i++) {
+	  if (trajmeas_[i].gly<0 && track_.pixhit[1]>1) {
+	    trajmeas_[i].telescope=1;
+	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
+		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+		      << ") passed telescope" << std::endl;
+	  }
+	  if (trajmeas_[i].gly>0 && track_.pixhit[0]>1) {
+	    trajmeas_[i].telescope=1;
+	    
+	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
+		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+		      << ") passed telescope" << std::endl;
+	  }
+	}
       }
+      
+      if (track_.validpixhit[0]>0 && track_.validpixhit[1]>0) {
+	for (size_t i=0; i<trajmeas_.size(); i++) {
+	  if (trajmeas_[i].gly<0 && (track_.validpixhit[1]>1 || !trajmeas_[i].validhit)) {
+	    trajmeas_[i].telescope_valid=1;
+	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
+		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+		      << ") passed telescope_valid" << std::endl;
+	  }
+	  if (trajmeas_[i].gly>0 && (track_.validpixhit[0]>1 || !trajmeas_[i].validhit)) {
+	    trajmeas_[i].telescope_valid=1;
+	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
+		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+		      << ") passed telescope_valid" << std::endl;
+	  }
+	}
+      }
+      
+      for (size_t i=0; i<trajmeas_.size(); i++) {
+	trajTree_->SetBranchAddress("event", &evt_);
+	trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
+	trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
+	trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
+	trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
+	trajTree_->SetBranchAddress("track", &track_);
+	trajTree_->Fill();
+      }
+      
+      tracks_.push_back(track_);
     }
 
-    meas.trk=track_;
-    trajmeas_.push_back(meas);
-  } // loop on trajectory measurements
-
-  
-  //
-  // Make telescope cut for Trajectory Measurements
-  //
-  
-  if (track_.pixhit[0]>0 && track_.pixhit[1]>0) {
-    for (size_t i=0; i<trajmeas_.size(); i++) {
-      if (trajmeas_[i].gly<0 && track_.pixhit[1]>1) {
-	trajmeas_[i].telescope=1;
-	std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		  << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
-		  << ") passed telescope" << std::endl;
-      }
-      if (trajmeas_[i].gly>0 && track_.pixhit[0]>1) {
-	trajmeas_[i].telescope=1;
-
-	std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		  << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
-		  << ") passed telescope" << std::endl;
-      }
-    }
   }
-
-  if (track_.validpixhit[0]>0 && track_.validpixhit[1]>0) {
-    for (size_t i=0; i<trajmeas_.size(); i++) {
-      if (trajmeas_[i].gly<0 && (track_.validpixhit[1]>1 || !trajmeas_[i].validhit)) {
-	trajmeas_[i].telescope_valid=1;
-	std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		  << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
-		  << ") passed telescope_valid" << std::endl;
-      }
-      if (trajmeas_[i].gly>0 && (track_.validpixhit[0]>1 || !trajmeas_[i].validhit)) {
-	trajmeas_[i].telescope_valid=1;
-	std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		  << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
-		  << ") passed telescope_valid" << std::endl;
-      }
-    }
-  }
-
 
   
   //
   // Fill the trees
   //
-
-  trackTree_->Fill();
+  
+  for (size_t i=0; i<tracks_.size(); i++) {
+    trackTree_->SetBranchAddress("event", &evt_);
+    trackTree_->SetBranchAddress("track", &tracks_[i]);
+    trackTree_->Fill();
+  }
 
   for (size_t i=0; i<clusts_.size(); i++) {
     clustTree_->SetBranchAddress("event", &evt_);
@@ -612,21 +665,21 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   for (size_t i=0; i<digis_.size(); i++) {
     digiTree_->SetBranchAddress("event", &evt_);
-    digiTree_->SetBranchAddress("clust", &digis_[i]);
+    digiTree_->SetBranchAddress("digi", &digis_[i]);
     digiTree_->SetBranchAddress("module", &digis_[i].mod);
     digiTree_->SetBranchAddress("module_on", &digis_[i].mod_on);
     digiTree_->Fill();
   }
 
-  for (size_t i=0; i<trajmeas_.size(); i++) {
-    trajTree_->SetBranchAddress("event", &evt_);
-    trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
-    trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
-    trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
-    trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
-    trajTree_->SetBranchAddress("track", &track_);
-    trajTree_->Fill();
-  }
+//   for (size_t i=0; i<trajmeas_.size(); i++) {
+//     trajTree_->SetBranchAddress("event", &evt_);
+//     trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
+//     trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
+//     trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
+//     trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
+//     trajTree_->SetBranchAddress("track", &track_);
+//     trajTree_->Fill();
+//   }
   
   
 }

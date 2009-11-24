@@ -77,6 +77,7 @@ class TimingStudy : public edm::EDAnalyzer
     int delay;
     int bx;
     int orb;
+    int ntracks;
 
     std::string list;
 
@@ -94,7 +95,8 @@ class TimingStudy : public edm::EDAnalyzer
       delay=NOVAL_I;
       bx=NOVAL_I;
       orb=NOVAL_I;
-      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb";
+      ntracks=NOVAL_I;
+      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:ntracks";
     }
 
   } evt_;
@@ -103,6 +105,7 @@ class TimingStudy : public edm::EDAnalyzer
   // Track info
   class TrackData {
    public:
+    int i;
     int pix; // total valid hits
     int strip; // total valid hits
     int pixhit[2]; // 0: top, 1: bottom
@@ -117,6 +120,7 @@ class TimingStudy : public edm::EDAnalyzer
    
     TrackData() { init(); }
     void init() {
+      i=NOVAL_I;
       pix=NOVAL_I;
       strip=NOVAL_I;
       pixhit[0]=pixhit[1]=NOVAL_I;
@@ -126,10 +130,12 @@ class TimingStudy : public edm::EDAnalyzer
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
-      list="pix/I:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt";
+      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt";
     }
 
-  } track_;
+  };
+
+  std::vector<TrackData> tracks_;
 
 
   // Module info
@@ -343,7 +349,7 @@ class TimingStudy : public edm::EDAnalyzer
   
   void init_all() {
     evt_.init();
-    track_.init();
+    tracks_.clear();
     trajmeas_.clear();
     clusts_.clear();
     digis_.clear();
