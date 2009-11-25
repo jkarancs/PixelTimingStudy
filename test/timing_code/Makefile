@@ -16,6 +16,14 @@ TIMINGANALYSIS       = TimingAnalysis$(ExeSuf)
 OBJS          = $(TIMINGANALYSISO)
 PROGRAMS      = $(TIMINGANALYSIS)
 
+
+TIMINGANALYSISDATAO      = TimingAnalysisData.$(ObjSuf)
+TIMINGANALYSISDATAS      = TimingAnalysisData.$(SrcSuf)
+TIMINGANALYSISDATA       = TimingAnalysisData$(ExeSuf)
+
+OBJS          += $(TIMINGANALYSISDATAO)
+PROGRAMS      += $(TIMINGANALYSISDATA)
+
 #------------------------------------------------------------------------------
 
 .SUFFIXES: .$(SrcSuf) .$(ObjSuf) .$(DllSuf)
@@ -23,6 +31,11 @@ PROGRAMS      = $(TIMINGANALYSIS)
 all:            $(PROGRAMS)
 
 $(TIMINGANALYSIS):     $(TIMINGANALYSISO)
+		$(LD) $(LDFLAGS) $^ $(LIBS) $(OutPutOpt)$@
+		$(MT_EXE)
+		@echo "$@ done"
+
+$(TIMINGANALYSISDATA):     $(TIMINGANALYSISDATAO)
 		$(LD) $(LDFLAGS) $^ $(LIBS) $(OutPutOpt)$@
 		$(MT_EXE)
 		@echo "$@ done"
