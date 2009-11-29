@@ -1,7 +1,8 @@
 include Makefile.arch
 
-CXXFLAGS += -I $(CMSSW_BASE)
-#LIBS  += -L$(XDAQ_ROOT)/lib -L$(BUILD_HOME)/pixel/lib -lPixelConfigDBInterface -lSiPixelObjects
+CXXFLAGS += -I $(CMSSW_BASE) -I /afs/cern.ch/cms/sw/slc4_ia32_gcc345/external/boost/1.38.0/include
+LIBS  += -L/afs/cern.ch/cms/sw/slc4_ia32_gcc345/external/boost/1.38.0/lib -lboost_regex-gcc34-mt-1_38
+
 
 #ROOTCFLAGS   := $(shell $(ROOTCONFIG) --cflags)
 #ROOTLDFLAGS  := $(shell $(ROOTCONFIG) --ldflags)
