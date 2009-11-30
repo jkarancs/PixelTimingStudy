@@ -104,8 +104,8 @@ process.ctfNtuple.trajectoryInput = 'ctfRefitter'
 process.ckfNtuple = process.TimingStudy.clone()
 process.ckfNtuple.trajectoryInput = 'ckfRefitter'
 
-process.pixlessfNtuple = process.TimingStudy.clone()
-process.pixlessfNtuple.trajectoryInput = 'pixlessRefitter'
+process.pixlessNtuple = process.TimingStudy.clone()
+process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
 
 
 #-------------------------------------------------
@@ -169,7 +169,7 @@ process.p = cms.Path(
     # Ntuplizers
 #    process.ctfNtuple
     process.ckfNtuple*
-    process.pixlessfNtuple
+    process.pixlessNtuple
     )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
