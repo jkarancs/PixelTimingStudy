@@ -156,12 +156,12 @@ process.maxEvents = cms.untracked.PSet(
 
 process.p = cms.Path(
     # Reco:
-    process.siPixelDigis*process.siStripDigis*
+    #process.siPixelDigis*process.siStripDigis*
     #//process.RawToDigi*process.reconstructionCosmics*
     # Beamspot:
     process.offlineBeamSpot*
     # Track reco:
-    process.trackerlocalreco*process.recopixelvertexing*process.ckftracks_plus_pixelless*
+    #process.trackerlocalreco*process.recopixelvertexing*process.ckftracks_plus_pixelless*
     # Refitters:
 #    process.ctfRefitter*
     process.ckfRefitter*
