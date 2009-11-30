@@ -69,6 +69,11 @@ std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
 
 int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
+  if (trajTree->GetEntries()==0) {
+    std::cout<<"No hit found in trajTree. Returning.\n";
+    return 0;
+  }
+
   std::string plotType="RecHits";
   std::map<int,int> delays;
   float min_delay, max_delay;
@@ -142,7 +147,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   partitions.push_back("BmI");
   partitions.push_back("BmO");
 
-
+  std::cout<< "Making histos\n";
   // 1. Hit Efficiency vs DT time
   deb::Plot<TH1F> hitEffVsDTtimeBarrel(600, 600, "%s_hitEffVsDTtimeBarrel\nTDR", plotType.data());
 
@@ -207,60 +212,68 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
  
   deb::Plot<TH1F> clusCharge(600, 600, "%s_clusCharge\nTDR", plotType.data());
   for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
-    clusCharge.add(140, 0., 140., "BPix_[%d];Hit efficiency in the Barrel"
-		   " pixel;Delay [ns];Efficiency", it->first);
-    clusCharge.add(140, 0., 140., "FPix_[%d];Hit efficiency in the Forward"
-		   " pixel;Delay [ns];Efficiency", it->first);
+    clusCharge.add(140, 0., 140., "BPix_[%d]!delay %d ns;RecHit charge in the Barrel"
+		   " pixel;Charge [ke]", it->first, it->second);
+    clusCharge.add(140, 0., 140., "FPix_[%d]!delay %d ns;RecHit charge in the Forward"
+		   " pixel;Charge [ke]", it->first, it->second);
   }
   clusCharge.efficiency();
 
 
-//   deb::Plot<TH1F> clusChargeBPixShell(600,600,"%s_clusChargeBPixShell\nTDR",plotType.data());
-//   deb::Plot<TH1F> clusChargeFPixShell(600,600,"%s_clusChargeFPixShell\nTDR",plotType.data());
-//   for (size_t i=0; i<partitions.size(); i++) {
-//     clusChargeBPixShell.add(140, 0., 140., "%s;Hit efficiency in the Barrel"
-// 			    " pixel;Delay [ns];Efficiency", partitions[i].data());
-//     clusChargeFPixShell.add(140, 0., 140., "%s;Hit efficiency in the Forward"
-// 			    " pixel;Delay [ns];Efficiency", partitions[i].data());
-//   }
-//   clusChargeBPixShell.efficiency();
-//   clusChargeFPixShell.efficiency();
+  deb::Plot<TH1F> clusChargeBPixShell(600,600,"%s_clusChargeBPixShell\nTDR",plotType.data());
+  deb::Plot<TH1F> clusChargeFPixShell(600,600,"%s_clusChargeFPixShell\nTDR",plotType.data());
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+      clusChargeBPixShell.add(140, 0., 140., "%s_[%d]!delay %d ns;RecHit charge in the Barrel"
+			      " pixel;Charge [ke]", partitions[i].data(), it->first, it->second);
+      clusChargeFPixShell.add(140, 0., 140., "%s_[%d]!delay %d ns;RecHit charge in the Forward"
+			      " pixel;Charge [ke]", partitions[i].data(), it->first, it->second);
+    }
+  }
+  clusChargeBPixShell.efficiency();
+  clusChargeFPixShell.efficiency();
 
 
-//   std::vector<deb::Plot<TH1F> > clusChargeBPix;
-//   for (size_t i=0; i<partitions.size(); i++) {
-//     for (size_t prt=0; prt<2; prt++) {
-//       deb::Plot<TH1F> p(600,600,"%s_clusChargeBPix_%s_PRT%d\nTDR",
-// 			plotType.data(), partitions[i].data(), prt+1);
-//       for (size_t sec=0; sec<8; sec++) {
-// 	p.add(140, 0., 140., "SEC%d;Hit efficiency in %s PRT%d SEC%d;"
-// 	      "Delay [ns];Efficiency", sec+1, partitions[i].data(), prt+1, sec+1);
-//       }
-//       p.efficiency();
-//       clusChargeBPix.push_back(p);
-//     }
-//   }
+  std::vector<deb::Plot<TH1F> > clusChargeBPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (size_t prt=0; prt<2; prt++) {
+      deb::Plot<TH1F> p(600,600,"%s_clusChargeBPix_%s_PRT%d\nTDR",
+			plotType.data(), partitions[i].data(), prt+1);
+      for (size_t sec=0; sec<8; sec++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(140, 0., 140., "SEC%d_[%d]!delay %d ns;Hit efficiency in %s PRT%d SEC%d;"
+		"Delay [ns];Efficiency", sec+1,  it->first, it->second, 
+		partitions[i].data(), prt+1, sec+1);
+	}
+      }
+      p.efficiency();
+      clusChargeBPix.push_back(p);
+    }
+  }
 
-//   std::vector<deb::Plot<TH1F> > clusChargeFPix;
-//   for (size_t i=0; i<partitions.size(); i++) {
-//     deb::Plot<TH1F> p(600,600,"%s_clusChargeFPix_%s\nTDR",
-// 		      plotType.data(), partitions[i].data());
-//     for (size_t disk=0; disk<2; disk++) {
-//       for (size_t prt=0; prt<4; prt++) {
-// 	p.add(140, 0., 140., "Disk%d_PRT%d;Hit efficiency in %s Disk%d PRT%d;"
-// 	      "Delay [ns];Efficiency", disk+1, prt+1, partitions[i].data(), disk+1, prt+1);
-//       }
-//     }
-//     p.efficiency();
-//     clusChargeFPix.push_back(p);
-//   }
+  std::vector<deb::Plot<TH1F> > clusChargeFPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    deb::Plot<TH1F> p(600,600,"%s_clusChargeFPix_%s\nTDR",
+		      plotType.data(), partitions[i].data());
+    for (size_t disk=0; disk<2; disk++) {
+      for (size_t prt=0; prt<4; prt++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(140, 0., 140., "Disk%d_PRT%d_[%d]!delay %d ns;Hit efficiency in %s Disk%d PRT%d;"
+		"Delay [ns];Efficiency", disk+1, prt+1, it->first, it->second, 
+		partitions[i].data(), disk+1, prt+1);
+	}
+      }
+    }
+    p.efficiency();
+    clusChargeFPix.push_back(p);
+  }
 
 
 
   // ----------------------------------------------------------------------------------------------
   // Filling histograms
   //
-
+  std::cout<< "Filling histos\n";
   for (long i=0; i<trajTree->GetEntries(); i++) {
     trajTree->GetEntry(i);
 
@@ -293,8 +306,10 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     }
     rog=srog.str();
 
+
     // 1. Hit Efficiency vs DT time
-    if (trajmeas.telescope && trajmeas.mod_on.det==0 &&
+    //    if (trajmeas.telescope && trajmeas.mod_on.det==0 &&
+    if (trajmeas.mod_on.det==0 &&
 	(trajmeas.validhit || trajmeas.missing) ) {
       if (step!=NOVAL_I) {
 	hitEffVsDTtimeBarrel(step).den()->Fill(evt.tmuon);
@@ -303,8 +318,10 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     }
     // ---------------------------------------
 
+
     // 2. Hit Efficiency vs delay
-    if (trajmeas.telescope && (trajmeas.validhit || trajmeas.missing) ) {
+    //    if (trajmeas.telescope && (trajmeas.validhit || trajmeas.missing) ) {
+    if ( (trajmeas.validhit || trajmeas.missing) ) {
       
       if (trajmeas.mod_on.det==0) {
 	hitEffVsDelay[detector].den()->Fill(delay);
@@ -334,6 +351,13 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     // 3. Cluster charge
     if (trajmeas.validhit) {
       clusCharge[detector+sstep].Fill(trajmeas.clu.charge);
+      if (trajmeas.mod_on.det==0) {
+	clusChargeBPixShell[shell+sstep].Fill(trajmeas.clu.charge);
+	clusChargeBPix[group][rog+sstep].Fill(trajmeas.clu.charge);
+      } else {
+	clusChargeFPixShell[shell+sstep].Fill(trajmeas.clu.charge);
+	clusChargeFPix[group][rog+sstep].Fill(trajmeas.clu.charge);
+      }
     }
 
   }
@@ -343,11 +367,12 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   // ----------------------------------------------------------------------------------------------
   // Post-processing and drawing histograms
   //
-
+  std::cout<< "Drawing histos\n";
   // 1. Hit Efficiency vs DT time
-  hitEffVsDTtimeBarrel.efficiency();
-  hitEffVsDTtimeBarrel.scaleMaximumTo("denominator", 1);
+  hitEffVsDTtimeBarrel.efficiency(".*");
+  hitEffVsDTtimeBarrel.scaleMaximumTo(".*.den", 1);
   hitEffVsDTtimeBarrel.setColor(".*", "LineMarker", 1, 1);
+  hitEffVsDTtimeBarrel.setColor(".*.den", "LineMarker", 1, 1);
   hitEffVsDTtimeBarrel.setAxisRange(".*", 0., 1.1, "Y");
   hitEffVsDTtimeBarrel.Draw(".*!;overlayHIST;Hit efficiency in BPix\n"
 			    ".*.den!;overlayHISTL;DT time distribution of muons;DT time [ns]");
@@ -390,10 +415,75 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   }
 
 
-
   // 3. Cluster charge
-//   clusCharge.Draw("Bp",2);
-//   clusCharge.Write();
+  clusCharge.setColor("BPix_.*", "LineMarker", 1, 1);
+  clusCharge.setColor("FPix_.*", "LineMarker", 1, 1);
+  clusCharge.scaleAreaTo(".*", 1.);
+  clusCharge.Draw("BPix_.*!;overlayHISTL\nFPix_.*!;overlayHISTL");
+  clusCharge.Write();
+
+  //clusChargeBPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  clusChargeBPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.scaleAreaTo(".*", 1.);
+  clusChargeBPixShell.Draw("BpO_.*!;overlayHISTL\nBpI_.*!;overlayHISTL\n"
+			   "BmO_.*!;overlayHISTL\nBmI_.*!;overlayHISTL\n", 2);
+  clusChargeBPixShell.Write();
+
+
+  //clusChargeFPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  clusChargeFPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.scaleAreaTo(".*", 1.);
+  clusChargeFPixShell.Draw("BpO_.*!;overlayHISTL\nBpI_.*!;overlayHISTL\n"
+			   "BmO_.*!;overlayHISTL\nBmI_.*!;overlayHISTL\n", 2);
+  clusChargeFPixShell.Write();
+
+
+  for (size_t i=0; i<clusChargeBPix.size(); i++) {
+    //clusChargeBPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    for (int j=1; j<9; j++) {
+      std::ostringstream color;
+      color<<"SEC"<<j<<".*";
+      clusChargeBPix[i].setColor(color.str(), "LineMarker", 1, 1);
+    }
+    clusChargeBPix[i].scaleAreaTo(".*", 1.);
+    clusChargeBPix[i].Draw("SEC1_.*!;overlayHISTL\n"
+			   "SEC2_.*!;overlayHISTL\n"
+			   "SEC3_.*!;overlayHISTL\n"
+			   "SEC4_.*!;overlayHISTL\n"
+			   "SEC5_.*!;overlayHISTL\n"
+			   "SEC6_.*!;overlayHISTL\n"
+			   "SEC7_.*!;overlayHISTL\n"
+			   "SEC8_.*!;overlayHISTL",3);
+    clusChargeBPix[i].Write();
+  }
+
+  for (size_t i=0; i<clusChargeFPix.size(); i++) {
+    //clusChargeFPix[i]->setAxisRange(".*", 0, 1.0, "Y");
+    clusChargeFPix[i].setColor("Disk1_PRT1.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT2.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT3.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT4.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT1.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT2.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT3.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT4.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].scaleAreaTo(".*", 1.);
+    clusChargeFPix[i].Draw("Disk1_PRT1_.*!;overlayHISTL\n"
+			   "Disk1_PRT2_.*!;overlayHISTL\n"
+			   "Disk1_PRT3_.*!;overlayHISTL\n"
+			   "Disk1_PRT4_.*!;overlayHISTL\n"
+			   "Disk2_PRT1_.*!;overlayHISTL\n"
+			   "Disk2_PRT2_.*!;overlayHISTL\n"
+			   "Disk2_PRT3_.*!;overlayHISTL\n"
+			   "Disk2_PRT4_.*!;overlayHISTL",3);
+    clusChargeFPix[i].Write();
+  }
   
   // ----------------------------------------------------------------------------------------------
   // ----------------------------------------------------------------------------------------------
@@ -421,6 +511,11 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
 
 int doClusterPlots(TChain *clustTree, int data) {
+
+  if (clustTree->GetEntries()==0) {
+    std::cout<<"No hit found in trajTree. Returning.\n";
+    return 0;
+  }
 
   std::string plotType="Cluster";
   std::map<int,int> delays;
@@ -740,30 +835,36 @@ int main(int argc, char* argv[])
 
   std::string infilename=argv[1];
   std::string outfilename = (argc>2) ? argv[2] : "TimingAnalysis.root";
-
+  std::string ntuplename =  (argc>3) ? argv[3] : "ctfNtuple";
 
   std::ostringstream addname;
   TChain *trajTree=new TChain("trajTree");
   addname.str("");
-  addname << infilename << "/ctfNtuple/trajTree";
+  addname << infilename << "/" << ntuplename << "/trajTree";
   trajTree->Add(addname.str().data());
   std::cout << "Collecting files " << addname.str().data() << std::endl;
 
   TChain *trackTree=new TChain("trackTree");
   addname.str("");
-  addname << infilename << "/ctfNtuple/trackTree";
+  addname << infilename << "/" << ntuplename << "/trackTree";
   trackTree->Add(addname.str().data());
 
   TChain *clustTree=new TChain("clustTree");
   addname.str("");
-  addname << infilename << "/ctfNtuple/clustTree";
+  addname << infilename << "/" << ntuplename << "/clustTree";
   clustTree->Add(addname.str().data());
 
   TFile outfile(outfilename.data(), "RECREATE");
 
-  doRecHitPlots(trajTree, 0);
-  //doTrackPlots();
-  doClusterPlots(clustTree, 0);
+  if (ntuplename.find("ctf")!=std::string::npos) {
+    doRecHitPlots(trajTree, 0);
+    //doTrackPlots();
+    doClusterPlots(clustTree, 0);
+  } else {
+    doRecHitPlots(trajTree, 1);
+    //doTrackPlots();
+    doClusterPlots(clustTree, 1);    
+  }
 
   outfile.Close();
 
