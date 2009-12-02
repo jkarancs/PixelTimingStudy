@@ -253,7 +253,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   iEvent.getByLabel(trajTrackCollectionInput, trajTrackCollectionHandle);
 
 
-  if (trajTrackCollectionHandle.isValid()) {
+  if (trajTrackCollectionHandle.isValid()||1) {
     std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
     std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
 
@@ -443,7 +443,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
 
   
-  if (trajTrackCollectionHandle.isValid()) {
+  if (trajTrackCollectionHandle.isValid()||1) {
 
     TrajTrackAssociationCollection::const_iterator itTrajTrack=trajTrackCollectionHandle->begin();
 
