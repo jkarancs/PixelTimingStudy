@@ -28,7 +28,7 @@ process.load("Configuration.StandardSequences.Geometry_cff")
 #-------------------------------------------------
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = "GR09_P_V4::All"
+process.GlobalTag.globaltag = "GR09_P_V6::All" ##"GR09_P_V6::All"
 
 #-------------------------
 #  Reconstruction Modules
@@ -55,10 +55,20 @@ process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
 # process.load("RecoLocalTracker.SiStripRecHitConverter.StripCPEfromTrackAngle_cfi")
 # process.load("RecoLocalTracker.SiStripZeroSuppression.SiStripZeroSuppression_cfi")
 
+##
+## Needed when running on RAW:
+##
 # change strip cluster threshold to reduce noise effects
-process.siStripClusters.Clusterizer.ClusterThreshold = 9
-process.siStripClusters.Clusterizer.SeedThreshold = 6
-process.siStripClusters.Clusterizer.ChannelThreshold = 4
+##process.siStripClusters.Clusterizer.ClusterThreshold = 9
+##process.siStripClusters.Clusterizer.SeedThreshold = 6
+##process.siStripClusters.Clusterizer.ChannelThreshold = 4
+
+##
+## Needed when running on RECO:
+##
+## Fitter-smoother: loosen outlier rejection as for first data-taking with LHC "collisions"
+process.KFFittingSmootherWithOutliersRejectionAndRK.BreakTrajWith2ConsecutiveMissing =False
+process.KFFittingSmootherWithOutliersRejectionAndRK.EstimateCut = 1000
 
 
 
@@ -73,7 +83,7 @@ process.ctfRefitter.src = 'ctfWithMaterialTracksP5'
 process.ctfRefitter.TrajectoryInEvent = True
 
 process.ckfRefitter = process.TrackRefitter.clone()
-process.ckfRefitter.src = 'globalTracks'
+process.ckfRefitter.src = 'generalTracks'
 process.ckfRefitter.TrajectoryInEvent = True
 
 process.pixlessRefitter = process.TrackRefitter.clone()
@@ -131,8 +141,9 @@ process.source = cms.Source("PoolSource",
     #'/store/data/CRAFT09/Cosmics/RAW-RECO/SuperPointing-CRAFT09_R_V4_CosmicsSeq_v1/0009/F8D1CF5D-DCB9-DE11-9C5D-00261894393A.root'
     #'file:/home/veszpv/data/CMSSW_3_2_7/CRAFT09-SuperPointing-CRAFT09_R_V4_CosmicsSeq_v1/763782DB-DCB9-DE11-A238-003048678B30.root'
     #'file:/home/veszpv/data/CMSSW_3_3_3/MinimumBias.BeamCommissioning09-v1.RAW/E6F8D1B6-B1D8-DE11-83B6-001D09F2AD7F.root'
-    'file:/home/veszpv/data/CMSSW_3_3_4/MinimumBias.BeamCommissioning09-PromptReco-v2.RECO/30BB156B-8FDD-DE11-92FD-003048D37456.root'
-
+    #'file:/home/veszpv/data/CMSSW_3_3_4/MinimumBias.BeamCommissioning09-PromptReco-v2.RECO/30BB156B-8FDD-DE11-92FD-003048D37456.root'
+    #'file:/home/veszpv/data/CMSSW_3_3_5/BSCskim_123151_Express.root'
+    'file:/home/veszpv/data/CMSSW_3_3_5/BeamCommissioning09-Cosmics-RECO/5831FFE1-1CDE-DE11-AE90-001D09F2906A.root'
 ) )
 
 # these drop commands are necessary to get rid of all HLT problems and DQM bulk
