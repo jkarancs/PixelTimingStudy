@@ -46,9 +46,9 @@ std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
   int step=0;
   int delay=NOVAL_I;
   //  if (run==9999) {
-    if (orbitnumber>=0 && orbitnumber<1e8)        { delay=-12; step=0; }
-    else if (orbitnumber>=1e8 && orbitnumber<2e8) { delay=-6; step=1; }
-    else if (orbitnumber>=2e8 && orbitnumber<3e8) { delay=0; step=2; }
+    if (orbitnumber>=0 && orbitnumber<21.6e6)        { delay=0; step=0; }
+    else if (orbitnumber>=21.6e6 && orbitnumber<2e8) { delay=-6; step=1; }
+    else if (orbitnumber>=2e8 && orbitnumber<3e8) { delay=-1; step=2; }
     else if (orbitnumber>=3e8 && orbitnumber<4e8) { delay=6; step=3; }
     else if (orbitnumber>=4e8 && orbitnumber<5e8) { delay=12; step=4; }
     else if (orbitnumber>=5e8 && orbitnumber<6e8) { delay=15; step=5; }
@@ -269,6 +269,19 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   }
 
 
+  // ROG efficiency
+  deb::Plot<TH2F> rogEffBPix(600, 600, "%s_rogEffBPix\nTDR", plotType.data());
+  deb::Plot<TH2F> rogEffFPix(600, 600, "%s_rogEffFPix\nTDR", plotType.data());
+  for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+    rogEffBPix.add(8,0.5,8.5,12,-0.5,11.5,"BPix_[%d]!delay %d ns;Hit efficiency in the Barrel "
+		   "pixel;Sector;PRT1 and PRT2 in BpI/BpO/BmI/BmO", it->first, it->second);
+    rogEffFPix.add(8,0.5,8.5,12,-0.5,11.5,"FPix_[%d]!delay %d ns;Hit efficiency in the Forward "
+		   "pixel;Sector;PRT1 and PRT2 in BpI/BpO/BmI/BmO", it->first, it->second);
+  }
+  rogEffBPix.efficiency();
+  rogEffFPix.efficiency();
+  
+
 
   // ----------------------------------------------------------------------------------------------
   // Filling histograms
@@ -360,6 +373,19 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
       }
     }
 
+    // 4. ROG efficiency
+    if (trajmeas.validhit||trajmeas.missing) {
+      if (trajmeas.mod_on.det==0) {
+	int rogeff_y=trajmeas.mod_on.shl*3+trajmeas.mod_on.prt-1;
+	rogEffBPix[detector+sstep].den()->Fill(trajmeas.mod_on.sec, rogeff_y);
+	if (trajmeas.validhit)rogEffBPix[detector+sstep].num()->Fill(trajmeas.mod_on.sec,rogeff_y);
+      } else {
+	int rogeff_y=trajmeas.mod_on.shl*3+abs(trajmeas.mod_on.disk)-1;
+	rogEffFPix[detector+sstep].den()->Fill(abs(trajmeas.mod_on.sec), rogeff_y);
+	if (trajmeas.validhit)rogEffFPix[detector+sstep].num()->Fill(abs(trajmeas.mod_on.sec),rogeff_y);
+      }
+    }
+
   }
 
 
@@ -381,26 +407,26 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   // 2. Hit Efficiency vs Delay
   hitEffVsDelay.efficiency();
-  //hitEffVsDelay.setAxisRange(".*", 0, 1.0, "Y");
+  hitEffVsDelay.setAxisRange(".*", 0, 1.0, "Y");
   hitEffVsDelay.setColor(".*", "LineMarker", 1, 1);
   hitEffVsDelay.Draw("FPix!& BPix!;overlayPE");
   hitEffVsDelay.Write();
 
   hitEffVsDelayBPixShell.efficiency();
-  //hitEffVsDelayBPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  hitEffVsDelayBPixShell.setAxisRange(".*", 0, 1.0, "Y");
   hitEffVsDelayBPixShell.setColor(".*", "LineMarker", 1, 1);
   hitEffVsDelayBPixShell.Draw("BpO!BpO& BpI!BpI& BmO!BmO& BmI!BmI;PE",2);
   hitEffVsDelayBPixShell.Write();
 
   hitEffVsDelayFPixShell.efficiency();
-  //hitEffVsDelayFPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  hitEffVsDelayFPixShell.setAxisRange(".*", 0, 1.0, "Y");
   hitEffVsDelayFPixShell.setColor(".*", "LineMarker", 1, 1);
   hitEffVsDelayFPixShell.Draw("BpO!BpO& BpI!BpI& BmO!BmO& BmI!BmI;PE",2);
   hitEffVsDelayFPixShell.Write();
 
   for (size_t i=0; i<hitEffVsDelayBPix.size(); i++) {
     hitEffVsDelayBPix[i].efficiency();
-    //hitEffVsDelayBPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    hitEffVsDelayBPix[i].setAxisRange(".*", 0, 1.0, "Y");
     hitEffVsDelayBPix[i].setColor(".*", "LineMarker", 1, 1);
     hitEffVsDelayBPix[i].Draw("SEC[1-8]!;PE",3);
     hitEffVsDelayBPix[i].Write();
@@ -408,7 +434,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   for (size_t i=0; i<hitEffVsDelayFPix.size(); i++) {
     hitEffVsDelayFPix[i].efficiency();
-    //hitEffVsDelayFPix[i]->setAxisRange(".*", 0, 1.0, "Y");
+    hitEffVsDelayFPix[i].setAxisRange(".*", 0, 1.0, "Y");
     hitEffVsDelayFPix[i].setColor(".*", "LineMarker", 1, 1);
     hitEffVsDelayFPix[i].Draw("Disk[1,2]_PRT[1-4]!;PE",3);
     hitEffVsDelayFPix[i].Write();
@@ -485,6 +511,17 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     clusChargeFPix[i].Write();
   }
   
+  // 4. ROG efficiency
+  rogEffBPix.efficiency();
+  rogEffBPix.setAxisRange(".*", 0., 1.0, "Z");
+  rogEffBPix.Draw("BPix_.*;COLZ",2);
+  rogEffBPix.Write();
+
+  rogEffFPix.efficiency();
+  rogEffFPix.setAxisRange(".*", 0., 1.0, "Z");
+  rogEffFPix.Draw("FPix_.*;COLZ",2);
+  rogEffFPix.Write();
+
   // ----------------------------------------------------------------------------------------------
   // ----------------------------------------------------------------------------------------------
   // The end
@@ -666,6 +703,126 @@ int doClusterPlots(TChain *clustTree, int data) {
     clusMeanChargeVsDelayFPix.push_back(p);
   }
  
+  // 3. Cluster Charge
+ 
+  deb::Plot<TH1F> clusCharge(600, 600, "%s_clusCharge\nTDR", plotType.data());
+  for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+    clusCharge.add(200, 0., 200., "BPix_[%d]!delay %d !BPix;Cluster charge in the Barrel"
+		   " pixel;Charge [ke]", it->first, it->second);
+    clusCharge.add(200, 0., 200., "FPix_[%d]!delay %d !FPix;Cluster charge in the Forward"
+		   " pixel;Charge [ke]", it->first, it->second);
+  }
+  clusCharge.efficiency();
+
+
+  deb::Plot<TH1F> clusChargeBPixShell(600,600,"%s_clusChargeBPixShell\nTDR",plotType.data());
+  deb::Plot<TH1F> clusChargeFPixShell(600,600,"%s_clusChargeFPixShell\nTDR",plotType.data());
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+      clusChargeBPixShell.add(50, 0., 200., "%s_[%d]!delay %d !BPix %s;Cluster charge in the Barrel"
+			      " pixel;Charge [ke]", partitions[i].data(), it->first, it->second, partitions[i].data());
+      clusChargeFPixShell.add(50, 0., 200., "%s_[%d]!delay %d !FPix %s;Cluster charge in the Forward"
+			      " pixel;Charge [ke]", partitions[i].data(), it->first, it->second, partitions[i].data());
+    }
+  }
+  clusChargeBPixShell.efficiency();
+  clusChargeFPixShell.efficiency();
+
+
+  std::vector<deb::Plot<TH1F> > clusChargeBPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (size_t prt=0; prt<2; prt++) {
+      deb::Plot<TH1F> p(600,600,"%s_clusChargeBPix_%s_PRT%d\nTDR",
+			plotType.data(), partitions[i].data(), prt+1);
+      for (size_t sec=0; sec<8; sec++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(30, 0., 180., "SEC%d_[%d]!delay %d !BPix;Cluster charge in %s PRT%d SEC%d;"
+		"Delay [ns];Charge [ke]", sec+1,  it->first, it->second, 
+		partitions[i].data(), prt+1, sec+1);
+	}
+      }
+      p.efficiency();
+      clusChargeBPix.push_back(p);
+    }
+  }
+
+  std::vector<deb::Plot<TH1F> > clusChargeFPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    deb::Plot<TH1F> p(600,600,"%s_clusChargeFPix_%s\nTDR",
+		      plotType.data(), partitions[i].data());
+    for (size_t disk=0; disk<2; disk++) {
+      for (size_t prt=0; prt<4; prt++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(30, 0., 180., "Disk%d_PRT%d_[%d]!delay %d !FPix;Cluster charge in %s Disk%d PRT%d;"
+		"Delay [ns];Charge [ke]", disk+1, prt+1, it->first, it->second, 
+		partitions[i].data(), disk+1, prt+1);
+	}
+      }
+    }
+    p.efficiency();
+    clusChargeFPix.push_back(p);
+  }
+
+
+  // 4.  Pixel Charge
+ 
+  deb::Plot<TH1F> pixCharge(600, 600, "%s_pixCharge\nTDR", plotType.data());
+  for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+    pixCharge.add(50, 0., 50., "BPix_[%d]!delay %d !BPix;Pixel charge in clusters in the Barrel"
+		   " pixel;Charge [ke]", it->first, it->second);
+    pixCharge.add(50, 0., 50., "FPix_[%d]!delay %d !FPix;Pixel charge in clusters in the Forward"
+		   " pixel;Charge [ke]", it->first, it->second);
+  }
+  pixCharge.efficiency();
+
+
+  deb::Plot<TH1F> pixChargeBPixShell(600,600,"%s_pixChargeBPixShell\nTDR",plotType.data());
+  deb::Plot<TH1F> pixChargeFPixShell(600,600,"%s_pixChargeFPixShell\nTDR",plotType.data());
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+      pixChargeBPixShell.add(50, 0., 50., "%s_[%d]!delay %d ns!BPix %s;Pixel charge in clusters in the Barrel"
+			     " pixel;Charge [ke]", partitions[i].data(), it->first, it->second, partitions[i].data());
+      pixChargeFPixShell.add(50, 0., 50., "%s_[%d]!delay %d ns!FPix %s;Pixel charge in clusters in the Forward"
+			     " pixel;Charge [ke]", partitions[i].data(), it->first, it->second, partitions[i].data());
+    }
+  }
+  pixChargeBPixShell.efficiency();
+  pixChargeFPixShell.efficiency();
+
+
+  std::vector<deb::Plot<TH1F> > pixChargeBPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    for (size_t prt=0; prt<2; prt++) {
+      deb::Plot<TH1F> p(600,600,"%s_pixChargeBPix_%s_PRT%d\nTDR",
+			plotType.data(), partitions[i].data(), prt+1);
+      for (size_t sec=0; sec<8; sec++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(50, 0., 50., "SEC%d_[%d]!delay %d ns!BPix;Pixel charge in clusters in %s PRT%d SEC%d;"
+		"Delay [ns];Charge [ke]", sec+1,  it->first, it->second, 
+		partitions[i].data(), prt+1, sec+1);
+	}
+      }
+      p.efficiency();
+      pixChargeBPix.push_back(p);
+    }
+  }
+
+  std::vector<deb::Plot<TH1F> > pixChargeFPix;
+  for (size_t i=0; i<partitions.size(); i++) {
+    deb::Plot<TH1F> p(600,600,"%s_pixChargeFPix_%s\nTDR",
+		      plotType.data(), partitions[i].data());
+    for (size_t disk=0; disk<2; disk++) {
+      for (size_t prt=0; prt<4; prt++) {
+	for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+	  p.add(50, 0., 50., "Disk%d_PRT%d_[%d]!delay %d ns!FPix;Pixel charge in clusters in %s Disk%d PRT%d;"
+		"Delay [ns];Charge [ke]", disk+1, prt+1, it->first, it->second, 
+		partitions[i].data(), disk+1, prt+1);
+	}
+      }
+    }
+    p.efficiency();
+    pixChargeFPix.push_back(p);
+  }
 
   // ----------------------------------------------------------------------------------------------
   // Filling histograms
@@ -687,6 +844,9 @@ int doClusterPlots(TChain *clustTree, int data) {
     int step=stepDelay.first;
     int delay=stepDelay.second;
     if (step==NOVAL_I || delay==NOVAL_I) continue;
+    std::ostringstream ss;
+    ss << "_[" << step << "]";
+    std::string sstep=ss.str();
 
     // Detector coordinate
     std::string detector= (clust.mod_on.det==0) ? "BPix" : "FPix";
@@ -735,6 +895,31 @@ int doClusterPlots(TChain *clustTree, int data) {
       } 
     }
 
+    // 3. Cluster charge
+    clusCharge[detector+sstep].Fill(clust.charge);
+    if (clust.mod_on.det==0) {
+      clusChargeBPixShell[shell+sstep].Fill(clust.charge);
+      clusChargeBPix[group][rog+sstep].Fill(clust.charge);
+    } else {
+      clusChargeFPixShell[shell+sstep].Fill(clust.charge);
+      clusChargeFPix[group][rog+sstep].Fill(clust.charge);
+    }
+
+    // 4. Pixel charge
+
+    if (clust.size>0) {
+      for (int p=0; p<clust.size; p++) {
+	pixCharge[detector+sstep].Fill(clust.adc[p]);
+	if (clust.mod_on.det==0) {
+	  pixChargeBPixShell[shell+sstep].Fill(clust.adc[p]);
+	  pixChargeBPix[group][rog+sstep].Fill(clust.adc[p]);
+	} else {
+	  pixChargeFPixShell[shell+sstep].Fill(clust.adc[p]);
+	  pixChargeFPix[group][rog+sstep].Fill(clust.adc[p]);
+	}
+      }
+    }
+
 
     if (evt.evt!=prevevt) {
       
@@ -757,6 +942,7 @@ int doClusterPlots(TChain *clustTree, int data) {
   clusMeanSizeVsDelay.efficiency();
   //clusMeanSizeVsDelay.setAxisRange(".*", 0, 1.0, "Y");
   clusMeanSizeVsDelay.setColor(".*", "LineMarker", 1, 1);
+  clusMeanSizeVsDelay.setStyle(".*", "Marker", 1);
   clusMeanSizeVsDelay.Draw("FPix!FPix & BPix!BPix;overlayPE");
   clusMeanSizeVsDelay.Write();
 
@@ -764,6 +950,7 @@ int doClusterPlots(TChain *clustTree, int data) {
     clusMeanSizeVsDelayBPix[i].efficiency();
     //clusMeanSizeVsDelayBPix[i].setAxisRange(".*", 0, 1.0, "Y");
     clusMeanSizeVsDelayBPix[i].setColor(".*", "LineMarker", 1, 1);
+    clusMeanSizeVsDelayBPix[i].setStyle(".*", "Marker", 1);
     clusMeanSizeVsDelayBPix[i].Draw("SEC1 & SEC2 & SEC3 & SEC4 & SEC5 & SEC6 & SEC7 & SEC8;PE",3);
     clusMeanSizeVsDelayBPix[i].Write();
   }
@@ -772,6 +959,7 @@ int doClusterPlots(TChain *clustTree, int data) {
     clusMeanSizeVsDelayFPix[i].efficiency();
     //clusMeanSizeVsDelayFPix[i].setAxisRange(".*", 0, 1.0, "Y");
     clusMeanSizeVsDelayFPix[i].setColor(".*", "LineMarker", 1, 1);
+    clusMeanSizeVsDelayFPix[i].setStyle(".*", "Marker", 1);
     clusMeanSizeVsDelayFPix[i].Draw("Disk1_PRT1 & Disk2_PRT1 & Disk1_PRT2 & Disk2_PRT2 & "
 			       "Disk1_PRT3 & Disk2_PRT3 & Disk1_PRT4 & Disk2_PRT4;PE",3);
     clusMeanSizeVsDelayFPix[i].Write();
@@ -803,7 +991,147 @@ int doClusterPlots(TChain *clustTree, int data) {
   }
 
 
+  // 3. Cluster charge
+  clusCharge.setColor("BPix_.*", "LineMarker", 1, 1);
+  clusCharge.setColor("FPix_.*", "LineMarker", 1, 1);
+  clusCharge.scaleAreaTo(".*", 1.);
+  clusCharge.Draw("BPix_.*!!;overlayPE\nFPix_.*!!;overlayPE");
+  clusCharge.Write();
 
+  //clusChargeBPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  clusChargeBPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  clusChargeBPixShell.scaleAreaTo(".*", 1.);
+  clusChargeBPixShell.Draw("BpO_.*!!;overlayPE\nBpI_.*!!;overlayPE\n"
+			   "BmO_.*!!;overlayPE\nBmI_.*!!;overlayPE\n", 2);
+  clusChargeBPixShell.Write();
+
+
+  //clusChargeFPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  clusChargeFPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  clusChargeFPixShell.scaleAreaTo(".*", 1.);
+  clusChargeFPixShell.Draw("BpO_.*!!;overlayPE\nBpI_.*!!;overlayPE\n"
+			   "BmO_.*!!;overlayPE\nBmI_.*!!;overlayPE\n", 2);
+  clusChargeFPixShell.Write();
+
+
+  for (size_t i=0; i<clusChargeBPix.size(); i++) {
+    //clusChargeBPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    for (int j=1; j<9; j++) {
+      std::ostringstream color;
+      color<<"SEC"<<j<<".*";
+      clusChargeBPix[i].setColor(color.str(), "LineMarker", 1, 1);
+    }
+    clusChargeBPix[i].scaleAreaTo(".*", 1.);
+    clusChargeBPix[i].Draw("SEC1_.*!!;overlayPE\n"
+			   "SEC2_.*!!;overlayPE\n"
+			   "SEC3_.*!!;overlayPE\n"
+			   "SEC4_.*!!;overlayPE\n"
+			   "SEC5_.*!!;overlayPE\n"
+			   "SEC6_.*!!;overlayPE\n"
+			   "SEC7_.*!!;overlayPE\n"
+			   "SEC8_.*!!;overlayPE",3);
+    clusChargeBPix[i].Write();
+  }
+
+  for (size_t i=0; i<clusChargeFPix.size(); i++) {
+    //clusChargeFPix[i]->setAxisRange(".*", 0, 1.0, "Y");
+    clusChargeFPix[i].setColor("Disk1_PRT1.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT2.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT3.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk1_PRT4.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT1.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT2.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT3.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].setColor("Disk2_PRT4.*", "LineMarker", 1, 1);
+    clusChargeFPix[i].scaleAreaTo(".*", 1.);
+    clusChargeFPix[i].Draw("Disk1_PRT1_.*!!;overlayPE\n"
+			   "Disk1_PRT2_.*!!;overlayPE\n"
+			   "Disk1_PRT3_.*!!;overlayPE\n"
+			   "Disk1_PRT4_.*!!;overlayPE\n"
+			   "Disk2_PRT1_.*!!;overlayPE\n"
+			   "Disk2_PRT2_.*!!;overlayPE\n"
+			   "Disk2_PRT3_.*!!;overlayPE\n"
+			   "Disk2_PRT4_.*!!;overlayPE",3);
+    clusChargeFPix[i].Write();
+  }
+  
+
+  // 4. Pixel charge
+  pixCharge.setColor("BPix_.*", "LineMarker", 1, 1);
+  pixCharge.setColor("FPix_.*", "LineMarker", 1, 1);
+  pixCharge.scaleAreaTo(".*", 1.);
+  pixCharge.Draw("BPix_.*!!;overlayPE\nFPix_.*!!;overlayPE");
+  pixCharge.Write();
+
+  //pixChargeBPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  pixChargeBPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  pixChargeBPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  pixChargeBPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  pixChargeBPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  pixChargeBPixShell.scaleAreaTo(".*", 1.);
+  pixChargeBPixShell.Draw("BpO_.*!!;overlayPE\nBpI_.*!!;overlayPE\n"
+			   "BmO_.*!!;overlayPE\nBmI_.*!!;overlayPE\n", 2);
+  pixChargeBPixShell.Write();
+
+
+  //pixChargeFPixShell.setAxisRange(".*", 0, 1.0, "Y");
+  pixChargeFPixShell.setColor("BpO.*", "LineMarker", 1, 1);
+  pixChargeFPixShell.setColor("BpI.*", "LineMarker", 1, 1);
+  pixChargeFPixShell.setColor("BmO.*", "LineMarker", 1, 1);
+  pixChargeFPixShell.setColor("BmI.*", "LineMarker", 1, 1);
+  pixChargeFPixShell.scaleAreaTo(".*", 1.);
+  pixChargeFPixShell.Draw("BpO_.*!!;overlayPE\nBpI_.*!!;overlayPE\n"
+			   "BmO_.*!!;overlayPE\nBmI_.*!!;overlayPE\n", 2);
+  pixChargeFPixShell.Write();
+
+
+  for (size_t i=0; i<pixChargeBPix.size(); i++) {
+    //pixChargeBPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    for (int j=1; j<9; j++) {
+      std::ostringstream color;
+      color<<"SEC"<<j<<".*";
+      pixChargeBPix[i].setColor(color.str(), "LineMarker", 1, 1);
+    }
+    pixChargeBPix[i].scaleAreaTo(".*", 1.);
+    pixChargeBPix[i].Draw("SEC1_.*!!;overlayPE\n"
+			   "SEC2_.*!!;overlayPE\n"
+			   "SEC3_.*!!;overlayPE\n"
+			   "SEC4_.*!!;overlayPE\n"
+			   "SEC5_.*!!;overlayPE\n"
+			   "SEC6_.*!!;overlayPE\n"
+			   "SEC7_.*!!;overlayPE\n"
+			   "SEC8_.*!!;overlayPE",3);
+    pixChargeBPix[i].Write();
+  }
+
+  for (size_t i=0; i<pixChargeFPix.size(); i++) {
+    //pixChargeFPix[i]->setAxisRange(".*", 0, 1.0, "Y");
+    pixChargeFPix[i].setColor("Disk1_PRT1.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk1_PRT2.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk1_PRT3.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk1_PRT4.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk2_PRT1.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk2_PRT2.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk2_PRT3.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].setColor("Disk2_PRT4.*", "LineMarker", 1, 1);
+    pixChargeFPix[i].scaleAreaTo(".*", 1.);
+    pixChargeFPix[i].Draw("Disk1_PRT1_.*!!;overlayPE\n"
+			   "Disk1_PRT2_.*!!;overlayPE\n"
+			   "Disk1_PRT3_.*!!;overlayPE\n"
+			   "Disk1_PRT4_.*!!;overlayPE\n"
+			   "Disk2_PRT1_.*!!;overlayPE\n"
+			   "Disk2_PRT2_.*!!;overlayPE\n"
+			   "Disk2_PRT3_.*!!;overlayPE\n"
+			   "Disk2_PRT4_.*!!;overlayPE",3);
+    pixChargeFPix[i].Write();
+  }
+  
 
 
   //
