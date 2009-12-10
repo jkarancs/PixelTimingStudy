@@ -43,17 +43,36 @@ std::pair<int,int> getStepDelayCosmics(int globaldelay25, int run) {
 
 
 std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
-  int step=0;
+  if (orbitnumber==-1) { // SIMULATION
+    std::pair<int,int> ret(0,0);
+    return ret;
+  }
+  int step=NOVAL_I;
   int delay=NOVAL_I;
-  //  if (run==9999) {
-    if (orbitnumber>=0 && orbitnumber<21.6e6)        { delay=0; step=0; }
-    else if (orbitnumber>=21.6e6 && orbitnumber<2e8) { delay=-6; step=1; }
-    else if (orbitnumber>=2e8 && orbitnumber<3e8) { delay=-1; step=2; }
-    else if (orbitnumber>=3e8 && orbitnumber<4e8) { delay=6; step=3; }
-    else if (orbitnumber>=4e8 && orbitnumber<5e8) { delay=12; step=4; }
-    else if (orbitnumber>=5e8 && orbitnumber<6e8) { delay=15; step=5; }
-    else if (orbitnumber>=6e8)                    { delay=18; step=6; }
-    //  }
+  if (run==123592) { delay=0; step=1; }
+//   if (run==123596) {
+//     if (orbitnumber>=0 && orbitnumber<771931)               { delay=0; step=0; }
+//     else if (orbitnumber>=771931   && orbitnumber<3627623)  { delay=0; step=0; }
+//     else if (orbitnumber>=3627623  && orbitnumber<10615967) { delay=-6; step=1; }
+//     else if (orbitnumber>=10615967 && orbitnumber<15496826) { delay=6; step=2; }
+//     else if (orbitnumber>=15496826 && orbitnumber<21906239) { delay=12; step=3; }
+//     else if (orbitnumber>=21906239 && orbitnumber<27497030) { delay=12; step=3; }
+//     else if (orbitnumber>=27497030 && orbitnumber<69626910) { delay=6; step=2; }
+//     else if (orbitnumber>=69626910 && orbitnumber<71554771) { delay=18; step=4; }
+//     else if (orbitnumber>=71554771)                         { delay=6; step=2; }
+//   }
+  if (run==123596) {
+    if (orbitnumber>=0 && orbitnumber<771931)               { delay=0; step=1; }
+    else if (orbitnumber>=771931   && orbitnumber<3200000)  { delay=0; step=1; }
+    else if (orbitnumber>=3200000  && orbitnumber<9800000)  { delay=-6; step=0; }
+    else if (orbitnumber>=9800000 && orbitnumber<16500000)  { delay=6; step=2; }
+    else if (orbitnumber>=16500000 && orbitnumber<22500000) { delay=12; step=3; }
+    else if (orbitnumber>=22500000 && orbitnumber<28000000) { delay=12; step=3; } // wrong key set
+    else if (orbitnumber>=28000000 && orbitnumber<69500000) { delay=6; step=2; }
+    else if (orbitnumber>=69500000 && orbitnumber<71800000) { delay=18; step=4; }
+    else if (orbitnumber>=71800000)                         { delay=6; step=2; }
+  }
+  if (run>=123603) { delay=6; step=2; }
   std::pair<int,int> ret(step,delay);
   return ret;
 }
@@ -102,6 +121,8 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   for (Long64_t i=0; i<trajTree->GetEntries(); i++) {
     trajTree->GetEntry(i);
+    if (evt.bx!=51 &&evt.bx!=-1) continue;
+
     std::string fname=trajTree->GetFile()->GetName();
     if (fname!=prevFileName) {
       std::cout<<"Processing "<<fname<<std::endl;
@@ -289,7 +310,13 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   std::cout<< "Filling histos\n";
   for (long i=0; i<trajTree->GetEntries(); i++) {
     trajTree->GetEntry(i);
+    if (evt.bx!=51 &&evt.bx!=-1) continue;
 
+    if (! ( ((trajmeas.trk.fpix[0]!=0 && trajmeas.trk.fpix[1]!=0) ||
+	     (trajmeas.trk.bpix[0]!=0 && trajmeas.trk.bpix[1]!=0 && trajmeas.trk.bpix[2]!=0)) 
+	    && trajmeas.trk.strip>10) )
+      continue;
+      
     // Delay step and delay
     std::pair<int,int> stepDelay;
     if (data==0) {
@@ -329,6 +356,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 	if (trajmeas.validhit) hitEffVsDTtimeBarrel(step).num()->Fill(evt.tmuon);
       }
     }
+
     // ---------------------------------------
 
 
@@ -571,7 +599,9 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
 
   for (Long64_t i=0; i<trackTree->GetEntries(); i++) {
     trackTree->GetEntry(i);
-    std::string fname=trackTree->GetFile()->GetName();
+     if (evt.bx!=51 &&evt.bx!=-1) continue;
+
+   std::string fname=trackTree->GetFile()->GetName();
     if (fname!=prevFileName) {
       std::cout<<"Processing "<<fname<<std::endl;
       prevFileName=fname;
@@ -627,33 +657,42 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
     Ntrk.add(60, -0.5, 59.5, "Npixtrk_[%d]!delay %d ns;Number of tracks crossing "
 	     "pixels at %d ns;N_{tracks}", it->first, it->second, it->second);
   }
-
+  Ntrk.efficiency();
 
   // 2. Npixhit/tracks at delays
-  deb::Plot<TH1F> Npixhit(600, 600, "%s_Npixhit\nTDR", plotType.data());
+  deb::Plot<TH1F> Nhits(600, 600, "%s_Nhits\nTDR", plotType.data());
 
   for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
-    Npixhit.add(10, -0.5, 9.5, "Npixhit_[%d]!delay %d ns;Number of valid hits per track at"
-		" %d ns;N_{hits}", it->first, it->second, it->second);
+    Nhits.add(30, -0.5, 29.5, "NStrip_[%d]!delay %d ns;Number of valid strip hits per track"
+	      " at %d ns;N_{hits}", it->first, it->second, it->second);
 
-    Npixhit.add(10, -0.5, 9.5, "Npixhit2_[%d]!delay %d ns;Number of valid hits per track crossing"
-		"pixels at %d ns;N_{hits}", it->first, it->second, it->second);
+    Nhits.add(15, -0.5, 14.5, "NPix_[%d]!delay %d ns;Number of valid pixel hits per track "
+	      "crossing pixels at %d ns;N_{hits}", it->first, it->second, it->second);
+
+    Nhits.add(15, -0.5, 14.5, "NBPix_[%d]!delay %d ns;Number of valid pixel hits per track "
+	      "crossing Barrel pixels at %d ns;N_{hits}", it->first, it->second, it->second);
+
+    Nhits.add(15, -0.5, 14.5, "NFPix_[%d]!delay %d ns;Number of valid pixel hits per track "
+	      "crossing Forward pixels at %d ns;N_{hits}", it->first, it->second, it->second);
+
   }
+  Nhits.efficiency();
 
 
   // 3. TrackD0, TrackDz, TrackPt, TrackChi2 at delays
   deb::Plot<TH1F> TrackParm(600, 600, "%s_TrackParm\nTDR", plotType.data());
 
   for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
-    TrackParm.add(40, -0.5, 39.5, "pt_[%d]!delay %d ns;Transverse momentum of tracks at "
+    TrackParm.add(20, 0, 20., "pt_[%d]!delay %d ns;Transverse momentum of tracks at "
 		  " %d ns;pt [GeV]", it->first, it->second, it->second);
-    TrackParm.add(40, -0.5, 39.5, "chi2_[%d]!delay %d ns;Chi-square of tracks at "
+    TrackParm.add(40, 0., 8., "chi2_[%d]!delay %d ns;Chi-square of tracks at "
 		  " %d ns;chi2/ndof", it->first, it->second, it->second);
-    TrackParm.add(100, -100, 100, "d0_[%d]!delay %d ns;Impact parameter of tracks at "
+    TrackParm.add(400, -20, 20, "d0_[%d]!delay %d ns;Impact parameter of tracks at "
 		  " %d ns;D0 [cm]", it->first, it->second, it->second);
     TrackParm.add(100, -200, 200, "dz_[%d]!delay %d ns;Delta Z of tracks at "
 		  " %d ns;Dz [cm]", it->first, it->second, it->second);
   }
+  TrackParm.efficiency();
 
 
   // ----------------------------------------------------------------------------------------------
@@ -668,6 +707,8 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
 
   for (long i=0; i<trackTree->GetEntries(); i++) {
     trackTree->GetEntry(i);
+    if (evt.bx!=51 &&evt.bx!=-1) continue;
+
 
     std::pair<int,int> stepDelay;
     if (data==0) {
@@ -682,22 +723,34 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
     ss << "_[" << step << "]";
     std::string sstep=ss.str();
 
-    // 1. Ntracks and Npixhit/tracks at delays
-    Npixhit("Npixhit_[%d]", step).Fill(track.pix);
-    if (track.pixhit[0]!=0 || track.pixhit[1]!=0) Npixhit("Npixhit2_[%d]", step).Fill(track.pix);
+    // 2. Npixhit/tracks at delays
+    Nhits("NStrip_[%d]", step).Fill(track.strip);
+    if (track.fpix[0]!=0 && track.fpix[1]!=0 && track.strip>=10) {
+      Nhits("NFPix_[%d]", step).Fill(track.validfpix[0]+track.validfpix[1]);
+    }
+    if (track.bpix[0]!=0 && track.bpix[1]!=0 && track.bpix[2]!=0 && track.strip>10) {
+      Nhits("NBPix_[%d]", step).Fill(track.validbpix[0]+track.validbpix[1]+
+				     track.validbpix[2]);
+    }
+    if ( (track.fpix[0]!=0 && track.fpix[1]!=0) ||
+	 (track.bpix[0]!=0 && track.bpix[1]!=0 && track.bpix[2]!=0) ) {
+      Nhits("NPix_[%d]", step).Fill(track.pix); // track.pix?
+    }
 
     // 3. TrackD0, TrackDz, TrackPt, TrackChi2 at delays
-    TrackParm("pt_[%d]", step).Fill(track.pt);
-    TrackParm("chi2_[%d]", step).Fill(track.chi2/track.ndof);
-    TrackParm("d0_[%d]", step).Fill(track.d0);
-    TrackParm("dz_[%d]", step).Fill(track.dz);
-
+    if ( ((track.fpix[0]!=0 && track.fpix[1]!=0) ||
+	  (track.bpix[0]!=0 && track.bpix[1]!=0 && track.bpix[2]!=0)) && track.strip>10) {
+      TrackParm("pt_[%d]", step).Fill(track.pt);
+      TrackParm("chi2_[%d]", step).Fill(track.chi2/track.ndof);
+      TrackParm("d0_[%d]", step).Fill(track.d0);
+      TrackParm("dz_[%d]", step).Fill(track.dz);
+    }
 
 
     if (evt.evt!=prevevt) {
       
       if (prevevtDelay!=NOVAL_I) {
-	// 1. Ntracks and Npixhit/tracks at delays
+	// 1. Ntracks and Nhits/tracks at delays
 	Ntrk("Ntrk_[%d]", step).Fill(prevevtNumTracks);
 	Ntrk("Npixtrk_[%d]", step).Fill(prevevtNumPixTracks);
       }
@@ -720,20 +773,34 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
   // 1. Ntracks at delays
   Ntrk.setColor("Ntrk_.*!", "LineMarker", 1, 1);
   Ntrk.setColor("Npixtrk_.*!", "LineMarker", 1, 1);
-  Ntrk.Draw("Ntrk_.*!;overlayPE\nNpixtrk_.*!;overlayPE");
+  Ntrk.Draw("Ntrk_.*!;overlayPE;Number of tracks\n"
+	    "Npixtrk_.*!;overlayPE;Number of tracks crossing pixels");
   Ntrk.Write();
 
-  // 2. Npixhit/tracks at delays
-  Npixhit.setColor("Npixhit_.*!", "LineMarker", 1, 1);
-  Npixhit.setColor("Npixhit2_.*!", "LineMarker", 1, 1);
-  Npixhit.Draw("Npixhit_.*!;overlayPE\nNpixhit2_.*!;overlayPE");
-  Npixhit.Write();
+  // 2. Nhits/tracks at delays
+  Nhits.setColor("NStrip_.*!", "LineMarker", 1, 1);
+  Nhits.setColor("NPix_.*!", "LineMarker", 1, 1);
+  Nhits.setColor("NBPix_.*!", "LineMarker", 1, 1);
+  Nhits.setColor("NFPix_.*!", "LineMarker", 1, 1);
+  Nhits.scaleAreaTo("NStrip_.*!", 1.);
+  Nhits.scaleAreaTo("NPix_.*!", 1.);
+  Nhits.scaleAreaTo("NBPix_.*!", 1.);
+  Nhits.scaleAreaTo("NFPix_.*!", 1.);
+  Nhits.Draw("NStrip_.*!;overlayPE;Number of valid strip hits per track\n"
+	     "NPix_.*!;overlayPE;Number of valid pixel hits per track crossing pixels\n"
+	     "NBPix_.*!;overlayPE;Number of valid pixel hits per track crossing BPix (N_{strip hit}>10)\n"
+	     "NFPix_.*!;overlayPE;Number of valid pixel hits per track crossing FPix (N_{strip hit}>10)\n", 2);
+  Nhits.Write();
 
   // 3. TrackD0, TrackDz, TrackPt, TrackChi2 at delays
   TrackParm.setColor("pt_.*!", "LineMarker", 1, 1);
   TrackParm.setColor("chi2_.*!", "LineMarker", 1, 1);
   TrackParm.setColor("d0_.*!", "LineMarker", 1, 1);
   TrackParm.setColor("dz_.*!", "LineMarker", 1, 1);
+  TrackParm.scaleAreaTo("pt_.*!", 1.);
+  TrackParm.scaleAreaTo("chi2_.*!", 1.);
+  TrackParm.scaleAreaTo("d0_.*!", 1.);
+  TrackParm.scaleAreaTo("dz_.*!", 1.);
   TrackParm.Draw("pt_.*!;overlayPE\nchi2_.*!;overlayPE\nd0_.*!;overlayPE\ndz_.*!;overlayPE\n", 2);
   TrackParm.Write();
 
@@ -785,7 +852,9 @@ int doClusterPlots(TChain *clustTree, int data) {
 
   for (Long64_t i=0; i<clustTree->GetEntries(); i++) {
     clustTree->GetEntry(i);
-    std::string fname=clustTree->GetFile()->GetName();
+     if (evt.bx!=51 &&evt.bx!=-1) continue;
+
+   std::string fname=clustTree->GetFile()->GetName();
     if (fname!=prevFileName) {
       std::cout<<"Processing "<<fname<<std::endl;
       prevFileName=fname;
@@ -1073,6 +1142,8 @@ int doClusterPlots(TChain *clustTree, int data) {
 
   for (long i=0; i<clustTree->GetEntries(); i++) {
     clustTree->GetEntry(i);
+    if (evt.bx!=51 &&evt.bx!=-1) continue;
+
 
     std::pair<int,int> stepDelay;
     if (data==0) {
@@ -1202,7 +1273,7 @@ int doClusterPlots(TChain *clustTree, int data) {
   // ----------------------------------------------------------------------------------------------
   // Post-processing and drawing histograms
   //
-  
+  std::cout<<"Drawing\n";
   // 1. Mean cluster size
   clusMeanSizeVsDelay.efficiency();
   //clusMeanSizeVsDelay.setAxisRange(".*", 0, 1.0, "Y");
