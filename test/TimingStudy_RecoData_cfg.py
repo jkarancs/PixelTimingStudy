@@ -28,7 +28,7 @@ process.load("Configuration.StandardSequences.Geometry_cff")
 #-------------------------------------------------
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = "GR09_P_V6::All" ##"GR09_P_V6::All"
+process.GlobalTag.globaltag = "GR09_E_V6::All" ##"GR09_P_V6::All"
 
 #-------------------------
 #  Reconstruction Modules
@@ -98,6 +98,13 @@ process.load("RecoTracker.TransientTrackingRecHit.TransientTrackingRecHitBuilder
 
 process.load("Alignment.OfflineValidation.TrackerOfflineValidation_cfi")
 
+# Trigger filter
+process.load('L1TriggerConfig.L1GtConfigProducers.L1GtTriggerMaskTechTrigConfig_cff')
+process.load('HLTrigger/HLTfilters/hltLevel1GTSeed_cfi')
+process.hltLevel1GTSeed.L1TechTriggerSeeding = cms.bool(True)
+process.hltLevel1GTSeed.L1SeedsLogicalExpression = cms.string('40 OR 41')
+
+
 #-------------------------
 #  Ntuplizer code
 #-------------------------
@@ -142,8 +149,8 @@ process.source = cms.Source("PoolSource",
     #'file:/home/veszpv/data/CMSSW_3_2_7/CRAFT09-SuperPointing-CRAFT09_R_V4_CosmicsSeq_v1/763782DB-DCB9-DE11-A238-003048678B30.root'
     #'file:/home/veszpv/data/CMSSW_3_3_3/MinimumBias.BeamCommissioning09-v1.RAW/E6F8D1B6-B1D8-DE11-83B6-001D09F2AD7F.root'
     #'file:/home/veszpv/data/CMSSW_3_3_4/MinimumBias.BeamCommissioning09-PromptReco-v2.RECO/30BB156B-8FDD-DE11-92FD-003048D37456.root'
-    #'file:/home/veszpv/data/CMSSW_3_3_5/BSCskim_123151_Express.root'
-    'file:/home/veszpv/data/CMSSW_3_3_5/BeamCommissioning09-Cosmics-RECO/5831FFE1-1CDE-DE11-AE90-001D09F2906A.root'
+    'file:/home/veszpv/data/CMSSW_3_3_5/BSCskim_123151_Express.root'
+    #'file:/home/veszpv/data/CMSSW_3_3_5/BeamCommissioning09-Cosmics-RECO/5831FFE1-1CDE-DE11-AE90-001D09F2906A.root'
 ) )
 
 # these drop commands are necessary to get rid of all HLT problems and DQM bulk
@@ -166,6 +173,8 @@ process.maxEvents = cms.untracked.PSet(
 #-------------------------------------------------
 
 process.p = cms.Path(
+    # Trigger selection:
+    #process.hltLevel1GTSeed*
     # Reco:
     #process.siPixelDigis*process.siStripDigis*
     #//process.RawToDigi*process.reconstructionCosmics*

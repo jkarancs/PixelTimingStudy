@@ -49,7 +49,7 @@ std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
   }
   int step=NOVAL_I;
   int delay=NOVAL_I;
-  if (run==123592) { delay=0; step=1; }
+  if (run==123592) { delay=0; step=3; }
 //   if (run==123596) {
 //     if (orbitnumber>=0 && orbitnumber<771931)               { delay=0; step=0; }
 //     else if (orbitnumber>=771931   && orbitnumber<3627623)  { delay=0; step=0; }
@@ -62,17 +62,43 @@ std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
 //     else if (orbitnumber>=71554771)                         { delay=6; step=2; }
 //   }
   if (run==123596) {
-    if (orbitnumber>=0 && orbitnumber<771931)               { delay=0; step=1; }
-    else if (orbitnumber>=771931   && orbitnumber<3200000)  { delay=0; step=1; }
-    else if (orbitnumber>=3200000  && orbitnumber<9800000)  { delay=-6; step=0; }
-    else if (orbitnumber>=9800000 && orbitnumber<16500000)  { delay=6; step=2; }
-    else if (orbitnumber>=16500000 && orbitnumber<22500000) { delay=12; step=3; }
-    else if (orbitnumber>=22500000 && orbitnumber<28000000) { delay=12; step=3; } // wrong key set
-    else if (orbitnumber>=28000000 && orbitnumber<69500000) { delay=6; step=2; }
-    else if (orbitnumber>=69500000 && orbitnumber<71800000) { delay=18; step=4; }
-    else if (orbitnumber>=71800000)                         { delay=6; step=2; }
+    if (orbitnumber>=0 && orbitnumber<771931)               { delay=0; step=3; }
+    else if (orbitnumber>=771931   && orbitnumber<3200000)  { delay=0; step=3; }
+    else if (orbitnumber>=3200000  && orbitnumber<9800000)  { delay=-6; step=1; }
+    else if (orbitnumber>=9800000 && orbitnumber<16500000)  { delay=6; step=4; }
+    else if (orbitnumber>=16500000 && orbitnumber<22500000) { delay=12; step=6; }
+    else if (orbitnumber>=22500000 && orbitnumber<28000000) { delay=12; step=6; } // wrong key set
+    else if (orbitnumber>=28000000 && orbitnumber<69500000) { delay=6; step=4; }
+    else if (orbitnumber>=69500000 && orbitnumber<71800000) { delay=18; step=8; }
+    else if (orbitnumber>=71800000)                         { delay=6; step=4; }
   }
-  if (run>=123603) { delay=6; step=2; }
+  if (run>=123603&&run<123970) { delay=6; step=4; }
+  if (run==123970) {
+    if (orbitnumber>=0 && orbitnumber<9500000)              { delay=12; step=6; }
+    else { delay=0; step=3; }
+  }
+  if (run==123976) { delay=12; step=6; }
+  if (run==123977) {
+    // 123977   0-     +6ns,key=23686   -  1500000
+    // 123977   1-8   +12ns,key=23694   - 10500000
+    // 123977  10-19    0ns,key=223711  - 20900000
+    // 123977  20-27  +15ns,key=223712  - 30000000
+    // 123977  29-36   +9ns,key=223713  - 38800000
+    // 123977  37-44   -3ns,key=223714  - 47800000
+    // 123977  46-47    0ns,WBC154,key23688 - 49800000
+    // 123977  47-49    0ns,WBC156,key23690 - 52500000
+    // 123977  50-     +6ns, key=23686 BACK TO NORMAL OPERATIONS - END
+    if (orbitnumber>=0 && orbitnumber<1500000)              { delay=6; step=4; }
+    else if (orbitnumber>=1500000  && orbitnumber<10500000) { delay=12; step=6; }
+    else if (orbitnumber>=10500000 && orbitnumber<20900000) { delay=0; step=3; }
+    else if (orbitnumber>=20900000 && orbitnumber<30000000) { delay=15; step=7; }
+    else if (orbitnumber>=30000000 && orbitnumber<38800000) { delay=9; step=5; }
+    else if (orbitnumber>=38800000 && orbitnumber<47800000) { delay=-3; step=2; }
+    else if (orbitnumber>=47800000 && orbitnumber<49800000) { delay=25; step=8; }
+    else if (orbitnumber>=49800000 && orbitnumber<52500000) { delay=-25; step=0; }
+    else if (orbitnumber>=52500000)                         { delay=6; step=4; }
+  }
+  if (run>=123978) { delay=6; step=4;}
   std::pair<int,int> ret(step,delay);
   return ret;
 }
@@ -95,7 +121,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   std::string plotType="RecHits";
   std::map<int,int> delays;
-  float min_delay, max_delay;
+  float min_delay=0, max_delay=0;
   int n_delay=0;
   
 
@@ -120,8 +146,8 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<trajTree->GetEntries(); i++) {
-    trajTree->GetEntry(i);
-    if (evt.bx!=51 &&evt.bx!=-1) continue;
+    trajTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
     std::string fname=trajTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -309,8 +335,8 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   //
   std::cout<< "Filling histos\n";
   for (long i=0; i<trajTree->GetEntries(); i++) {
-    trajTree->GetEntry(i);
-    if (evt.bx!=51 &&evt.bx!=-1) continue;
+    trajTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
     if (! ( ((trajmeas.trk.fpix[0]!=0 && trajmeas.trk.fpix[1]!=0) ||
 	     (trajmeas.trk.bpix[0]!=0 && trajmeas.trk.bpix[1]!=0 && trajmeas.trk.bpix[2]!=0)) 
@@ -598,8 +624,8 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<trackTree->GetEntries(); i++) {
-    trackTree->GetEntry(i);
-     if (evt.bx!=51 &&evt.bx!=-1) continue;
+    trackTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+     if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
    std::string fname=trackTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -706,8 +732,8 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
   int prevevtNumPixTracks=NOVAL_I;
 
   for (long i=0; i<trackTree->GetEntries(); i++) {
-    trackTree->GetEntry(i);
-    if (evt.bx!=51 &&evt.bx!=-1) continue;
+    trackTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
 
     std::pair<int,int> stepDelay;
@@ -825,7 +851,7 @@ int doClusterPlots(TChain *clustTree, int data) {
 
   std::string plotType="Cluster";
   std::map<int,int> delays;
-  float min_delay, max_delay;
+  float min_delay=0, max_delay=0;
   int n_delay=0;
   std::ostringstream drawAll;
   std::ostringstream drawAll_den;
@@ -851,8 +877,8 @@ int doClusterPlots(TChain *clustTree, int data) {
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<clustTree->GetEntries(); i++) {
-    clustTree->GetEntry(i);
-     if (evt.bx!=51 &&evt.bx!=-1) continue;
+    clustTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+     if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
    std::string fname=clustTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -1141,8 +1167,8 @@ int doClusterPlots(TChain *clustTree, int data) {
   int prevevtDelay=NOVAL_I;
 
   for (long i=0; i<clustTree->GetEntries(); i++) {
-    clustTree->GetEntry(i);
-    if (evt.bx!=51 &&evt.bx!=-1) continue;
+    clustTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
+    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
 
     std::pair<int,int> stepDelay;
