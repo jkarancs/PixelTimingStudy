@@ -78,6 +78,10 @@ class TimingStudy : public edm::EDAnalyzer
     int bx;
     int orb;
     int ntracks;
+    int ntrackFPix[2]; // tracks crossing the pixels
+    int ntrackBPix[3]; // tracks crossing the pixels
+    int ntrackFPixvalid[2]; // tracks crossing the pixels with valid hits
+    int ntrackBPixvalid[3]; // tracks crossing the pixels with valid hits
 
     std::string list;
 
@@ -96,7 +100,12 @@ class TimingStudy : public edm::EDAnalyzer
       bx=NOVAL_I;
       orb=NOVAL_I;
       ntracks=NOVAL_I;
-      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:ntracks";
+      ntrackFPix[0]=ntrackFPix[1]=NOVAL_I;
+      ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
+      ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
+      ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
+      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:"
+	"ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]";
     }
 
   } evt_;
@@ -115,6 +124,14 @@ class TimingStudy : public edm::EDAnalyzer
     float d0;
     float dz;
     float pt;
+    float eta;
+    float theta;
+    float phi;
+    int fpix[2]; // recHits in Diks1,2 
+    int bpix[3]; // recHits in Layer 1,2,3
+    int validfpix[2]; // valid recHits in Diks1,2 
+    int validbpix[3]; // valid recHits in Layer 1,2,3
+    
 
     std::string list;
    
@@ -130,7 +147,16 @@ class TimingStudy : public edm::EDAnalyzer
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
-      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt";
+      eta=NOVAL_F;
+      theta=NOVAL_F;
+      phi=NOVAL_F;
+      fpix[0]=fpix[1]=NOVAL_I;
+      bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
+      validfpix[0]=validfpix[1]=NOVAL_I;
+      validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
+
+      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:eta:theta:phi:"
+	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]";
     }
 
   };
@@ -344,7 +370,7 @@ class TimingStudy : public edm::EDAnalyzer
     }
   };
 
-  std::vector<TrajMeasurement> trajmeas_;
+  std::vector<std::vector<TrajMeasurement> > trajmeas_;
 
   
   void init_all() {

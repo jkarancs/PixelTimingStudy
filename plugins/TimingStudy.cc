@@ -267,6 +267,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
   }
 
+  evt_.ntrackFPix[0]=evt_.ntrackFPix[1]=0;
+  evt_.ntrackBPix[0]=evt_.ntrackBPix[1]=evt_.ntrackBPix[2]=0;
+  evt_.ntrackFPixvalid[0]=evt_.ntrackFPixvalid[1]=0;
+  evt_.ntrackBPixvalid[0]=evt_.ntrackBPixvalid[1]=evt_.ntrackBPixvalid[2]=0;
 
 
   // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
@@ -454,7 +458,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       const Track&      track = *itTrajTrack->val;
       
       TrackData track_;
-      trajmeas_.clear();
+      //trajmeas_.clear();
+      std::vector<TrajMeasurement> trajmeas;
       //
       // Read track info - USED BY TrajMeasurement!!!
       //
@@ -470,8 +475,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.d0=track.d0();
       track_.dz=track.dz();
       track_.pt=track.pt();
-
-
+      track_.eta=track.eta();
+      track_.theta=track.theta();
+      track_.phi=track.phi();
+      track_.fpix[0]=track_.fpix[1]=0;
+      track_.bpix[0]=track_.bpix[1]=track_.bpix[2]=0;
+      track_.validfpix[0]=track_.validfpix[1]=0;
+      track_.validbpix[0]=track_.validbpix[1]=track_.validbpix[2]=0;
 
       //
       // Loop along trajectory measurements
@@ -563,6 +573,14 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  track_.pixhit[0]++;
 	  if (recHit->isValid()) track_.validpixhit[0]++;
 	}
+
+	if (subDetId==PixelSubdetector::PixelBarrel) {
+	  track_.bpix[meas.mod.layer-1]++;
+	  if (recHit->isValid()) track_.validbpix[meas.mod.layer-1]++;
+	} else if (subDetId==PixelSubdetector::PixelEndcap) {
+	  track_.fpix[meas.mod.disk-1]++;
+	  if (recHit->isValid()) track_.validfpix[meas.mod.disk-1]++;
+	}
 	
 	// Read associated cluster parameters
 	if (recHit->isValid() && recHit->hit()!=0) {
@@ -585,8 +603,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  }
 	}
 	
-	meas.trk=track_;
-	trajmeas_.push_back(meas);
+	//meas.trk=track_;
+	trajmeas.push_back(meas);
       } // loop on trajectory measurements
       
     
@@ -595,52 +613,70 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       //
     
       if (track_.pixhit[0]>0 && track_.pixhit[1]>0) {
-	for (size_t i=0; i<trajmeas_.size(); i++) {
-	  if (trajmeas_[i].gly<0 && track_.pixhit[1]>1) {
-	    trajmeas_[i].telescope=1;
-	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+	for (size_t i=0; i<trajmeas.size(); i++) {
+	  if (trajmeas[i].gly<0 && track_.pixhit[1]>1) {
+	    trajmeas[i].telescope=1;
+	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
 		      << ") passed telescope" << std::endl;
 	  }
-	  if (trajmeas_[i].gly>0 && track_.pixhit[0]>1) {
-	    trajmeas_[i].telescope=1;
+	  if (trajmeas[i].gly>0 && track_.pixhit[0]>1) {
+	    trajmeas[i].telescope=1;
 	    
-	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
 		      << ") passed telescope" << std::endl;
 	  }
 	}
       }
       
       if (track_.validpixhit[0]>0 && track_.validpixhit[1]>0) {
-	for (size_t i=0; i<trajmeas_.size(); i++) {
-	  if (trajmeas_[i].gly<0 && (track_.validpixhit[1]>1 || !trajmeas_[i].validhit)) {
-	    trajmeas_[i].telescope_valid=1;
-	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+	for (size_t i=0; i<trajmeas.size(); i++) {
+	  if (trajmeas[i].gly<0 && (track_.validpixhit[1]>1 || !trajmeas[i].validhit)) {
+	    trajmeas[i].telescope_valid=1;
+	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
 		      << ") passed telescope_valid" << std::endl;
 	  }
-	  if (trajmeas_[i].gly>0 && (track_.validpixhit[0]>1 || !trajmeas_[i].validhit)) {
-	    trajmeas_[i].telescope_valid=1;
-	    std::cout << "Layer " << trajmeas_[i].mod.layer << " module " \
-		      << trajmeas_[i].mod.module << "(y=" << trajmeas_[i].gly \
+	  if (trajmeas[i].gly>0 && (track_.validpixhit[0]>1 || !trajmeas[i].validhit)) {
+	    trajmeas[i].telescope_valid=1;
+	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
 		      << ") passed telescope_valid" << std::endl;
 	  }
 	}
       }
-      
-      for (size_t i=0; i<trajmeas_.size(); i++) {
-	trajTree_->SetBranchAddress("event", &evt_);
-	trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
-	trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
-	trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
-	trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
-	trajTree_->SetBranchAddress("track", &track_);
-	trajTree_->Fill();
+
+      // Fill track field of the traj measurements that are from this track
+      for (size_t i=0; i<trajmeas.size(); i++) {
+	trajmeas[i].trk=track_;
       }
       
+      evt_.ntrackFPix[0]+=track_.fpix[0];
+      evt_.ntrackFPix[1]+=track_.fpix[1];
+      evt_.ntrackFPixvalid[0]+=track_.validfpix[0];
+      evt_.ntrackFPixvalid[1]+=track_.validfpix[1];
+      evt_.ntrackBPix[0]+=track_.bpix[0];
+      evt_.ntrackBPix[1]+=track_.bpix[1];
+      evt_.ntrackBPix[2]+=track_.bpix[2];
+      evt_.ntrackBPixvalid[0]+=track_.validbpix[0];
+      evt_.ntrackBPixvalid[1]+=track_.validbpix[1];
+      evt_.ntrackBPixvalid[2]+=track_.validbpix[2];
+ 
       tracks_.push_back(track_);
-    }
+
+//       for (size_t i=0; i<trajmeas_.size(); i++) {
+// 	trajTree_->SetBranchAddress("event", &evt_);
+// 	trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
+// 	trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
+// 	trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
+// 	trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
+// 	trajTree_->SetBranchAddress("track", &track_);
+// 	trajTree_->Fill();
+//       }
+      
+      trajmeas_.push_back(trajmeas);
+    } // end of tracks loop
 
   }
 
@@ -671,15 +707,17 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     digiTree_->Fill();
   }
 
-//   for (size_t i=0; i<trajmeas_.size(); i++) {
-//     trajTree_->SetBranchAddress("event", &evt_);
-//     trajTree_->SetBranchAddress("traj", &trajmeas_[i]);
-//     trajTree_->SetBranchAddress("module", &trajmeas_[i].mod);
-//     trajTree_->SetBranchAddress("module_on", &trajmeas_[i].mod_on);
-//     trajTree_->SetBranchAddress("clust", &trajmeas_[i].clu);
-//     trajTree_->SetBranchAddress("track", &track_);
-//     trajTree_->Fill();
-//   }
+  for (size_t itrk=0; itrk<trajmeas_.size(); itrk++) {
+    for (size_t i=0; i<trajmeas_[itrk].size(); i++) {
+      trajTree_->SetBranchAddress("event", &evt_);
+      trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
+      trajTree_->SetBranchAddress("module", &trajmeas_[itrk][i].mod);
+      trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
+      trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
+      trajTree_->SetBranchAddress("track", &trajmeas_[itrk][i].trk);
+      trajTree_->Fill();
+    }
+  }
   
   
 }
