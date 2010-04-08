@@ -20,6 +20,36 @@
 #include "debDataMaker/interface/Plot.hh"
 
 
+
+void setError(TH1F* h, TH1F* num, TH1F* den) {
+
+  TH1F *unit=(TH1F*)h->Clone("unit");
+  for(size_t i=0; i<=unit->GetNbinsX(); i++) unit->SetBinContent(i, 1);
+  TH1F *n_tilde=(TH1F*)den->Clone("n_tilde"); // n_tilde= N
+  n_tilde->Add(unit, 4.); // n_tilde= N + 4
+  TH1F *p_tilde=(TH1F*)num->Clone("p_tilde"); // p_tilde = X
+  p_tilde->Add(unit, 2.); // p_tilde = X + 2
+  p_tilde->Divide(n_tilde); // p_tilde=(X+2)/n_tilde
+  
+  TH1F* err=(TH1F*)h->Clone("err"); // error
+  err->Multiply(p_tilde, p_tilde, -3.84);
+  err->Add(p_tilde, 3.84);
+  err->Divide(n_tilde);
+  for(size_t i=0; i<=err->GetNbinsX(); i++) {
+    if (den->GetBinContent(i)!=0.) {
+      h->SetBinError(i, sqrt(err->GetBinContent(i)));
+    } else {
+      h->SetBinError(i, 0.);
+    }
+  }
+  
+  delete unit;
+  delete p_tilde;
+  delete n_tilde;
+  delete err;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Delays
@@ -42,7 +72,7 @@ std::pair<int,int> getStepDelayCosmics(int globaldelay25, int run) {
 
 
 
-std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
+std::pair<int,int> getStepDelayCollision(int run, int orbitnumber, int ls) {
   if (orbitnumber==-1) { // SIMULATION
     std::pair<int,int> ret(0,0);
     return ret;
@@ -94,11 +124,61 @@ std::pair<int,int> getStepDelayCollision(int orbitnumber, int run=9999) {
     else if (orbitnumber>=20900000 && orbitnumber<30000000) { delay=15; step=7; }
     else if (orbitnumber>=30000000 && orbitnumber<38800000) { delay=9; step=5; }
     else if (orbitnumber>=38800000 && orbitnumber<47800000) { delay=-3; step=2; }
-    else if (orbitnumber>=47800000 && orbitnumber<49800000) { delay=25; step=8; }
+    else if (orbitnumber>=47800000 && orbitnumber<49800000) { delay=25; step=9; }
     else if (orbitnumber>=49800000 && orbitnumber<52500000) { delay=-25; step=0; }
     else if (orbitnumber>=52500000)                         { delay=6; step=4; }
   }
   if (run>=123978) { delay=6; step=4;}
+
+  // Collisions 2010:
+// RUN 132476
+// DELAY       LS_START    LS_END     TIME_START TIME_END    CONFIG_KEY        STEP:
+// DEFAULT               0         21        0:18       0:15      34214         
+//         10           29         53        0:29       0:28      34174         
+//         12           58 END_OF_RUN             END_OF_RUN      34143
+// RUN 132477
+//         14            6         33        0:48       0:58      34180
+//         16           36         62        0:59       1:09      34205
+//           8          65         90        1:10       1:20      34171
+//           4          94        119        2:21       1:31      34195
+//           2        122         147        1:32       1:42      34220
+//          -2        150         175        1:43       1:53      34076
+//          -4        180         224        1:55       2:12      34105
+//         18         237         242        2:17       2:19      34166
+//          -6        245         249        2:20       2:22      34172
+//         20         252         261        2:23       2:26      34221
+//           0        264         291        2:28       2:38      34123
+//          -8        293         298        2:39       2:41      34077
+// 0_WBC154           301         308        2:42       2:45      34128
+// 0_WBC156           312         317        2:46       2:48      34184
+//           6        321 END_OF_RUN         2:50 END_OF_RUN      34167
+
+  if (run==132476) {
+    if (ls>=0 && ls<21) {           delay=6;   step=9;
+    } else if (ls>=29 && ls<53) {   delay=10;  step=11; 
+    } else if (ls>=58) {            delay=12;  step=12;
+    } else                        { delay=NOVAL_I;  step=NOVAL_I; }
+  }
+  if (run==132477) {
+    if (ls>=6 && ls<33) {           delay=14;  step=13;
+    } else if (ls>=36 && ls<62) {   delay=16;  step=14;
+    } else if (ls>=65 && ls<90) {   delay=8;   step=10;
+    } else if (ls>=94 && ls<119) {  delay=4;   step=8;
+    } else if (ls>=122 && ls<147) { delay=2;   step=7;
+    } else if (ls>=150 && ls<175) { delay=-2;  step=5;
+    } else if (ls>=180 && ls<224) { delay=-4;  step=4;
+    } else if (ls>=237 && ls<242) { delay=18;  step=15;
+    } else if (ls>=245 && ls<249) { delay=-6;  step=3;
+    } else if (ls>=252 && ls<261) { delay=20;  step=16;
+    } else if (ls>=264 && ls<291) { delay=0;   step=6;
+    } else if (ls>=293 && ls<298) { delay=-8;  step=2;
+    } else if (ls>=301 && ls<308) { delay=25;  step=17; delay=NOVAL_I;  step=NOVAL_I;
+    } else if (ls>=312 && ls<317) { delay=-25; step=1;  delay=NOVAL_I;  step=NOVAL_I;
+    } else if (ls>=321)           { delay=6;   step=9;
+    } else                        { delay=NOVAL_I;  step=NOVAL_I; }
+  }
+
+
   std::pair<int,int> ret(step,delay);
   return ret;
 }
@@ -146,8 +226,8 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<trajTree->GetEntries(); i++) {
-    trajTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    trajTree->GetEntry(i); //if (evt.run<123970 || evt.run>123977) continue;
+    //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
     std::string fname=trajTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -159,7 +239,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     if (data==0) {
       stepDelay=getStepDelayCosmics(evt.delay, evt.run);
     } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
     }
     if (stepDelay.first==NOVAL_I || stepDelay.second==NOVAL_I) continue;
     if (delays.find(stepDelay.first)==delays.end()) {
@@ -171,7 +251,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   std::sort(tempDelayBins.begin(), tempDelayBins.end(), std::less<float>());
   float min_sep=99999;
-  for (int i=1; i<tempDelayBins.size(); i++) {
+  for (int i=1; i<int(tempDelayBins.size()); i++) {
     if (min_sep>tempDelayBins[i]-tempDelayBins[i-1]) min_sep=tempDelayBins[i]-tempDelayBins[i-1];
   }
   if (tempDelayBins.size()>0) {
@@ -207,11 +287,52 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
   // 2. Hit Efficiency vs Delay
   deb::Plot<TH1F> hitEffVsDelay(600, 600, "%s_hitEffVsDelay\nTDR", plotType.data());
-  hitEffVsDelay.add(n_delay, min_delay, max_delay, "BPix;Hit efficiency in the Barrel"
-		    " pixel;Delay [ns];Efficiency");
-  hitEffVsDelay.add(n_delay, min_delay, max_delay, "FPix;Hit efficiency in the Forward"
-		    " pixel;Delay [ns];Efficiency");
+  //hitEffVsDelay.add(n_delay, min_delay, max_delay, "BPix;Hit efficiency in the Barrel"
+  //		    " pixel;Clock phase [ns];Efficiency");
+  hitEffVsDelay.add(n_delay, min_delay, max_delay, "BPix_L1!BPix Layer 1;"
+		    "Hit efficiency in the Barrel pixel Layer 1;Clock phase [ns];Efficiency"); {
+    hitEffVsDelay["BPix_L1"].addAux("valid");
+    hitEffVsDelay["BPix_L1"].addAux("validprop");
+    hitEffVsDelay["BPix_L1"].addAux("miss");
+  }
+
+  hitEffVsDelay.add(n_delay, min_delay, max_delay, "BPix_L2!BPix Layer 2;"
+		    "Hit efficiency in the Barrel pixel Layer 2;Clock phase [ns];Efficiency"); {
+    hitEffVsDelay["BPix_L2"].addAux("miss");
+  }
+
+  hitEffVsDelay.add(n_delay, min_delay, max_delay, "BPix_L3!BPix Layer 3;Hit efficiency in Barrel"
+		    " pixel Layer 3;Clock phase [ns];Efficiency");
+
+  hitEffVsDelay.add(n_delay, min_delay, max_delay, "FPix_D1!FPix Disk 1;"
+		    "Hit efficiency in the Forward pixel Disk 1;Clock phase [ns];Efficiency");
+  hitEffVsDelay.add(n_delay, min_delay, max_delay, "FPix_D2!FPix Disk 2;"
+		    "Hit efficiency in the Forward pixel Disk 2;Clock phase [ns];Efficiency");
   hitEffVsDelay.efficiency();
+  hitEffVsDelay.print();
+
+
+  deb::Plot<TH1F> hitEffVsDelayMod(600, 600, "%s_hitEffVsDelayMod\nTDR", plotType.data());
+  for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+    hitEffVsDelayMod.add(210, -10.5, 10.5, // 20
+			 "BPix_L1_%d!delay %d ns;Hit efficiency of Barrel "
+			 "pixel modules Layer 1;Ladders (subdiv. modules from -4 to 4) ;Efficiency",it->first,it->second);
+    hitEffVsDelayMod("BPix_L1_%d", it->first).addAux("valid");
+    hitEffVsDelayMod("BPix_L1_%d", it->first).addAux("validprop");
+    hitEffVsDelayMod("BPix_L1_%d", it->first).addAux("miss");
+    
+    hitEffVsDelayMod.add(330, -16.5, 16.5, // 32
+			 "BPix_L2_%d!delay %d ns;Hit efficiency of Barrel "
+			 "pixel modules Layer 2;Ladders (subdiv. modules from -4 to 4) ;Efficiency",it->first,it->second);
+    hitEffVsDelayMod("BPix_L2_%d", it->first).addAux("miss");
+	
+    hitEffVsDelayMod.add(440, -22.5, 22.5, // 44
+			 "BPix_L3_%d!delay %d ns;Hit efficiency of Barrel "
+			 "pixel modules Layer 3;Ladders (subdiv. modules from -4 to 4) ;Efficiency",it->first,it->second);
+  }
+  hitEffVsDelayMod.efficiency();
+  hitEffVsDelayMod.print();
+
 
 
   deb::Plot<TH1F> hitEffVsDelayBPixShell(600,600,"%s_hitEffVsDelayBPixShell\nTDR",plotType.data());
@@ -330,34 +451,52 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   
 
 
+  // Layer efficiency
+  double N_l1_validprop=0;
+  double N_l1_valid=0;
+  double N_l1_miss=0;
+  double N_l2_den=0;
+  double N_l2_num=0;
+  double N_l2_miss=0;
+  double N_l3_den=0;
+  double N_l3_num=0;
+  double N_fpix_num[2][2];
+  double N_fpix_den[2][2];
+  for (int i=0; i<2; i++) for (int j=0; j<2; j++) {
+    N_fpix_num[i][j]=0;
+    N_fpix_den[i][j]=0;
+  }
+
+
   // ----------------------------------------------------------------------------------------------
   // Filling histograms
   //
   std::cout<< "Filling histos\n";
   for (long i=0; i<trajTree->GetEntries(); i++) {
-    trajTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    trajTree->GetEntry(i); 
 
-    if (! ( ((trajmeas.trk.fpix[0]!=0 && trajmeas.trk.fpix[1]!=0) ||
-	     (trajmeas.trk.bpix[0]!=0 && trajmeas.trk.bpix[1]!=0 && trajmeas.trk.bpix[2]!=0)) 
-	    && trajmeas.trk.strip>10) )
-      continue;
-      
-    // Delay step and delay
-    std::pair<int,int> stepDelay;
-    if (data==0) {
-      stepDelay=getStepDelayCosmics(evt.delay, evt.run);
-    } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
-    }
-    int step=stepDelay.first;
-    int delay=stepDelay.second;
-    if (step==NOVAL_I || delay==NOVAL_I) continue;
-    std::ostringstream ss;
-    ss << "_[" << step << "]";
-    std::string sstep=ss.str();
+    //if (evt.run<123970 || evt.run>123977) continue;
+    //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
-    // Detector coordinate
+    //     if (! ( ((trajmeas.trk.fpix[0]!=0 && trajmeas.trk.fpix[1]!=0) ||
+    // 	     (trajmeas.trk.bpix[0]!=0 && trajmeas.trk.bpix[1]!=0 && trajmeas.trk.bpix[2]!=0)) 
+    // 	    && trajmeas.trk.strip>10) )
+    //       continue;
+    
+   
+    // Event and track selection
+
+    if ( !(evt.vtxndof>4 && 
+	   evt.nvtx>=1 &&
+	   trajmeas.trk.fromVtx==1 &&
+	   trajmeas.trk.strip>10 &&
+	   trajmeas.trk.pt>0.9) 
+	 ) continue;     
+    
+
+    // Detector coordinates
+
+    int validrog=(trajmeas.mod_on.sec!=-9999) ? 1 : 0;
     std::string detector= (trajmeas.mod_on.det==0) ? "BPix" : "FPix";
     std::string shell = trajmeas.mod_on.shell();
     int group=0;
@@ -371,6 +510,33 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
       srog<<"Disk"<<abs(trajmeas.mod_on.disk)<<"_PRT"<<trajmeas.mod_on.prt;
     }
     rog=srog.str();
+
+
+    //
+    // Put here the overall efficiency for good runs
+    //
+    // if (evt.good==1) blah blah
+
+
+    // Delay step and delay
+    std::pair<int,int> stepDelay;
+    if (data==0) {
+      stepDelay=getStepDelayCosmics(evt.delay, evt.run);
+    } else {
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
+    }
+    int step=stepDelay.first;
+    int delay=stepDelay.second;
+
+    //
+    // From here on this is only for the delay scan :
+    //
+    if (step==NOVAL_I || delay==NOVAL_I) continue;
+
+
+    std::ostringstream ss;
+    ss << "_[" << step << "]";
+    std::string sstep=ss.str();
 
 
     // 1. Hit Efficiency vs DT time
@@ -388,26 +554,111 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
     // 2. Hit Efficiency vs delay
     //    if (trajmeas.telescope && (trajmeas.validhit || trajmeas.missing) ) {
-    if ( (trajmeas.validhit || trajmeas.missing) ) {
+    if ( (trajmeas.validhit==1 || trajmeas.missing==1) ) {
       
-      if (trajmeas.mod_on.det==0) {
-	hitEffVsDelay[detector].den()->Fill(delay);
-	hitEffVsDelayBPixShell[shell].den()->Fill(delay);
-	hitEffVsDelayBPix[group][rog].den()->Fill(delay);
+      if (trajmeas.mod_on.det==0) { // BPix
+
+	// hit eff vs delay per layer
+	if (trajmeas.mod.layer==1 && 
+	    fabs(trajmeas.ly)<3.0 && 
+	    ((trajmeas.mod.half==0&&fabs(trajmeas.lx)<0.55)||
+	     (trajmeas.mod.half==1&&fabs(trajmeas.lx)<0.35))
+	    ) {
+	  
+	  deb::Histogram<TH1F>& h = hitEffVsDelay["BPix_L1"];
+	  deb::Histogram<TH1F>& m = hitEffVsDelayMod("BPix_L1_%d", step);
+	  float m_w=trajmeas.mod_on.ladder+trajmeas.mod_on.module/10.+0.05;
+	  if (trajmeas.mod_on.module>0) m_w-=0.1;
+	  if (trajmeas.validhit==1) {
+	    h.aux("valid")->Fill(delay);
+	    m.aux("valid")->Fill(m_w);
+	    if (delay==6) N_l1_valid++;
+	    if (trajmeas.lxmatch!=NOVAL_F) {
+	      h.aux("validprop")->Fill(delay);
+	      m.aux("validprop")->Fill(m_w);
+	      if (delay==6) N_l1_validprop++;
+	    }
+	  } else {
+	    h.aux("miss")->Fill(delay);
+	    m.aux("miss")->Fill(m_w);
+	    if (delay==6) N_l1_miss++;
+	  }
+
+	}
+	if (trajmeas.mod.layer==2 &&
+	    fabs(trajmeas.ly)<3.2 && 
+	    ((trajmeas.mod.half==0&&fabs(trajmeas.lx)<0.6)||
+	     (trajmeas.mod.half==1&&fabs(trajmeas.lx)<0.35))
+	    ) {
+	  
+	  deb::Histogram<TH1F>& h = hitEffVsDelay["BPix_L2"];
+	  deb::Histogram<TH1F>& m = hitEffVsDelayMod("BPix_L2_%d", step);
+	  float m_w=trajmeas.mod_on.ladder+trajmeas.mod_on.module/10.+0.05;
+	  if (trajmeas.mod_on.module>0) m_w-=0.1;
+	  if (trajmeas.validhit==1)  {
+	    h.num()->Fill(delay);
+	    m.num()->Fill(m_w);
+	    if (delay==6) N_l2_num++;
+	  } else {
+	    h.aux("miss")->Fill(delay);
+	    m.aux("miss")->Fill(m_w);
+	    if (delay==6) N_l2_miss++;
+	  }
+	  h.den()->Fill(delay);
+	  m.den()->Fill(m_w);
+	  if (delay==6) N_l2_den++;
+	  
+	}
+	if (trajmeas.mod.layer==3 &&
+	    fabs(trajmeas.ly)<3.1 && 
+	    ((trajmeas.mod.half==0&&fabs(trajmeas.lx)<0.6)||
+	     (trajmeas.mod.half==1&&fabs(trajmeas.lx)<0.35))
+	    ) {
+	  
+	  deb::Histogram<TH1F>& h = hitEffVsDelay["BPix_L3"];
+	  deb::Histogram<TH1F>& m = hitEffVsDelayMod("BPix_L3_%d", step);
+	  float m_w=trajmeas.mod_on.ladder+trajmeas.mod_on.module/10.+0.05;
+	  if (trajmeas.mod_on.module>0) m_w-=0.1;
+	  if (trajmeas.validhit==1) {
+	    h.num()->Fill(delay);
+	    m.num()->Fill(m_w);
+	    if (delay==6) N_l3_num++;
+	  }
+	  h.den()->Fill(delay);
+	  m.den()->Fill(m_w);
+	  if (delay==6) N_l3_den++;
+	}
+	
+	if (validrog==1) hitEffVsDelayBPixShell[shell].den()->Fill(delay);
+	if (validrog==1) hitEffVsDelayBPix[group][rog].den()->Fill(delay);
 	if (trajmeas.validhit) {
-	  hitEffVsDelay[detector].num()->Fill(delay);
-	  hitEffVsDelayBPixShell[shell].num()->Fill(delay);
-	  hitEffVsDelayBPix[group][rog].num()->Fill(delay);
+	  //hitEffVsDelay[detector].num()->Fill(delay);
+	  if (validrog==1) hitEffVsDelayBPixShell[shell].num()->Fill(delay);
+	  if (validrog==1) hitEffVsDelayBPix[group][rog].num()->Fill(delay);
 	}
 
-      } else {
-	hitEffVsDelay[detector].den()->Fill(delay);
-	hitEffVsDelayFPixShell[shell].den()->Fill(delay);
-	hitEffVsDelayFPix[group][rog].den()->Fill(delay);
+      } else { // FPix
+	if (trajmeas.mod.disk==1) {
+	  hitEffVsDelay["FPix_D1"].den()->Fill(delay);
+	} else {
+	  hitEffVsDelay["FPix_D2"].den()->Fill(delay);
+	}
+
+	if (validrog==1) hitEffVsDelayFPixShell[shell].den()->Fill(delay);
+	if (validrog==1) hitEffVsDelayFPix[group][rog].den()->Fill(delay);
+	if (delay==6) N_fpix_den[trajmeas.mod.side-1][trajmeas.mod.disk-1]+=1;
+
 	if (trajmeas.validhit) {
-	  hitEffVsDelay[detector].num()->Fill(delay);
-	  hitEffVsDelayFPixShell[shell].num()->Fill(delay);
-	  hitEffVsDelayFPix[group][rog].num()->Fill(delay);
+	  
+	  if (trajmeas.mod.disk==1) {
+	    hitEffVsDelay["FPix_D1"].num()->Fill(delay);
+	  } else {
+	    hitEffVsDelay["FPix_D2"].num()->Fill(delay);
+	  }
+
+	  if (validrog==1) hitEffVsDelayFPixShell[shell].num()->Fill(delay);
+	  if (validrog==1) hitEffVsDelayFPix[group][rog].num()->Fill(delay);
+	  if (delay==6) N_fpix_num[trajmeas.mod.side-1][trajmeas.mod.disk-1]+=1;
 	}
       }
 
@@ -416,7 +667,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
 
     // 3. Cluster charge
-    if (trajmeas.validhit) {
+    if (trajmeas.validhit==1 && validrog==1) {
       clusCharge[detector+sstep].Fill(trajmeas.clu.charge);
       if (trajmeas.mod_on.det==0) {
 	clusChargeBPixShell[shell+sstep].Fill(trajmeas.clu.charge);
@@ -428,7 +679,7 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
     }
 
     // 4. ROG efficiency
-    if (trajmeas.validhit||trajmeas.missing) {
+    if ((trajmeas.validhit==1||trajmeas.missing==1) && validrog==1) {
       if (trajmeas.mod_on.det==0) {
 	int rogeff_y=trajmeas.mod_on.shl*3+trajmeas.mod_on.prt-1;
 	rogEffBPix[detector+sstep].den()->Fill(trajmeas.mod_on.sec, rogeff_y);
@@ -448,6 +699,13 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
   // Post-processing and drawing histograms
   //
   std::cout<< "Drawing histos\n";
+
+  // 0. Hit Efficiency vs layers
+  deb::Plot<TH1F> layerEff(600, 600, "%s_layerEff\nTDR", plotType.data());
+  layerEff.add(7,0.5,7.5,"layerEff;Rec Hit efficiency in the Pixels;;Efficiency");
+  layerEff.efficiency();
+
+
   // 1. Hit Efficiency vs DT time
   hitEffVsDTtimeBarrel.efficiency(".*");
   hitEffVsDTtimeBarrel.scaleMaximumTo(".*.den", 1);
@@ -460,37 +718,134 @@ int doRecHitPlots(TChain *trajTree, int data) { // data 0:cosmics else:collision
 
 
   // 2. Hit Efficiency vs Delay
+  {
+    deb::Histogram<TH1F>& h=hitEffVsDelay["BPix_L1"];
+    h.num()->Add(h.aux("valid"));
+    h.den()->Add(h.aux("valid"));
+    h.aux("validprop")->Divide(h.aux("valid"));
+    h.aux("miss")->Divide(h.aux("validprop"));
+    h.den()->Add(h.aux("miss"));
+
+    double N_l1_num=N_l1_valid;
+    double N_l1_den=N_l1_valid;
+    N_l1_validprop/=N_l1_valid;
+    N_l1_miss/=N_l1_validprop;
+    N_l1_den+=N_l1_miss;
+
+    for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+      std::vector<deb::Plot<TH1F>::iterator> its=hitEffVsDelayMod.search("BPix_L1_%d", it->first);
+      if (its.size()==0) printf("BPix_L1_%d not found\n", it->first);
+      deb::Histogram<TH1F>& m = hitEffVsDelayMod("BPix_L1_%d", it->first);
+      m.num()->Add(m.aux("valid"));
+      m.den()->Add(m.aux("valid"));
+      m.aux("validprop")->Divide(m.aux("valid"));
+      m.aux("miss")->Divide(m.aux("validprop"));
+      m.den()->Add(m.aux("miss"));
+    }
+
+    layerEff["layerEff"].num()->Fill (1, N_l1_num);
+    layerEff["layerEff"].den()->Fill (1, N_l1_den);
+  }
+
+  {
+    deb::Histogram<TH1F>& h=hitEffVsDelay["BPix_L2"];
+    h.den()->Add(h.num(), (h.aux("miss")->Integral()*0.1)/h.num()->Integral());
+
+    for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+      deb::Histogram<TH1F>& m = hitEffVsDelayMod("BPix_L2_%d", it->first);
+      m.den()->Add(m.num(), (m.aux("miss")->Integral()*0.1)/m.num()->Integral());
+    }
+
+    N_l2_den+=N_l2_miss*0.1;
+    layerEff["layerEff"].num()->Fill (2, N_l2_num);
+    layerEff["layerEff"].den()->Fill (2, N_l2_den);
+  }
   hitEffVsDelay.efficiency();
-  hitEffVsDelay.setAxisRange(".*", 0, 1.0, "Y");
+  hitEffVsDelayMod.efficiency();
+
+  layerEff["layerEff"].num()->Fill (3, N_l3_num);
+  layerEff["layerEff"].den()->Fill (3, N_l3_den);
+  layerEff["layerEff"].num()->Fill (4, N_fpix_num[0][0]);
+  layerEff["layerEff"].num()->Fill (5, N_fpix_num[0][1]);
+  layerEff["layerEff"].num()->Fill (6, N_fpix_num[1][0]);
+  layerEff["layerEff"].num()->Fill (7, N_fpix_num[1][1]);
+  layerEff["layerEff"].den()->Fill (4, N_fpix_den[0][0]);
+  layerEff["layerEff"].den()->Fill (5, N_fpix_den[0][1]);
+  layerEff["layerEff"].den()->Fill (6, N_fpix_den[1][0]);
+  layerEff["layerEff"].den()->Fill (7, N_fpix_den[1][1]);
+  layerEff.efficiency();
+
+  setError(&layerEff["layerEff"], layerEff["layerEff"].num(), layerEff["layerEff"].den());
+
+  hitEffVsDelay.setAxisRange(".*", 0.4, 1.04, "Y");
   hitEffVsDelay.setColor(".*", "LineMarker", 1, 1);
-  hitEffVsDelay.Draw("FPix!& BPix!;overlayPE");
+  hitEffVsDelay.setColor("FPix_D2", "LineMarker", 6);
+  hitEffVsDelay.Draw("BPix_L[1-3]!&FPix_D[1-2]!;overlay9PE");
   hitEffVsDelay.Write();
+
+  hitEffVsDelayMod.setAxisRange(".*", 0.8, 1.04, "Y");
+  hitEffVsDelayMod.setColor("BPix_L1_8", "LineMarker", 2);
+  hitEffVsDelayMod.setColor("BPix_L1_9", "LineMarker", 1);
+  hitEffVsDelayMod.setColor("BPix_L1_10", "LineMarker", 3);
+  hitEffVsDelayMod.setColor("BPix_L2_8", "LineMarker", 2);
+  hitEffVsDelayMod.setColor("BPix_L2_9", "LineMarker", 1);
+  hitEffVsDelayMod.setColor("BPix_L2_10", "LineMarker", 3);
+  hitEffVsDelayMod.setColor("BPix_L3_8", "LineMarker", 2);
+  hitEffVsDelayMod.setColor("BPix_L3_9", "LineMarker", 1);
+  hitEffVsDelayMod.setColor("BPix_L3_10", "LineMarker", 3);
+  hitEffVsDelayMod.setStyle("BPix_L1.*", "Marker", 6);
+  hitEffVsDelayMod.setStyle("BPix_L2.*", "Marker", 6);
+  hitEffVsDelayMod.setStyle("BPix_L3.*", "Marker", 6);
+  //hitEffVsDelayMod.Draw("BPix_L1_[8,9,10]!&BPix_L1_9;overlayPE",1);
+  hitEffVsDelayMod.Draw("BPix_L1_8!&BPix_L1_9!&BPix_L1_10!&BPix_L1_9;overlayPE",1);
+  hitEffVsDelayMod.Write();
+  hitEffVsDelayMod.Draw("BPix_L2_8!&BPix_L2_9!&BPix_L2_10!&BPix_L2_9;overlayPE",1);
+  //hitEffVsDelayMod.Draw("BPix_L2_[8,9,10]!&BPix_L2_9;overlayPE",1);
+  hitEffVsDelayMod.canvas()->Write();
+  hitEffVsDelayMod.Draw("BPix_L3_8!&BPix_L3_9!&BPix_L3_10!&BPix_L3_9;overlayPE",1);
+  //hitEffVsDelayMod.Draw("BPix_L3_[8,9,10]!&BPix_L3_9;overlayPE",1);
+  hitEffVsDelayMod.canvas()->Write();
+  
+  layerEff.setAxisRange(".*", 0.8, 1.05, "Y");
+  layerEff.setStyle(".*", "Marker", 20);
+  layerEff["layerEff"].SetMarkerSize(1);
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(1, "BPix Layer 1");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(2, "BPix Layer 2");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(3, "BPix Layer 3");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(4, "FPix Side 1 Disk 1");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(5, "FPix Side 1 Disk 2");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(6, "FPix Side 2 Disk 1");
+  layerEff["layerEff"].GetXaxis()->SetBinLabel(7, "FPix Side 2 Disk 2");
+  layerEff.Draw("layerEff;overlayPEX0");
+  layerEff.canvas()->GetPad(1)->SetRightMargin(0.159);
+  layerEff.Write();
+
 
   hitEffVsDelayBPixShell.efficiency();
   hitEffVsDelayBPixShell.setAxisRange(".*", 0, 1.0, "Y");
   hitEffVsDelayBPixShell.setColor(".*", "LineMarker", 1, 1);
-  hitEffVsDelayBPixShell.Draw("BpO!!& BpI!!& BmO!!& BmI!!;PE",2);
+  hitEffVsDelayBPixShell.Draw("BpO!!& BpI!!& BmO!!& BmI!!;overlayPE",1);
   hitEffVsDelayBPixShell.Write();
 
   hitEffVsDelayFPixShell.efficiency();
   hitEffVsDelayFPixShell.setAxisRange(".*", 0, 1.0, "Y");
   hitEffVsDelayFPixShell.setColor(".*", "LineMarker", 1, 1);
-  hitEffVsDelayFPixShell.Draw("BpO!!& BpI!!& BmO!!& BmI!!;PE",2);
+  hitEffVsDelayFPixShell.Draw("BpO!!& BpI!!& BmO!!& BmI!!;overlayPE",1);
   hitEffVsDelayFPixShell.Write();
 
   for (size_t i=0; i<hitEffVsDelayBPix.size(); i++) {
     hitEffVsDelayBPix[i].efficiency();
-    hitEffVsDelayBPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    hitEffVsDelayBPix[i].setAxisRange(".*", 0.4, 1.05, "Y");
     hitEffVsDelayBPix[i].setColor(".*", "LineMarker", 1, 1);
-    hitEffVsDelayBPix[i].Draw("SEC[1-8]!;PE",3);
+    hitEffVsDelayBPix[i].Draw("SEC[1-8]!;overlayEL",1);
     hitEffVsDelayBPix[i].Write();
   }
 
   for (size_t i=0; i<hitEffVsDelayFPix.size(); i++) {
     hitEffVsDelayFPix[i].efficiency();
-    hitEffVsDelayFPix[i].setAxisRange(".*", 0, 1.0, "Y");
+    hitEffVsDelayFPix[i].setAxisRange(".*", 0.4, 1.05, "Y");
     hitEffVsDelayFPix[i].setColor(".*", "LineMarker", 1, 1);
-    hitEffVsDelayFPix[i].Draw("Disk[1,2]_PRT[1-4]!;PE",3);
+    hitEffVsDelayFPix[i].Draw("Disk[1,2]_PRT[1-4]!;overlayEL",1);
     hitEffVsDelayFPix[i].Write();
   }
 
@@ -624,8 +979,8 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<trackTree->GetEntries(); i++) {
-    trackTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-     if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    trackTree->GetEntry(i); //if (evt.run<123970 || evt.run>123977) continue;
+     //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
    std::string fname=trackTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -637,7 +992,7 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
     if (data==0) {
       stepDelay=getStepDelayCosmics(evt.delay, evt.run);
     } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
     }
     if (stepDelay.first==NOVAL_I || stepDelay.second==NOVAL_I) continue;
     if (delays.find(stepDelay.first)==delays.end()) {
@@ -732,15 +1087,15 @@ int doTrackPlots(TChain *trackTree, int data) { // data 0:cosmics else:collision
   int prevevtNumPixTracks=NOVAL_I;
 
   for (long i=0; i<trackTree->GetEntries(); i++) {
-    trackTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    trackTree->GetEntry(i); //if (evt.run<123970 || evt.run>123977) continue;
+    //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
 
     std::pair<int,int> stepDelay;
     if (data==0) {
       stepDelay=getStepDelayCosmics(evt.delay, evt.run);
     } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
     }
     int step=stepDelay.first;
     int delay=stepDelay.second;
@@ -877,8 +1232,8 @@ int doClusterPlots(TChain *clustTree, int data) {
   std::vector<float> tempDelayBins;
 
   for (Long64_t i=0; i<clustTree->GetEntries(); i++) {
-    clustTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-     if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    clustTree->GetEntry(i); //if (evt.run<123970 || evt.run>123977) continue;
+     //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
 
    std::string fname=clustTree->GetFile()->GetName();
     if (fname!=prevFileName) {
@@ -890,9 +1245,9 @@ int doClusterPlots(TChain *clustTree, int data) {
     if (data==0) {
       stepDelay=getStepDelayCosmics(evt.delay, evt.run);
     } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
     }
-    if (stepDelay.first==NOVAL_I || stepDelay.second==NOVAL_I) continue;
+    if (stepDelay.first==NOVAL_I || stepDelay.second==NOVAL_I || abs(stepDelay.second)==25) continue;
     if (delays.find(stepDelay.first)==delays.end()) {
       std::cout<<"Step "<<stepDelay.first<<" Delay "<<stepDelay.second<<std::endl;
       delays.insert(stepDelay);
@@ -929,9 +1284,9 @@ int doClusterPlots(TChain *clustTree, int data) {
   // 1. Average cluster size
   deb::Plot<TH1F> clusMeanSizeVsDelay(600, 600, "%s_clusMeanSizeVsDelay\nTDR", plotType.data());
   clusMeanSizeVsDelay.add(n_delay, min_delay, max_delay, "BPix;Mean cluster size in the Barrel"
-			  " pixel;Delay [ns];Size");
+			  " pixel;Clock phase [ns];Cluster size (pixels)");
   clusMeanSizeVsDelay.add(n_delay, min_delay, max_delay, "FPix;Mean cluster size in the Forward"
-			  " pixel;Delay [ns];Size");
+			  " pixel;Clock phase [ns];Cluster size (pixels)");
   clusMeanSizeVsDelay.efficiency();
  
 
@@ -1004,12 +1359,12 @@ int doClusterPlots(TChain *clustTree, int data) {
  
   deb::Plot<TH1F> clusCharge(600, 600, "%s_clusCharge\nTDR", plotType.data());
   for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
-    clusCharge.add(200, 0., 200., "BPix_[%d]!delay %d !BPix;Cluster charge in the Barrel"
-		   " pixel;Charge [ke]", it->first, it->second);
-    clusCharge.add(200, 0., 200., "FPix_[%d]!delay %d !FPix;Cluster charge in the Forward"
-		   " pixel;Charge [ke]", it->first, it->second);
+    clusCharge.add(70, 0., 210., "BPix_[%d]!clk %d ns!Barrel Pixel;Cluster charge in the Barrel"
+		   " pixel;Cluster charge [ke];Arbitrary", it->first, it->second);
+    clusCharge.add(70, 0., 210., "FPix_[%d]!clk %d ns!Forward Pixel;Cluster charge in the Forward"
+		   " pixel;Cluster charge [ke];Arbitrary", it->first, it->second);
   }
-  clusCharge.efficiency();
+  clusCharge.setSumw2();
 
 
   deb::Plot<TH1F> clusChargeBPixShell(600,600,"%s_clusChargeBPixShell\nTDR",plotType.data());
@@ -1022,8 +1377,8 @@ int doClusterPlots(TChain *clustTree, int data) {
 			      " pixel;Charge [ke]", partitions[i].data(), it->first, it->second, partitions[i].data());
     }
   }
-  clusChargeBPixShell.efficiency();
-  clusChargeFPixShell.efficiency();
+  clusChargeBPixShell.setSumw2();
+  clusChargeFPixShell.setSumw2();
 
 
   std::vector<deb::Plot<TH1F> > clusChargeBPix;
@@ -1038,7 +1393,7 @@ int doClusterPlots(TChain *clustTree, int data) {
 		partitions[i].data(), prt+1, sec+1);
 	}
       }
-      p.efficiency();
+      p.setSumw2();
       clusChargeBPix.push_back(p);
     }
   }
@@ -1056,7 +1411,7 @@ int doClusterPlots(TChain *clustTree, int data) {
 	}
       }
     }
-    p.efficiency();
+    p.setSumw2();
     clusChargeFPix.push_back(p);
   }
 
@@ -1065,10 +1420,10 @@ int doClusterPlots(TChain *clustTree, int data) {
  
   deb::Plot<TH1F> pixCharge(600, 600, "%s_pixCharge\nTDR", plotType.data());
   for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
-    pixCharge.add(50, 0., 50., "BPix_[%d]!delay %d !BPix;Pixel charge in clusters in the Barrel"
-		   " pixel;Charge [ke]", it->first, it->second);
-    pixCharge.add(50, 0., 50., "FPix_[%d]!delay %d !FPix;Pixel charge in clusters in the Forward"
-		   " pixel;Charge [ke]", it->first, it->second);
+    pixCharge.add(50, 0., 50., "BPix_[%d]!clk %d ns!Barrel Pixel;Pixel charge in clusters in the Barrel"
+		   " pixel;Pixel charge [ke];Arbitrary", it->first, it->second);
+    pixCharge.add(50, 0., 50., "FPix_[%d]!clk %d ns!Forward Pixel;Pixel charge in clusters in the Forward"
+		   " pixel;Pixel charge [ke];Arbitrary", it->first, it->second);
   }
   pixCharge.efficiency();
 
@@ -1156,6 +1511,18 @@ int doClusterPlots(TChain *clustTree, int data) {
   }
 
 
+  deb::Plot<TH1F> sizeClusBPix(600, 600, "%s_sizeClusBPix\nTDR", plotType.data());
+  deb::Plot<TH1F> sizeClusFPix(600, 600, "%s_sizeClusFPix\nTDR", plotType.data());
+  for (std::map<int,int>::iterator it=delays.begin();it!=delays.end();it++) {
+    sizeClusBPix.add(40, 0.5, 40.5, "BPix_[%d]!clk %d ns!Barrel Pixel;Cluster size in the Barrel"
+		     " pixel;Cluster charge [ke];Arbitrary", it->first, it->second);
+    sizeClusFPix.add(40, 0.5, 40.5, "FPix_[%d]!clk %d ns!Forward Pixel;Cluster size in the "
+		     "Forward pixel;Cluster charge [ke];Arbitrary", it->first, it->second);
+  }
+  sizeClusBPix.setSumw2();
+  sizeClusFPix.setSumw2();
+
+
   // ----------------------------------------------------------------------------------------------
   // Filling histograms
   //
@@ -1167,15 +1534,15 @@ int doClusterPlots(TChain *clustTree, int data) {
   int prevevtDelay=NOVAL_I;
 
   for (long i=0; i<clustTree->GetEntries(); i++) {
-    clustTree->GetEntry(i); if (evt.run<123970 || evt.run>123977) continue;
-    if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
-
+    clustTree->GetEntry(i); //if (evt.run<123970 || evt.run>123977) continue;
+    //if (evt.bx!=51 && evt.bx!=2824 && evt.bx!=-1) continue;
+    
 
     std::pair<int,int> stepDelay;
     if (data==0) {
       stepDelay=getStepDelayCosmics(evt.delay, evt.run);
     } else {
-      stepDelay=getStepDelayCollision(evt.orb, evt.run);
+      stepDelay=getStepDelayCollision(evt.run, evt.orb, evt.ls);
     }
     int step=stepDelay.first;
     int delay=stepDelay.second;
@@ -1199,6 +1566,7 @@ int doClusterPlots(TChain *clustTree, int data) {
     }
     rog=srog.str();
 
+    if (fabs(delay)==25) continue;
 
     // 1. Mean cluster size
     if (clust.charge>12.) {
@@ -1260,8 +1628,10 @@ int doClusterPlots(TChain *clustTree, int data) {
     // 6. size of clusters in L1/L2/L3 and Disk (+-)1/(+-)2
     if (clust.mod_on.det==0) {    
       sizeClus("BPix_L%d_[%d]", clust.mod_on.layer, step).Fill(clust.size);
+      if (clust.charge>12.) sizeClusBPix[detector+sstep].Fill(clust.size);
     } else if (clust.mod_on.det==1) { 
       sizeClus("FPix_D%d_[%d]", clust.mod_on.disk, step).Fill(clust.size);
+      if (clust.charge>12.) sizeClusFPix[detector+sstep].Fill(clust.size);
     }
 
 
@@ -1305,7 +1675,7 @@ int doClusterPlots(TChain *clustTree, int data) {
   //clusMeanSizeVsDelay.setAxisRange(".*", 0, 1.0, "Y");
   clusMeanSizeVsDelay.setColor(".*", "LineMarker", 1, 1);
   clusMeanSizeVsDelay.setStyle(".*", "Marker", 1);
-  clusMeanSizeVsDelay.Draw("FPix!FPix & BPix!BPix;overlayPE");
+  clusMeanSizeVsDelay.Draw("FPix!Forward Pixel& BPix!Barrel Pixel;overlay9PEX0");
   clusMeanSizeVsDelay.Write();
 
   for (size_t i=0; i<clusMeanSizeVsDelayBPix.size(); i++) {
@@ -1356,8 +1726,35 @@ int doClusterPlots(TChain *clustTree, int data) {
   // 3. Cluster charge
   clusCharge.setColor("BPix_.*", "LineMarker", 1, 1);
   clusCharge.setColor("FPix_.*", "LineMarker", 1, 1);
+  clusCharge.setWidth("BPix_.*", "Line", 3);
+  clusCharge.setWidth("FPix_.*", "Line", 3);
   clusCharge.scaleAreaTo(".*", 1.);
-  clusCharge.Draw("BPix_.*!!;overlayPE\nFPix_.*!!;overlayPE");
+  //   clusCharge.Draw("BPix_.*!!;overlay9HISTL\nFPix_.*!!;overlay9HISTL");
+  // clusCharge.Draw("BPix_.*!!;overlay9HISTL");
+  // clusCharge.Draw("FPix_.*!!;overlay9HISTL");
+
+  // 2010. jan. 24.
+  // FPix:
+//   clusCharge.setColor("FPix_.1.", "LineMarker", 4);
+//   clusCharge.setColor("FPix_.4.", "LineMarker", 1);
+//   clusCharge.setColor("FPix_.8.", "LineMarker", 2);
+//   clusCharge.Draw("FPix_.[1,4,8].!!;overlay9HISTL");
+  // BPix:
+  clusCharge.setColor("BPix_.1.", "LineMarker", 4);
+  clusCharge.setColor("BPix_.4.", "LineMarker", 1);
+  clusCharge.setColor("BPix_.8.", "LineMarker", 2);
+  clusCharge.Draw("BPix_.[1,4,8].!!;overlay9HISTL");
+
+//   clusCharge.canvas()->GetPad(1)->cd();
+//   TPaveText* text = new TPaveText(0.3, 0.3, 0.5, 0.35);
+//   text->AddText("CMS Preliminary 2009 (900 GeV)");
+//   text->SetFillColor(0);
+//   text->SetBorderSize(0);
+//   text->SetFillStyle(0);
+//   text->SetTextSize(0.06);
+//   text->SetTextFont(42);
+//   text->Draw();
+
   clusCharge.Write();
 
   //clusChargeBPixShell.setAxisRange(".*", 0, 1.0, "Y");
@@ -1427,9 +1824,28 @@ int doClusterPlots(TChain *clustTree, int data) {
   // 4. Pixel charge
   pixCharge.setColor("BPix_.*", "LineMarker", 1, 1);
   pixCharge.setColor("FPix_.*", "LineMarker", 1, 1);
+  pixCharge.setWidth("BPix_.*", "Line", 3);
+  pixCharge.setWidth("FPix_.*", "Line", 3);
   pixCharge.scaleAreaTo(".*", 1.);
-  pixCharge.Draw("BPix_.*!!;overlayPE\nFPix_.*!!;overlayPE");
+  //   pixCharge.Draw("BPix_.*!!;overlay9HISTL\nFPix_.*!!;overlay9HISTL");
+  //  pixCharge.Draw("BPix_.*!!;overlay9HISTL");
+  // pixCharge.Draw("FPix_.*!!;overlay9HISTL");
+
+  // 2010. jan. 24
+  // FPix:
+//   pixCharge.setColor("FPix_.1.", "LineMarker", 4);
+//   pixCharge.setColor("FPix_.4.", "LineMarker", 1);
+//   pixCharge.setColor("FPix_.8.", "LineMarker", 2);
+//   pixCharge.Draw("FPix_.[1,4,8].!!;overlay9HISTL");
+
+  // FPix:
+  pixCharge.setColor("BPix_.1.", "LineMarker", 4);
+  pixCharge.setColor("BPix_.4.", "LineMarker", 1);
+  pixCharge.setColor("BPix_.8.", "LineMarker", 2);
+  pixCharge.Draw("BPix_.[1,4,8].!!;overlay9HISTL");
+
   pixCharge.Write();
+
 
   //pixChargeBPixShell.setAxisRange(".*", 0, 1.0, "Y");
   pixChargeBPixShell.setColor("BpO.*", "LineMarker", 1, 1);
@@ -1523,6 +1939,27 @@ int doClusterPlots(TChain *clustTree, int data) {
 		"FPix_D-1.*!!;overlayHIST\nFPix_D-2.*!!;overlayHIST\n", 3);
   sizeClus.Write();
 
+
+  sizeClusBPix.setColor("BPix_.*", "LineMarker", 1, 1);
+  sizeClusFPix.setColor("FPix_.*", "LineMarker", 1, 1);
+  sizeClusBPix.setWidth("BPix_.*", "Line", 3);
+  sizeClusFPix.setWidth("FPix_.*", "Line", 3);
+  sizeClusBPix.scaleAreaTo(".*", 1.);
+  sizeClusFPix.scaleAreaTo(".*", 1.);
+  // 2010. jan. 24
+  sizeClusFPix.setColor("FPix_.1.", "LineMarker", 4);
+  sizeClusFPix.setColor("FPix_.4.", "LineMarker", 1);
+  sizeClusFPix.setColor("FPix_.7.", "LineMarker", 2);
+  sizeClusFPix.setColor("FPix_.0.", "LineMarker", 1);
+  sizeClusFPix.Draw("FPix_.[0,1,4,7].!!;overlay9HIST");
+  sizeClusBPix.setColor("BPix_.1.", "LineMarker", 4);
+  sizeClusBPix.setColor("BPix_.4.", "LineMarker", 1);
+  sizeClusBPix.setColor("BPix_.8.", "LineMarker", 2);
+  sizeClusBPix.setColor("BPix_.0.", "LineMarker", 1);
+  sizeClusBPix.Draw("BPix_.[0,1,4,8].!!;overlay9HIST");
+
+  sizeClusBPix.Write();
+  sizeClusFPix.Write();
   //
   // The end
   //
@@ -1546,7 +1983,7 @@ int main(int argc, char* argv[])
 
   if (argc<2) {
     std::cout << "Usage: TimingAnalysis ";
-    std::cout << "<input file> [<output file>]" << std::endl;
+    std::cout << "<input file>  [<output file>  [<ntuple name>]]" << std::endl;
     return 0;
   }
 
@@ -1557,30 +1994,33 @@ int main(int argc, char* argv[])
   std::ostringstream addname;
   TChain *trajTree=new TChain("trajTree");
   addname.str("");
-  addname << infilename << "/" << ntuplename << "/trajTree";
+  //addname << infilename << "/" << ntuplename << "/trajTree";
+  addname << infilename << "/trajTree";
   trajTree->Add(addname.str().data());
   std::cout << "Collecting files " << addname.str().data() << std::endl;
 
   TChain *trackTree=new TChain("trackTree");
   addname.str("");
-  addname << infilename << "/" << ntuplename << "/trackTree";
+  //addname << infilename << "/" << ntuplename << "/trackTree";
+  addname << infilename << "/trackTree";
   trackTree->Add(addname.str().data());
 
   TChain *clustTree=new TChain("clustTree");
   addname.str("");
-  addname << infilename << "/" << ntuplename << "/clustTree";
+  //addname << infilename << "/" << ntuplename << "/clustTree";
+  addname << infilename << "/clustTree";
   clustTree->Add(addname.str().data());
 
   TFile outfile(outfilename.data(), "RECREATE");
 
   if (ntuplename.find("ctf")!=std::string::npos) {
     doRecHitPlots(trajTree, 0);
-    doTrackPlots(trackTree, 0);
-    doClusterPlots(clustTree, 0);
+    //doTrackPlots(trackTree, 0);
+    //doClusterPlots(clustTree, 0);
   } else {
     doRecHitPlots(trajTree, 1);
-    doTrackPlots(trackTree, 1);
-    doClusterPlots(clustTree, 1);    
+    //doTrackPlots(trackTree, 1);
+    //doClusterPlots(clustTree, 1);    
   }
 
   outfile.Close();
