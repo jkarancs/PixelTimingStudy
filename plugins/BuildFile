@@ -33,6 +33,9 @@
 <use name=clhep>
 <use name=boost>
 <use name=root>
+<use name=CommonTools/UtilAlgos>
+<use name=RecoTracker/MeasurementDet>
+<use name=TrackingTools/MeasurementDet>
 <library file="*.cc" name=DPGAnalysisPixelTimingStudyPlugin>
   <flags EDM_PLUGIN=1>
 </library>

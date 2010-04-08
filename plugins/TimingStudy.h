@@ -27,6 +27,7 @@
 
 #define NOVAL_I -9999
 #define NOVAL_F -9999.0
+#define DEBUG 0
 
 using namespace reco;
 class TTree;
@@ -60,6 +61,12 @@ class TimingStudy : public edm::EDAnalyzer
   std::map<size_t,int> wbc;
   std::map<size_t,int> globaldelay;
 
+  int extrapolateFrom_;
+  int extrapolateTo_;
+  float maxlxmatch_;
+  float maxlymatch_;
+  bool keepOriginalMissingHit_;
+
  public:
 
   // Event info
@@ -67,6 +74,8 @@ class TimingStudy : public edm::EDAnalyzer
    public:
     int run;
     int evt;
+    int ls;
+    int good;
     float tmuon;
     float tmuon_err;
     float tecal;
@@ -82,6 +91,13 @@ class TimingStudy : public edm::EDAnalyzer
     int ntrackBPix[3]; // tracks crossing the pixels
     int ntrackFPixvalid[2]; // tracks crossing the pixels with valid hits
     int ntrackBPixvalid[3]; // tracks crossing the pixels with valid hits
+    int nvtx;
+    int vtxntrk;
+    float vtxndof;
+    float vtxchi2;
+    float vtxD0;
+    float vtxZ;
+    float trackSep;
 
     std::string list;
 
@@ -89,6 +105,8 @@ class TimingStudy : public edm::EDAnalyzer
     void init() {
       run=NOVAL_I;
       evt=NOVAL_I;
+      ls=NOVAL_I;
+      good=NOVAL_I;
       tmuon=NOVAL_F;
       tmuon_err=NOVAL_F;
       tecal=NOVAL_F;
@@ -104,8 +122,12 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
-      list="run/I:evt:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:"
-	"ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]";
+      nvtx=vtxntrk=NOVAL_I;
+      vtxndof=vtxchi2=vtxD0=vtxZ=NOVAL_F;
+      trackSep=NOVAL_F;
+      list="run/I:evt:ls:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:"
+	"ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:nvtx:"
+	"vtxntrk:vtxndof/F:vtxchi2:vtxD0:vtxZ:trackSep";
     }
 
   } evt_;
@@ -131,7 +153,9 @@ class TimingStudy : public edm::EDAnalyzer
     int bpix[3]; // recHits in Layer 1,2,3
     int validfpix[2]; // valid recHits in Diks1,2 
     int validbpix[3]; // valid recHits in Layer 1,2,3
-    
+    int fromVtx;
+    int highPurity;
+    int quality;
 
     std::string list;
    
@@ -154,9 +178,12 @@ class TimingStudy : public edm::EDAnalyzer
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
       validfpix[0]=validfpix[1]=NOVAL_I;
       validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
+      fromVtx=NOVAL_I;
+      highPurity=NOVAL_I;
+      quality=NOVAL_I;
 
       list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:eta:theta:phi:"
-	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]";
+	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]:fromVtx:highPurity:quality";
     }
 
   };
@@ -183,6 +210,9 @@ class TimingStudy : public edm::EDAnalyzer
     int prt;
     int shl;
 
+    int half;
+    int outer;
+
     std::string list;
 
     ModuleData() { init(); }
@@ -199,7 +229,9 @@ class TimingStudy : public edm::EDAnalyzer
       module=NOVAL_I;
       prt=NOVAL_I;
       shl=NOVAL_I;
-      list="rawid/i:det/I:layer:ladder:sec:side:disk:blade:panel:module:prt:shl";
+      half=NOVAL_I;
+      outer=NOVAL_I;
+      list="rawid/i:det/I:layer:ladder:sec:side:disk:blade:panel:module:prt:shl:half:outer";
     }
 
     std::string shell() {
@@ -208,7 +240,7 @@ class TimingStudy : public edm::EDAnalyzer
 	ss << "B" << ((module>0) ? "p" : "m") << ((ladder>0) ? "I" : "O");
       } else if (det==1) {
 	ss << "B" << ((disk>0) ? "p" : "m") << ((blade>0) ? "I" : "O");
-      }
+      } else return "";
       return ss.str();
     }
 
@@ -230,6 +262,10 @@ class TimingStudy : public edm::EDAnalyzer
     int edge;     // set if there is a valid hit
     int badpix;   // set if there is a valid hit
     int tworoc;   // set if there is a valid hit
+    int sizeX;
+    int sizeY;
+    float x;
+    float y;
     // must be the last part of the object
     float adc[1000];
 
@@ -243,8 +279,12 @@ class TimingStudy : public edm::EDAnalyzer
       edge=NOVAL_I;
       badpix=NOVAL_I;
       tworoc=NOVAL_I;
+      sizeX=NOVAL_I;
+      sizeY=NOVAL_I;
+      x=NOVAL_F;
+      y=NOVAL_F;
       for (size_t i=0; i<1000; i++) adc[i]=NOVAL_F;
-      list="i/I:charge/F:size/I:edge:badpix:tworoc:adc[size]/F";
+      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y:adc[size]";
     }
 
   };
@@ -286,10 +326,23 @@ class TimingStudy : public edm::EDAnalyzer
     float glx;
     float gly;
     float glz;
+    float glmatch;
+    float lx;
+    float ly;
+    float lz;
+    float lx_err;
+    float ly_err;
+    float lz_err;
+    float lxmatch;
+    float lymatch;
+    float lxymatch;
     float res_hit;
     float sig_hit;
     int telescope;
     int telescope_valid;
+    int onedge;
+    int dmodule; // D(propagated hit, valid hit)
+    int dladder; // D(propagated hit, valid hit)
 
     std::string list;
 
@@ -306,12 +359,26 @@ class TimingStudy : public edm::EDAnalyzer
       glx=NOVAL_F;
       gly=NOVAL_F;
       glz=NOVAL_F;
+      glmatch=NOVAL_F;
+      lx=NOVAL_F;
+      ly=NOVAL_F;
+      lz=NOVAL_F;
+      lx_err=NOVAL_F;
+      ly_err=NOVAL_F;
+      lz_err=NOVAL_F;
+      lxmatch=NOVAL_F;
+      lymatch=NOVAL_F;
+      lxymatch=NOVAL_F;
       res_hit=NOVAL_F;
       sig_hit=NOVAL_F;
       telescope=NOVAL_I;
       telescope_valid=NOVAL_I;
+      onedge=NOVAL_I;
+      dmodule=NOVAL_I;
+      dladder=NOVAL_I;
       list="i/I:validhit:missing:inactive:badhit:alpha/F:beta:norm_charge:glx:gly:glz:"
-	"res_hit:sig_hit:telescope/I:telescope_valid";
+	"glmatch:lx:ly:lz:lx_err:ly_err:lz_err:lxmatch:lymatch:lxymatch:res_hit:sig_hit:"
+	"telescope/I:telescope_valid:onedge:dmodule:dladder";
     }
 
   };
@@ -382,6 +449,9 @@ class TimingStudy : public edm::EDAnalyzer
   }
 
   ModuleData getModuleData(uint32_t rawId, std::string scheme="offline");
+
+  void correctHitTypeAssignment(TrajMeasurement& meas, 
+				TransientTrackingRecHit::ConstRecHitPointer& recHit);
 
 };
 

@@ -27,6 +27,9 @@
 <use name=clhep>
 <use name=boost>
 <use name=root>
+<use name=CommonTools/UtilAlgos>
+<use name=RecoTracker/MeasurementDet>
+<use name=TrackingTools/MeasurementDet>
 <export>
    <lib name=DPGAnalysisPixelTimingStudy>
    <use name=FWCore/Framework>
@@ -50,4 +53,7 @@
    <use name=clhep>
    <use name=boost>
    <use name=root>
+   <use name=CommonTools/UtilAlgos>
+   <use name=RecoTracker/MeasurementDet>
+   <use name=TrackingTools/MeasurementDet>
 </export>
