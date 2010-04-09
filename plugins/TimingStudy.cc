@@ -8,7 +8,6 @@
 //
 // ------------------------------------------------------------------------------------------------
 
-#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonTime.h"
@@ -38,6 +37,7 @@
 #include <Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h>
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
+#include "PhysicsTools/FWLite/interface/TFileService.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
@@ -56,7 +56,6 @@
 // For ROOT
 #include <TROOT.h>
 #include <TTree.h>
-#include <TFile.h>
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TStopwatch.h>
@@ -75,16 +74,20 @@ using namespace reco;
 TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) : 
   iConfig_(iConfig)
 {
+  eventTree_=NULL;
   trackTree_=NULL;
   clustTree_=NULL;
   trajTree_=NULL;
   digiTree_=NULL;
+
+  outfile_=NULL;
 
   extrapolateFrom_=2;
   extrapolateTo_=1;
   maxlxmatch_=0.2;
   maxlymatch_=0.2;
   keepOriginalMissingHit_=true;
+
 }
 
 
@@ -93,13 +96,19 @@ TimingStudy::~TimingStudy() { }
 
 void TimingStudy::endJob() 
 {
-
+  outfile_->Write();
+  outfile_->Close();
 }
 
 
-void TimingStudy::beginJob(const edm::EventSetup& es)
+void TimingStudy::beginJob()
 {
 
+  std::string fileName="test.root";
+  if (iConfig_.exists("fileName")) {
+    fileName=iConfig_.getParameter<std::string>("fileName");
+    std::cout<<"NON-DEFAULT PARAMETER: fileName= "<<fileName<<std::endl;
+  }
   if (iConfig_.exists("extrapolateFrom")) {
     extrapolateFrom_=iConfig_.getParameter<int>("extrapolateFrom");
     std::cout<<"NON-DEFAULT PARAMETER: extrapolateFrom= "<<extrapolateFrom_<<std::endl;
@@ -122,20 +131,30 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
 	     <<std::endl;
   }
 
-  es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
-  es.get<IdealMagneticFieldRecord>().get(magneticField_);
+//   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
+//   es.get<IdealMagneticFieldRecord>().get(magneticField_);
 
-  edm::Service<fwlite::TFileService> fs;
+  //edm::Service<TFileService> fs;
+  outfile_ = new TFile(fileName.c_str(), "RECREATE");
+  std::cout<<"Output file created: "<<outfile_->GetName()<<std::endl;
+
+  // The event
+  eventTree_ = new TTree("eventTree", "The event");
+  eventTree_->Branch("event", &evt_, evt_.list.data());
 
 
   TrackData track_;
-  trackTree_ = fs->make<TTree>("trackTree", "The track in the event");
+  trackTree_ = new TTree("trackTree", "The track in the event");
+  //trackTree_->SetDirectory(outfile_);
+  //trackTree_->AutoSave();
   trackTree_->Branch("event", &evt_, evt_.list.data());
   trackTree_->Branch("track", &track_, track_.list.data());
 
 
   Cluster clust;
-  clustTree_ = fs->make<TTree>("clustTree", "Pixel clusters");
+  clustTree_ = new TTree("clustTree", "Pixel clusters");
+  //clustTree_->SetDirectory(outfile_);
+  //clustTree_->AutoSave();
   clustTree_->Branch("event", &evt_, evt_.list.data());
   clustTree_->Branch("clust", &clust, clust.list.data());
   clustTree_->Branch("module", &clust.mod, clust.mod.list.data());
@@ -143,7 +162,9 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
 
 
   TrajMeasurement trajmeas;
-  trajTree_ = fs->make<TTree>("trajTree", "Trajectory measurements in the Pixel");
+  trajTree_ = new TTree("trajTree", "Trajectory measurements in the Pixel");
+  //trajTree_->SetDirectory(outfile_);
+  //trajTree_->AutoSave();
   trajTree_->Branch("event", &evt_, evt_.list.data());
   trajTree_->Branch("traj", &trajmeas, trajmeas.list.data());
   trajTree_->Branch("module", &trajmeas.mod, trajmeas.mod.list.data());
@@ -153,7 +174,9 @@ void TimingStudy::beginJob(const edm::EventSetup& es)
 
 
   Digi digi;
-  digiTree_ = fs->make<TTree>("digiTree", "Pixel digis");
+  digiTree_ = new TTree("digiTree", "Pixel digis");
+  //digiTree_->SetDirectory(outfile_);
+  //digiTree_->AutoSave();
   digiTree_->Branch("event", &evt_, evt_.list.data());
   digiTree_->Branch("digi", &digi, digi.list.data());
   digiTree_->Branch("module", &digi.mod, digi.mod.list.data());
@@ -274,6 +297,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   std::cout<<"DONE: Initializing event variables\n";
   w.Print();
 
+  iSetup.get<TrackerDigiGeometryRecord>().get(tkGeom_);
+  iSetup.get<IdealMagneticFieldRecord>().get(magneticField_);
 
 
   //
@@ -612,7 +637,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.validbpix[0]=track_.validbpix[1]=track_.validbpix[2]=0;
       track_.fromVtx= (abs(track_.dz-evt_.vtxZ) <1 &&
 		       abs(track_.d0-evt_.vtxD0) <0.5 ) ? 1 : 0;
-      track_.highPurity= track.quality(track.qualityByName("highPurity"));
+      track_.highPurity= (track.qualityByName("highPurity")) ? 1 : 0;
       track_.quality=track.qualityMask();
 
       //
@@ -1234,6 +1259,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Fill the trees
   //
   w.Start();
+
+  eventTree_->SetBranchAddress("event", &evt_);
+  eventTree_->Fill();
+
 
   for (size_t i=0; i<tracks_.size(); i++) {
     trackTree_->SetBranchAddress("event", &evt_);

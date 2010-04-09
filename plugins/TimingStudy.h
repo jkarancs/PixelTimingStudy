@@ -24,6 +24,7 @@
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "TObject.h"
 #include "TH1D.h"
+#include "TFile.h"
 
 #define NOVAL_I -9999
 #define NOVAL_F -9999.0
@@ -42,7 +43,7 @@ class TimingStudy : public edm::EDAnalyzer
   
   explicit TimingStudy(const edm::ParameterSet&);
   virtual ~TimingStudy();
-  virtual void beginJob(const edm::EventSetup&);
+  virtual void beginJob();
   virtual void endJob();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
 
@@ -52,10 +53,12 @@ class TimingStudy : public edm::EDAnalyzer
   edm::ESHandle<TrackerGeometry> tkGeom_;
   edm::ESHandle<MagneticField> magneticField_;
 
+  TTree* eventTree_;
   TTree* trackTree_;
   TTree* clustTree_;
   TTree* trajTree_;
   TTree* digiTree_;
+  TFile* outfile_;
 
   std::map<std::string,std::string> portcardmap;
   std::map<size_t,int> wbc;
@@ -240,7 +243,7 @@ class TimingStudy : public edm::EDAnalyzer
 	ss << "B" << ((module>0) ? "p" : "m") << ((ladder>0) ? "I" : "O");
       } else if (det==1) {
 	ss << "B" << ((disk>0) ? "p" : "m") << ((blade>0) ? "I" : "O");
-      } else return "";
+      }
       return ss.str();
     }
 
