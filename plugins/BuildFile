@@ -19,12 +19,14 @@
 <use name=DataFormats/L1GlobalTrigger>
 <use name=DataFormats/L1DTTrackFinder>
 <use name=DataFormats/DTDigi>
+<use name=DataFormats/VertexReco>
 <use name=CondFormats/RunInfo>
 <use name=CondFormats/DataRecord>
 <use name=TrackingTools/TransientTrack>
 <use name=TrackingTools/TrackFitters>
 <use name=TrackingTools/TrajectoryState>
 <use name=TrackingTools/TrackAssociator>
+<use name=TrackingTools/KalmanUpdators>
 <use name=DataFormats/TrajectorySeed>
 <use name=SimTracker/TrackerHitAssociation>
 <use name=Alignment/OfflineValidation>
@@ -36,6 +38,7 @@
 <use name=CommonTools/UtilAlgos>
 <use name=RecoTracker/MeasurementDet>
 <use name=TrackingTools/MeasurementDet>
+<use name=FWCore/Utilities>
 <library file="*.cc" name=DPGAnalysisPixelTimingStudyPlugin>
   <flags EDM_PLUGIN=1>
 </library>
