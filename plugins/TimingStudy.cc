@@ -66,6 +66,9 @@
 #include <iostream>
 #include <vector>
 
+//set to 1 in order to switch on logging of debug info - may create large log file (set to 0 for Grid runs)
+#define JKDEBUG 0
+
 using namespace std;
 using namespace edm;
 using namespace reco;
@@ -107,28 +110,30 @@ void TimingStudy::beginJob()
   std::string fileName="test.root";
   if (iConfig_.exists("fileName")) {
     fileName=iConfig_.getParameter<std::string>("fileName");
-    std::cout<<"NON-DEFAULT PARAMETER: fileName= "<<fileName<<std::endl;
+    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: fileName= "<<fileName<<std::endl;
   }
   if (iConfig_.exists("extrapolateFrom")) {
     extrapolateFrom_=iConfig_.getParameter<int>("extrapolateFrom");
-    std::cout<<"NON-DEFAULT PARAMETER: extrapolateFrom= "<<extrapolateFrom_<<std::endl;
+    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: extrapolateFrom= "<<extrapolateFrom_<<std::endl;
   }
   if (iConfig_.exists("extrapolateTo")) {
     extrapolateTo_=iConfig_.getParameter<int>("extrapolateTo");
-    std::cout<<"NON-DEFAULT PARAMETER: extrapolateTo= "<<extrapolateTo_<<std::endl;
+    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: extrapolateTo= "<<extrapolateTo_<<std::endl;
   }
   if (iConfig_.exists("maxLxMatch")) {
     maxlxmatch_=iConfig_.getParameter<int>("maxLxMatch");
-    std::cout<<"NON-DEFAULT PARAMETER: maxLxMatch= "<<maxlxmatch_<<std::endl;
+    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: maxLxMatch= "<<maxlxmatch_<<std::endl;
   }
   if (iConfig_.exists("maxLyMatch")) {
     maxlymatch_=iConfig_.getParameter<int>("maxLyMatch");
-    std::cout<<"NON-DEFAULT PARAMETER: maxLyMatch= "<<maxlymatch_<<std::endl;
+    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: maxLyMatch= "<<maxlymatch_<<std::endl;
   }
   if (iConfig_.exists("keepOriginalMissingHit")) {
     keepOriginalMissingHit_=iConfig_.getParameter<bool>("keepOriginalMissingHit");
-    std::cout<<"NON-DEFAULT PARAMETER: keepOriginalMissingHit= "<<keepOriginalMissingHit_
-	     <<std::endl;
+    if (JKDEBUG) {
+      std::cout<<"NON-DEFAULT PARAMETER: keepOriginalMissingHit= "<<keepOriginalMissingHit_
+	       <<std::endl;
+    }
   }
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
@@ -136,7 +141,7 @@ void TimingStudy::beginJob()
 
   //edm::Service<TFileService> fs;
   outfile_ = new TFile(fileName.c_str(), "RECREATE");
-  std::cout<<"Output file created: "<<outfile_->GetName()<<std::endl;
+  if (JKDEBUG) std::cout<<"Output file created: "<<outfile_->GetName()<<std::endl;
 
   // The event
   eventTree_ = new TTree("eventTree", "The event");
@@ -186,7 +191,7 @@ void TimingStudy::beginJob()
   // Some external information until I figure out how to do this inside CMSSW
 
   // Defining read-out groups
-  std::cout << "\nReading portcardmap.dat\n";
+  if (JKDEBUG) std::cout << "\nReading portcardmap.dat\n";
   std::ifstream portcardmap_file;
   portcardmap_file.open ("portcardmap.dat", ifstream::in);
   std::string port, mod, ch;
@@ -201,14 +206,14 @@ void TimingStudy::beginJob()
     if (!portcardmap_file.eof()) {
       if (ch!="") { mod+="_"; mod+=ch; }
       portcardmap.insert(std::pair<std::string,std::string>(mod,port));
-      std::cout << port << " " << mod << " " << aoh << std::endl;
+      if (JKDEBUG) std::cout << port << " " << mod << " " << aoh << std::endl;
     }
   }
   portcardmap_file.close();
 
 
   // Get the configured delays for each run in 2009 until Oct23
-  std::cout << "\nReading Runs_and_delays.txt\n";
+  if (JKDEBUG) std::cout << "\nReading Runs_and_delays.txt\n";
   std::ifstream runsndelays_file;
   runsndelays_file.open ("Runs_and_delays.txt", ifstream::in);
   int delay=NOVAL_I;
@@ -243,7 +248,7 @@ void TimingStudy::beginJob()
 
 
   // Get the configured WBC for each run in 2009 until Oct23
-  std::cout << "\nReading Runs_and_dacs.txt\n";
+  if (JKDEBUG) std::cout << "\nReading Runs_and_dacs.txt\n";
   std::ifstream runsndacs_file;
   runsndacs_file.open ("Runs_and_dacs.txt", ifstream::in);
   int dac=NOVAL_I;
@@ -291,12 +296,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 {
 
   TStopwatch w;
-  w.Start();
+  if (JKDEBUG) w.Start();
   init_all(); // clear all containers
-  w.Stop();
-  std::cout<<"DONE: Initializing event variables\n";
-  w.Print();
-
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Initializing event variables\n";
+    w.Print();
+  }
   iSetup.get<TrackerDigiGeometryRecord>().get(tkGeom_);
   iSetup.get<IdealMagneticFieldRecord>().get(magneticField_);
 
@@ -304,7 +310,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   // Read event info
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
   evt_.run=iEvent.id().run();
   evt_.evt=iEvent.id().event();
   evt_.ls=iEvent.luminosityBlock();
@@ -330,17 +336,19 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.delay=globaldelay[iEvent.id().run()];
   evt_.bx=iEvent.bunchCrossing();
   evt_.orb=iEvent.orbitNumber();
-
-  std::cout<<"\n\nProcess Event: Run "<<evt_.run<<" Event "<<evt_.evt<< " LS "<<evt_.ls<<std::endl;
-  w.Stop();
-  std::cout<<"DONE: Reading event info\n";
-  w.Print();
+  
+  if (JKDEBUG) {
+    std::cout<<"\n\nProcess Event: Run "<<evt_.run<<" Event "<<evt_.evt<< " LS "<<evt_.ls<<std::endl;
+    w.Stop();
+    std::cout<<"DONE: Reading event info\n";
+    w.Print();
+  }
 
 
   //
   // Read track info
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
   edm::Handle<TrajTrackAssociationCollection> trajTrackCollectionHandle;
   std::string trajTrackCollectionInput=
     iConfig_.getParameter<std::string>("trajectoryInput");
@@ -348,8 +356,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 
   if (trajTrackCollectionHandle.isValid()||1) {
-    std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
-    std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
+    if (JKDEBUG) std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
+    if (JKDEBUG) std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
 
     evt_.ntracks=trajTrackCollectionHandle->size();
 
@@ -366,10 +374,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.ntrackFPixvalid[0]=evt_.ntrackFPixvalid[1]=0;
   evt_.ntrackBPixvalid[0]=evt_.ntrackBPixvalid[1]=evt_.ntrackBPixvalid[2]=0;
 
-  w.Stop();
-  std::cout<<"DONE: Reading track info\n";
-  w.Print();
-
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading track info\n";
+    w.Print();
+  }
 
   // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
 
@@ -377,7 +386,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   // Fill event with muon time
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
 
   edm::Handle<MuonCollection> muonCollectionHandle;
   iEvent.getByLabel("muonsWitht0Correction", muonCollectionHandle);
@@ -407,11 +416,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       } // ecal time only in the barrel
     } // loop along muons
   } // if there is a muon
-
-  w.Stop();
-  std::cout<<"DONE: Reading muon info\n";
-  w.Print();
-
+  
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading muon info\n";
+    w.Print();
+  }
 
 
 
@@ -419,7 +429,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Magnetic field
   //
 
-  w.Start();
+  if (JKDEBUG) w.Start();
   edm::ESHandle<MagneticField> magFieldHandle;
   iSetup.get<IdealMagneticFieldRecord>().get(magFieldHandle);
   const MagneticField& magField = *magFieldHandle;
@@ -457,16 +467,17 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
     if (fabs(it->z())<=15. && fabs(it->position().rho())<=2.) evt_.nvtx++;
   }
-
-  w.Stop();
-  std::cout<<"DONE: Reading magnetic field and vertex info\n";
-  w.Print();
   
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading magnetic field and vertex info\n";
+    w.Print();
+  }
 
   //
   // Read digi information
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
 
   edm::Handle<edm::DetSetVector<PixelDigi> >  digiCollectionHandle;
   iEvent.getByLabel("siPixelDigis", digiCollectionHandle);
@@ -483,22 +494,24 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // Take only pixel digis
       if (subDetId!=PixelSubdetector::PixelBarrel &&
 	  subDetId!=PixelSubdetector::PixelEndcap) {
-	std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
+	if (JKDEBUG) std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
 	continue;
       }
       
       ModuleData module=getModuleData(detId.rawId());
       
-      std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
-      if (module.det==0) {
-	std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
-	std::cout << " module " << module.module << " ";
-      } else {
-	std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
-	std::cout << " panel " << module.panel << " module " << module.module << " ";
+      if (JKDEBUG) {
+	std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
+	if (module.det==0) {
+	  std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
+	  std::cout << " module " << module.module << " ";
+	} else {
+	  std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
+	  std::cout << " panel " << module.panel << " module " << module.module << " ";
+	}
       }
       ModuleData module_on=getModuleData(detId.rawId(), "online");
-      std::cout << ": " << itDigiSet->size() << std::endl;
+      if (JKDEBUG) std::cout << ": " << itDigiSet->size() << std::endl;
       
       edm::DetSet<PixelDigi>::const_iterator itDigi=itDigiSet->begin();
       
@@ -509,23 +522,25 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	digi.col=itDigi->column();
 	digi.adc=itDigi->adc();
 	digis_.push_back(digi);
-	std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
-	std::cout<<std::endl;
+	if (JKDEBUG) {
+	  std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
+	  std::cout<<std::endl;
+	}
       }
     } // loop on digis
   }
 
-
-  w.Stop();
-  std::cout<<"DONE: Reading the Digis\n";
-  w.Print();
-
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading the Digis\n";
+    w.Print();
+  }
 
 
   //
   // Read cluster information
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
@@ -543,22 +558,24 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // Take only pixel clusters
       if (subDetId!=PixelSubdetector::PixelBarrel &&
 	  subDetId!=PixelSubdetector::PixelEndcap) {
-	std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
-	continue;
+	if (JKDEBUG) std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
+	  continue;
       }
       
       ModuleData module=getModuleData(detId.rawId());
       
-      std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of clusters on ";
-      if (module.det==0) {
-	std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
-	std::cout << " module " << module.module << " ";
-      } else {
-	std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
-	std::cout << " panel " << module.panel << " module " << module.module << " ";
+      if (JKDEBUG) {
+	std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of clusters on ";
+	if (module.det==0) {
+	  std::cout << " PixelBarrel layer " << module.layer << " ladder " << module.ladder;
+	  std::cout << " module " << module.module << " ";
+	} else {
+	  std::cout << " PixelForward disk " << module.disk << " blade " << module.blade;
+	  std::cout << " panel " << module.panel << " module " << module.module << " ";
+	}
       }
       ModuleData module_on=getModuleData(detId.rawId(), "online");
-      std::cout << ": " << itClusterSet->size() << std::endl;
+      if (JKDEBUG) std::cout << ": " << itClusterSet->size() << std::endl;
 
       edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();
       
@@ -578,22 +595,22 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	clust.mod=module;
 	clust.mod_on=module_on;
 	clusts_.push_back(clust);
-	std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
+	if (JKDEBUG) std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
       }
     } // loop on cluster sets
   }
 
-
-  w.Stop();
-  std::cout<<"DONE: Reading the Clusters\n";
-  w.Print();
-
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading the Clusters\n";
+    w.Print();
+  }
 
 
   //
   // Process tracks
   //
-  std::cout<<"Processing tracks...\n";
+  if (JKDEBUG) std::cout<<"Processing tracks...\n";
   
   if (trajTrackCollectionHandle.isValid()||1) { // check track collection
 
@@ -602,8 +619,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     int itrack=0;
     for (;itTrajTrack!=trajTrackCollectionHandle->end(); itTrajTrack++) {  // loop on tracks
 
-      std::cout<<"\nProcessing track"<<itrack<<"...\n";      
-      w.Start();
+      if (JKDEBUG) std::cout<<"\nProcessing track"<<itrack<<"...\n";      
+      if (JKDEBUG) w.Start();
       TStopwatch w2;
       if (DEBUG) w2.Start();
 
@@ -671,8 +688,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       if (DEBUG) std::cout<<"PARTIALLY: Processing track info\n";
       if (DEBUG) w2.Print();
 
-      std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-      std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
+      if (JKDEBUG) std::cout << "Run " << evt_.run << " Event " << evt_.evt;
+      if (JKDEBUG) std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
     
       //int nTopHits=0; int nBottomHits=0; int nTopValidHits=0; int nBottomValidHits=0;
       //int nValidStripHits=0;
@@ -697,7 +714,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 	if (chkmod.det==0&&chkmod.layer==extrapolateTo_) {
 	  if (DEBUG) w2.Start();
-	  std::cout<<"Layer "<<extrapolateTo_<<" hit found";
+	  if (JKDEBUG) std::cout<<"Layer "<<extrapolateTo_<<" hit found";
 	  // Here we will drop the extrapolated hits if there is a hit and use that hit
 	  size_t imatch=0;
 	  float glmatch=9999.;
@@ -719,7 +736,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	      meas.dmodule=dmodule;
 	    }
 	    if (dladder!=0||dmodule!=0) {
-	      std::cout<<" (module mismatch - skipping it) ";
+	      if (JKDEBUG) std::cout<<" (module mismatch - skipping it) ";
 	      continue;
 	    }
 	    TrajectoryStateOnSurface predTrajState=expTrajMeasurements[iexp].updatedState();
@@ -755,15 +772,19 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    if (chkRecHit->getType()!=TrackingRecHit::missing || keepOriginalMissingHit_) {
 	      expTrajMeasurements.erase(expTrajMeasurements.begin()+imatch);
 	    }
-	    std::cout<<" and matched to extrapolated hit "<<imatch<<" with accuracy "<<glmatch;
+	    if (JKDEBUG) std::cout<<" and matched to extrapolated hit "<<imatch<<" with accuracy "<<glmatch;
 	  } else {
-	    std::cout<<" and was not matched to any extrapolated hit, match="<<glmatch;
-	    if (fabs(chklp.x())>=0.55 || fabs(chklp.y())>=3.0 ) std::cout<<" but NON-FIDUCIAL";
-	    if (chkmod.half==1) std::cout<<" half module";
-	    std::cout<<std::endl;
+	    if (JKDEBUG) {
+	      std::cout<<" and was not matched to any extrapolated hit, match="<<glmatch;
+	      if (fabs(chklp.x())>=0.55 || fabs(chklp.y())>=3.0 ) 
+		std::cout<<" but NON-FIDUCIAL";
+	      if (chkmod.half==1) 
+		std::cout<<" half module";
+	      std::cout<<std::endl;
+	    }
 	    //continue; // Ignore hit
 	  }
-	  std::cout<<std::endl;
+	  if (JKDEBUG) std::cout<<std::endl;
 
 	  if (DEBUG) w2.Stop();
 	  if (DEBUG) std::cout<<"PARTIALLY: Checking for layer "<<extrapolateTo_<<std::endl;
@@ -800,8 +821,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 	if (lastValidL2) {
 	  if (DEBUG) w2.Start();
-	  std::cout<<"Valid L"<<extrapolateFrom_<<" hit found. Extrapolating to L"<<
-	    extrapolateTo_<<"\n";
+	  if (JKDEBUG) {
+	    std::cout<<"Valid L"<<extrapolateFrom_<<" hit found. Extrapolating to L"<<
+	      extrapolateTo_<<"\n";
+	  }
 	  std::vector< BarrelDetLayer*> pxbLayers = 
 	    measurementTrackerHandle->geometricSearchTracker()->pixelBarrelLayers();
 	  const DetLayer* pxb1 = pxbLayers[extrapolateTo_-1];
@@ -813,7 +836,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    theLayerMeasurements->measurements(*pxb1, tsosPXB2, *thePropagator, *estimator);
 	  
 	  if ( !expTrajMeasurements.empty()) {
-	    std::cout << "size of TM from propagation = " <<expTrajMeasurements.size()<< std::endl;
+	    if (JKDEBUG) std::cout << "size of TM from propagation = " <<expTrajMeasurements.size()<< std::endl;
 
 	    TrajectoryMeasurement pxb1TM(expTrajMeasurements.front());
 	    ConstReferenceCountingPointer<TransientTrackingRecHit> pxb1Hit;
@@ -821,7 +844,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    
 	    if (pxb1Hit->geographicalId().rawId()!=0) {
 	      ModuleData pxbMod=getModuleData(pxb1Hit->geographicalId().rawId(), "offline");
-	      std::cout << "Extrapolated hit found det=" <<
+	      if (JKDEBUG) std::cout << "Extrapolated hit found det=" <<
 		pxbMod.det<< " layer=" << pxbMod.layer<< " type=" <<pxb1Hit->getType()<< std::endl;
 	    }
 	  }
@@ -838,8 +861,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 	meas.i=imeas++;
       
-	std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-	std::cout << " TrajMeas #" << meas.i;
+	if (JKDEBUG) std::cout << "Run " << evt_.run << " Event " << evt_.evt;
+	if (JKDEBUG) std::cout << " TrajMeas #" << meas.i;
 
 	TransientTrackingRecHit::ConstRecHitPointer recHit = itTraj->recHit();
 	if (recHit->geographicalId().det()!=DetId::Tracker) continue;
@@ -849,31 +872,32 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	uint subDetId = recHit->geographicalId().subdetId();
       
 	if (subDetId == PixelSubdetector::PixelBarrel) {
-	  std::cout << " PixelBarrel layer " << meas.mod.layer;
-	  std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
+	  if (JKDEBUG) std::cout << " PixelBarrel layer " << meas.mod.layer;
+	  if (JKDEBUG) std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
 	  if (recHit->isValid()) track_.pix++;
 	} else if (subDetId == PixelSubdetector::PixelEndcap) {
-	  std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
-	  std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
+	  if (JKDEBUG) std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
+	  if (JKDEBUG) std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
 	  if (recHit->isValid()) track_.pix++;
 	} else if (subDetId == StripSubdetector::TIB) { 
-	  std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
+	  if (JKDEBUG) std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TOB) {
-	  std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
+	  if (JKDEBUG) std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TID) { 
-	  std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
+	  if (JKDEBUG) std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TEC) {
-	  std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
+	  if (JKDEBUG) std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
 	  if (recHit->isValid()) track_.strip++;
 	}
 	
 	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
       
-	if (!itTraj->updatedState().isValid()) std::cout<<", updatedState is invalid";
-	std::cout<<", ";
+	if (!itTraj->updatedState().isValid()) 
+	  if (JKDEBUG) std::cout<<", updatedState is invalid";
+	if (JKDEBUG) std::cout<<", ";
 
 // 	meas.validhit=1;
 // 	if (!recHit->isValid()) {
@@ -887,7 +911,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 // 	meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
 // 	meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
 	correctHitTypeAssignment(meas, recHit); // Needs to have meas.mod_on set correctly
-	std::cout<<std::endl;
+	if (JKDEBUG) std::cout<<std::endl;
       
 	//
 	// Dealing only with pixel measurements from here on
@@ -957,7 +981,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    trajmeas.push_back(meas);
 	    realHitFound++;
 	  } else {
-	    std::cout<<"Hit is dopped\n";
+	    if (JKDEBUG) std::cout<<"Hit is dopped\n";
 	  }
 	} else {
 	  trajmeas.push_back(meas);
@@ -973,7 +997,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       //
       // Now add the non-valid extrapolated hits to trajmeas
       //
-      std::cout<<"Adding missing trajectory measurements\n";
+      if (JKDEBUG) std::cout<<"Adding missing trajectory measurements\n";
 
       for(itTraj=expTrajMeasurements.begin(); itTraj!=expTrajMeasurements.end() &&
 	    !realHitFound; ++itTraj) {
@@ -983,12 +1007,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	TrajMeasurement meas;
 	meas.i=imeas++;
 	
-	std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-	std::cout << " TrajMeas #" << meas.i;
+	if (JKDEBUG) std::cout << "Run " << evt_.run << " Event " << evt_.evt;
+	if (JKDEBUG) std::cout << " TrajMeas #" << meas.i;
 	
 	TransientTrackingRecHit::ConstRecHitPointer recHit = itTraj->recHit();
 	if (recHit->geographicalId().det()!=DetId::Tracker) {
-	  std::cout<<" hit not consistent with tracker, dropping it\n";
+	  if (JKDEBUG) std::cout<<" hit not consistent with tracker, dropping it\n";
 	  continue;
 	}
 	
@@ -997,35 +1021,36 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	uint subDetId = recHit->geographicalId().subdetId();
 	
 	if (subDetId == PixelSubdetector::PixelBarrel) {
-	  std::cout << " PixelBarrel layer " << meas.mod.layer;
-	  std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
+	  if (JKDEBUG) std::cout << " PixelBarrel layer " << meas.mod.layer;
+	  if (JKDEBUG) std::cout << " ladder " << meas.mod.ladder << " module " << meas.mod.module;
 	  if (recHit->isValid()) track_.pix++;
 	} else if (subDetId == PixelSubdetector::PixelEndcap) {
-	  std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
-	  std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
+	  if (JKDEBUG) std::cout<<" PixelForward disk "<<meas.mod.disk<<" blade "<< meas.mod.blade;
+	  if (JKDEBUG) std::cout << " panel " << meas.mod.panel << " module " << meas.mod.module;
 	  if (recHit->isValid()) track_.pix++;
 	} else if (subDetId == StripSubdetector::TIB) { 
-	  std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
+	  if (JKDEBUG) std::cout << " TIB layer" << TIBDetId(meas.mod.rawid).layer();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TOB) {
-	  std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
+	  if (JKDEBUG) std::cout << " TOB layer" << TOBDetId(meas.mod.rawid).layer();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TID) { 
-	  std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
+	  if (JKDEBUG) std::cout << " TID wheel" << TIDDetId(meas.mod.rawid).wheel();
 	  if (recHit->isValid()) track_.strip++;
 	} else if (subDetId == StripSubdetector::TEC) {
-	  std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
+	  if (JKDEBUG) std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
 	  if (recHit->isValid()) track_.strip++;
 	} else {
-	  std::cout << "Detector module not recognized, raw id="<<recHit->geographicalId().rawId();
-	  std::cout << std::endl;
+	  if (JKDEBUG) std::cout << "Detector module not recognized, raw id="<<recHit->geographicalId().rawId();
+	  if (JKDEBUG) std::cout << std::endl;
 	  continue;
 	}
 	
 	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
 	
-	if (!itTraj->updatedState().isValid()) std::cout<<", updatedState is invalid";
-	std::cout<<", ";
+	if (!itTraj->updatedState().isValid()) 
+	  if (JKDEBUG) std::cout<<", updatedState is invalid";
+	if (JKDEBUG) std::cout<<", ";
 	
 // 	meas.validhit=1;
 // 	if (!recHit->isValid()) {
@@ -1039,7 +1064,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 // 	meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
 // 	meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
 	correctHitTypeAssignment(meas, recHit); // Needs to have meas.mod_on set correctly
-	std::cout<<std::endl;
+	if (JKDEBUG) std::cout<<std::endl;
 	
 	
 // 	//
@@ -1098,7 +1123,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	if (!keepOriginalMissingHit_ || meas.missing!=1) {
 	  trajmeas.push_back(meas);
 	} else {
-	  std::cout<<"Hit is dopped\n";
+	  if (JKDEBUG) std::cout<<"Hit is dopped\n";
 	}
 	
 	if (DEBUG) w2.Stop();
@@ -1116,16 +1141,18 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	for (size_t i=0; i<trajmeas.size(); i++) {
 	  if (trajmeas[i].gly<0 && track_.pixhit[1]>1) {
 	    trajmeas[i].telescope=1;
-	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+	    if (JKDEBUG) std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
 		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
 		      << ") passed telescope" << std::endl;
 	  }
 	  if (trajmeas[i].gly>0 && track_.pixhit[0]>1) {
 	    trajmeas[i].telescope=1;
 	    
-	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
-		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
-		      << ") passed telescope" << std::endl;
+	    if (JKDEBUG) {
+	      std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+			<< trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
+			<< ") passed telescope" << std::endl;
+	    }
 	  }
 	}
       }
@@ -1134,15 +1161,19 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	for (size_t i=0; i<trajmeas.size(); i++) {
 	  if (trajmeas[i].gly<0 && (track_.validpixhit[1]>1 || !trajmeas[i].validhit)) {
 	    trajmeas[i].telescope_valid=1;
-	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
-		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
-		      << ") passed telescope_valid" << std::endl;
+	    if (JKDEBUG) {
+	      std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+			<< trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
+			<< ") passed telescope_valid" << std::endl;
+	    }
 	  }
 	  if (trajmeas[i].gly>0 && (track_.validpixhit[0]>1 || !trajmeas[i].validhit)) {
 	    trajmeas[i].telescope_valid=1;
-	    std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
-		      << trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
-		      << ") passed telescope_valid" << std::endl;
+	    if (JKDEBUG) {
+	      std::cout << "Layer " << trajmeas[i].mod.layer << " module " \
+			<< trajmeas[i].mod.module << "(y=" << trajmeas[i].gly \
+			<< ") passed telescope_valid" << std::endl;
+	    }
 	  }
 	}
       }
@@ -1195,11 +1226,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       if (DEBUG) w2.Stop();
       if (DEBUG) std::cout<<"PARTIALLY: Push-back of this trajectory measurement\n";
       if (DEBUG) w2.Print();
-
-      w.Stop();
-      std::cout<<"DONE: Processing a track\n";
-      w.Print();
-
+      
+      if (JKDEBUG) {
+	w.Stop();
+	std::cout<<"DONE: Processing a track\n";
+	w.Print();
+      }
     } // end of tracks loop
 
   }
@@ -1211,7 +1243,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   // 1. has two valid trajectory hits too close to each other?
   // if so, set event good to "BAD"==0
-  w.Start();
+  if (JKDEBUG) w.Start();
 
   float minDxy=9999.;
   int minTrk=9999;
@@ -1243,22 +1275,26 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if (minDxy<9999) evt_.trackSep=minDxy;
 
   if (minDxy<0.2) {
-    std::cout<<" *** Found two valid hits too close to each other on";
-    std::cout<<" layer "<<trajmeas_[minTrk][minTraj].mod.layer
-	     <<" ladder "<<trajmeas_[minTrk][minTraj].mod.ladder
-	     <<" module "<<trajmeas_[minTrk][minTraj].mod.module
-	     <<" : "<<minDxy<<std::endl;
+    if (JKDEBUG) { 
+      std::cout<<" *** Found two valid hits too close to each other on";
+      std::cout<<" layer "<<trajmeas_[minTrk][minTraj].mod.layer
+	       <<" ladder "<<trajmeas_[minTrk][minTraj].mod.ladder
+	       <<" module "<<trajmeas_[minTrk][minTraj].mod.module
+	       <<" : "<<minDxy<<std::endl;
+    }
     if (evt_.good==1) evt_.good=0;
   }
- 
-  w.Stop();
-  std::cout<<"DONE: Event filtering\n";
-  w.Print();
+
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Event filtering\n";
+    w.Print();
+  }
 
   //
   // Fill the trees
   //
-  w.Start();
+  if (JKDEBUG) w.Start();
 
   eventTree_->SetBranchAddress("event", &evt_);
   eventTree_->Fill();
@@ -1298,10 +1334,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
   }
   
-  w.Stop();
-  std::cout<<"DONE: Filling event tree\n";
-  w.Print();
-
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Filling event tree\n";
+    w.Print();
+  }
 }
 
 
@@ -1315,17 +1352,17 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
 
   if (!recHit->isValid()) {
     //meas.validhit=0;
-    std::cout << "RecHit is _non-valid_";
+    if (JKDEBUG) std::cout << "RecHit is _non-valid_";
   } else {
-    std::cout<<"RecHits is _valid_";
+    if (JKDEBUG) std::cout<<"RecHits is _valid_";
   }  
-  std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","<<meas.badhit<<")";
+  if (JKDEBUG) std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","<<meas.badhit<<")";
 
   // Exceptions:
   // One full module on layer 1 is out. Need to fix classification here, because
   // the trajectory propagation does not include this
   if (meas.mod_on.det==0&&meas.mod_on.layer==1&&meas.mod_on.ladder==9&&meas.mod_on.module==2) {
-    std::cout<<" (reclassified as inactive by hand)";
+    if (JKDEBUG) std::cout<<" (reclassified as inactive by hand)";
     meas.validhit = 0;
     meas.missing = 0;
     meas.inactive = 1;
@@ -1334,7 +1371,7 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
 
   // One full module on layer 2, because it is not in the database yet
   if (meas.mod_on.det==0&&meas.mod_on.layer==2&&meas.mod_on.ladder==-8&&meas.mod_on.module==-4) {
-    std::cout<<" (reclassified as inactive by hand)";
+    if (JKDEBUG) std::cout<<" (reclassified as inactive by hand)";
     meas.validhit = 0;
     meas.missing = 0;
     meas.inactive = 1;
@@ -1423,7 +1460,7 @@ TimingStudy::getModuleData(uint32_t rawId, std::string scheme) {
 	  online.sec=i;
 	  sector << i << "_PRT%d";
 	  sscanf(it->second.data(), sector.str().data(), &online.prt);
-	  std::cout<<" (" << it->second << ": " << online.sec << ", " << online.prt << ")";
+	  if (JKDEBUG) std::cout<<" (" << it->second << ": " << online.sec << ", " << online.prt << ")";
 	  break;
 	}
       }
@@ -1463,7 +1500,7 @@ TimingStudy::getModuleData(uint32_t rawId, std::string scheme) {
     if (it!=portcardmap.end()) {
       disk << "_PRT%d";
       sscanf(it->second.data(), disk.str().data(), &online.prt);
-      std::cout<<" (" << it->second << ")";
+      if (JKDEBUG) std::cout<<" (" << it->second << ")";
     }
 
     return online;
