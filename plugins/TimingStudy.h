@@ -99,6 +99,8 @@ class TimingStudy : public edm::EDAnalyzer
     float vtxndof;
     float vtxchi2;
     float vtxD0;
+    float vtxX;
+    float vtxY;
     float vtxZ;
     float trackSep;
 
@@ -126,11 +128,11 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
       nvtx=vtxntrk=NOVAL_I;
-      vtxndof=vtxchi2=vtxD0=vtxZ=NOVAL_F;
+      vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
       trackSep=NOVAL_F;
-      list="run/I:evt:ls:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:"
-	"ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:nvtx:"
-	"vtxntrk:vtxndof/F:vtxchi2:vtxD0:vtxZ:trackSep";
+      list="run/I:evt:ls:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:"
+	"orb:ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:nvtx:"
+	"vtxntrk:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:trackSep";
     }
 
   } evt_;
@@ -149,6 +151,7 @@ class TimingStudy : public edm::EDAnalyzer
     float d0;
     float dz;
     float pt;
+    float p;
     float eta;
     float theta;
     float phi;
@@ -174,6 +177,7 @@ class TimingStudy : public edm::EDAnalyzer
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
+      p=NOVAL_F;
       eta=NOVAL_F;
       theta=NOVAL_F;
       phi=NOVAL_F;
@@ -185,7 +189,7 @@ class TimingStudy : public edm::EDAnalyzer
       highPurity=NOVAL_I;
       quality=NOVAL_I;
 
-      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:eta:theta:phi:"
+      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:p:eta:theta:phi:"
 	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]:fromVtx:highPurity:quality";
     }
 

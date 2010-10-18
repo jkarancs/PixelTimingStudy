@@ -460,6 +460,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	(evt_.vtxntrk==int(it->tracksSize()) && fabs(evt_.vtxZ)>fabs(it->z()))) {
       evt_.vtxntrk=it->tracksSize();
       evt_.vtxD0=it->position().rho();
+      evt_.vtxX=it->x();
+      evt_.vtxY=it->y();
       evt_.vtxZ=it->z();
       evt_.vtxndof=it->ndof();
       evt_.vtxchi2=it->chi2();
@@ -645,6 +647,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.d0=track.d0();
       track_.dz=track.dz();
       track_.pt=track.pt();
+      track_.p=track.p();
       track_.eta=track.eta();
       track_.theta=track.theta();
       track_.phi=track.phi();
