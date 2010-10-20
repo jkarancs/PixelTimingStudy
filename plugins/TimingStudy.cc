@@ -659,6 +659,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 		       abs(track_.d0-evt_.vtxD0) <0.5 ) ? 1 : 0;
       track_.highPurity= (track.qualityByName("highPurity")) ? 1 : 0;
       track_.quality=track.qualityMask();
+      track_.algo=track.algo();
 
       //
       // New on 02.18.2010

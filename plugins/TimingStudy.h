@@ -162,6 +162,7 @@ class TimingStudy : public edm::EDAnalyzer
     int fromVtx;
     int highPurity;
     int quality;
+    int algo;
 
     std::string list;
    
@@ -188,9 +189,10 @@ class TimingStudy : public edm::EDAnalyzer
       fromVtx=NOVAL_I;
       highPurity=NOVAL_I;
       quality=NOVAL_I;
+      algo=NOVAL_I;
 
       list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:p:eta:theta:phi:"
-	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]:fromVtx:highPurity:quality";
+	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]:fromVtx:highPurity:quality:algo";
     }
 
   };
