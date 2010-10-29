@@ -26,6 +26,7 @@
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
 #include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
 #include "TrackingTools/PatternTools/interface/Trajectory.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
@@ -447,9 +448,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   edm::Handle<reco::VertexCollection> vertexCollectionHandle;
   iEvent.getByLabel("offlinePrimaryVertices", vertexCollectionHandle);
 
-//   edm::Handle<reco::BeamSpot> beamSpotHandle;
-//   iEvent.getByLabel("", beamSpotHandle);
-
   evt_.nvtx=0;
   const reco::VertexCollection & vertices = *vertexCollectionHandle.product();
   reco::VertexCollection::const_iterator bestVtx=vertices.end();
@@ -618,6 +616,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
     TrajTrackAssociationCollection::const_iterator itTrajTrack=trajTrackCollectionHandle->begin();
 
+//     edm::Handle<reco::BeamSpot> beamSpotHandle;
+//     iEvent.getByLabel("offlineBeamSpot", beamSpotHandle);
+//     assert(beamSpotHandle.isValid());
+
     int itrack=0;
     for (;itTrajTrack!=trajTrackCollectionHandle->end(); itTrajTrack++) {  // loop on tracks
 
@@ -644,8 +646,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.validpixhit[1]=0;
       track_.ndof=track.ndof();
       track_.chi2=track.chi2();
-      track_.d0=track.d0();
-      track_.dz=track.dz();
+      track_.d0=track.dxy(bestVtx->position())*-1.0;
+      track_.dz=track.dz(bestVtx->position());
       track_.pt=track.pt();
       track_.p=track.p();
       track_.eta=track.eta();
@@ -655,9 +657,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.bpix[0]=track_.bpix[1]=track_.bpix[2]=0;
       track_.validfpix[0]=track_.validfpix[1]=0;
       track_.validbpix[0]=track_.validbpix[1]=track_.validbpix[2]=0;
-      track_.fromVtx= (abs(track_.dz-evt_.vtxZ) <1 &&
-		       abs(track_.d0-evt_.vtxD0) <0.5 ) ? 1 : 0;
-      track_.highPurity= (track.qualityByName("highPurity")) ? 1 : 0;
+      track_.fromVtx= ( (fabs(track_.dz) <0.25) && (fabs(track_.d0) <0.2) ) ? 1 : 0;
+      track_.highPurity= (track.quality(reco::TrackBase::highPurity)) ? 1 : 0;
       track_.quality=track.qualityMask();
       track_.algo=track.algo();
 
