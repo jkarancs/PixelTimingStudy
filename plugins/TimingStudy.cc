@@ -558,8 +558,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // Take only pixel clusters
       if (subDetId!=PixelSubdetector::PixelBarrel &&
 	  subDetId!=PixelSubdetector::PixelEndcap) {
-	if (JKDEBUG) std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
-	  continue;
+	std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
+	continue;
       }
       
       ModuleData module=getModuleData(detId.rawId());
@@ -946,6 +946,17 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	meas.beta = atan2(dir.z(), dir.y());	
 
 	//
+	// New: Nov 7, 2010 - find closest cluster
+	//
+	findClosestCluster(iEvent, iSetup, meas.glx, meas.gly, meas.glz, 
+			   meas.dx_cl, meas.dy_cl, meas.dz_cl);
+	if (meas.dx_cl!=NOVAL_F) {
+	  meas.d_cl=sqrt(meas.dx_cl*meas.dx_cl+meas.dy_cl*meas.dy_cl+meas.dz_cl*meas.dz_cl);
+	} else {
+	  meas.d_cl=NOVAL_F;
+	}
+
+	//
 	// Count hits for track (also used by telescope cut)
 	//
 	if (meas.gly<0) {
@@ -1105,6 +1116,17 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	LocalVector dir = predTrajParam.momentum()/predTrajParam.momentum().mag();
 	meas.alpha = atan2(dir.z(), dir.x());
 	meas.beta = atan2(dir.z(), dir.y());	
+
+	//
+	// New: Nov 7, 2010 - find closest cluster
+	//
+	findClosestCluster(iEvent, iSetup, meas.glx, meas.gly, meas.glz, 
+			   meas.dx_cl, meas.dy_cl, meas.dz_cl);
+	if (meas.dx_cl!=NOVAL_F) {
+	  meas.d_cl=sqrt(meas.dx_cl*meas.dx_cl+meas.dy_cl*meas.dy_cl+meas.dz_cl*meas.dz_cl);
+	} else {
+	  meas.d_cl=NOVAL_F;
+	}
 
 	//
 	// Count hits for track (also used by telescope cut)
@@ -1385,6 +1407,71 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
   
   
 }
+
+
+void TimingStudy::findClosestCluster(const edm::Event& iEvent, const edm::EventSetup& iSetup, 
+				     float glx, float gly, float glz, 
+				     float& dx_cl, float& dy_cl, float& dz_cl) {
+  
+  dx_cl=dy_cl=dz_cl=NOVAL_F;
+
+  edm::ESHandle<PixelClusterParameterEstimator> cpEstimator;
+  iSetup.get<TkPixelCPERecord>().get("PixelCPEGeneric", cpEstimator);
+  if (!cpEstimator.isValid()) return;
+  const PixelClusterParameterEstimator &cpe(*cpEstimator);
+
+  edm::ESHandle<TrackerGeometry> tracker;
+  iSetup.get<TrackerDigiGeometryRecord>().get(tracker);
+  if (!tracker.isValid()) return;
+  const TrackerGeometry *tkgeom = &(*tracker);
+
+  edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
+  iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
+  if (!clusterCollectionHandle.isValid()) return;
+
+  const edmNew::DetSetVector<SiPixelCluster>& clusterCollection=*clusterCollectionHandle;
+  edmNew::DetSetVector<SiPixelCluster>::const_iterator itClusterSet= clusterCollection.begin();
+
+  float minD=10000.;
+
+  for ( ; itClusterSet!=clusterCollection.end(); itClusterSet++) {
+      
+    DetId detId(itClusterSet->id());
+    unsigned int subDetId=detId.subdetId();
+
+    // Take only pixel clusters
+    if (subDetId!=PixelSubdetector::PixelBarrel &&
+	subDetId!=PixelSubdetector::PixelEndcap) {
+      std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
+      continue;
+    }
+
+    const PixelGeomDetUnit *pixdet = (const PixelGeomDetUnit*) tkgeom->idToDetUnit(detId);
+
+    edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();  
+    for(; itCluster!=itClusterSet->end(); ++itCluster) {
+      PixelClusterParameterEstimator::LocalValues params=cpe.localParameters(*itCluster, *pixdet);
+      const Surface* surface;
+      surface = &(tracker->idToDet(detId)->surface());
+      GlobalPoint gp = surface->toGlobal(params.first);
+      float D=sqrt((gp.x()-glx)*(gp.x()-glx)+(gp.y()-gly)*(gp.y()-gly)+(gp.z()-glz)*(gp.z()-glz));
+      if (D<minD) {
+	minD=D;
+	dx_cl=gp.x();
+	dy_cl=gp.y();
+	dz_cl=gp.z();
+      }
+    } // loop on cluster sets
+  }
+
+  if (minD<9999.) {
+    dx_cl=fabs(dx_cl-glx);
+    dy_cl=fabs(dy_cl-gly);
+    dz_cl=fabs(dz_cl-glz);
+  }
+
+}
+
 
 
 

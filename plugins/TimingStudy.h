@@ -352,6 +352,10 @@ class TimingStudy : public edm::EDAnalyzer
     int onedge;
     int dmodule; // D(propagated hit, valid hit)
     int dladder; // D(propagated hit, valid hit)
+    float dx_cl;
+    float dy_cl;
+    float dz_cl;
+    float d_cl;
 
     std::string list;
 
@@ -385,9 +389,13 @@ class TimingStudy : public edm::EDAnalyzer
       onedge=NOVAL_I;
       dmodule=NOVAL_I;
       dladder=NOVAL_I;
+      dx_cl=NOVAL_F;
+      dy_cl=NOVAL_F;
+      dz_cl=NOVAL_F;
+      d_cl=NOVAL_F;
       list="i/I:validhit:missing:inactive:badhit:alpha/F:beta:norm_charge:glx:gly:glz:"
 	"glmatch:lx:ly:lz:lx_err:ly_err:lz_err:lxmatch:lymatch:lxymatch:res_hit:sig_hit:"
-	"telescope/I:telescope_valid:onedge:dmodule:dladder";
+	"telescope/I:telescope_valid:onedge:dmodule:dladder:dx_cl/F:dy_cl:dz_cl:d_cl";
     }
 
   };
@@ -461,6 +469,9 @@ class TimingStudy : public edm::EDAnalyzer
 
   void correctHitTypeAssignment(TrajMeasurement& meas, 
 				TransientTrackingRecHit::ConstRecHitPointer& recHit);
+
+  void findClosestCluster(const edm::Event&, const edm::EventSetup&,
+			  float, float, float, float&, float&, float&);
 
 };
 
