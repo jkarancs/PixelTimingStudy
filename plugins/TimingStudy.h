@@ -109,9 +109,10 @@ class TimingStudy : public edm::EDAnalyzer
     EventData() { init(); };
     void init() {
       ls=NOVAL_I;
-      nvtx=vtxntrk=NOVAL_I;
+      nvtx=NOVAL_I;
       run=NOVAL_I;
       vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
+      vtxntrk=NOVAL_I;
       evt=NOVAL_I;
       good=NOVAL_I;
       tmuon=NOVAL_F;
@@ -130,7 +131,6 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
       trackSep=NOVAL_F;
-
 #ifdef COMPLETE
       list="ls/I:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
 	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:ntracks:"
@@ -195,12 +195,11 @@ class TimingStudy : public edm::EDAnalyzer
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
       highPurity=NOVAL_I;
       quality=NOVAL_I;
-
 #ifdef COMPLETE
-      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:eta:theta:phi:fromVtx/I:i:"
-	"pix:strip:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:quality";
+      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:ndof:chi2:eta:theta:phi:"
+	"fromVtx/I:i:pix:strip:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:quality";
 #else
-      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:eta:theta:phi";
+      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:ndof:chi2:eta:theta:phi";
 #endif
     }
 
