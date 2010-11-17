@@ -75,9 +75,17 @@ class TimingStudy : public edm::EDAnalyzer
   // Event info
   class EventData {
    public:
-    int run;
-    int evt;
     int ls;
+    int nvtx;
+    int run;
+    float vtxndof;
+    float vtxchi2;
+    float vtxD0;
+    float vtxX;
+    float vtxY;
+    float vtxZ;
+    int vtxntrk;
+    int evt;
     int good;
     float tmuon;
     float tmuon_err;
@@ -94,23 +102,17 @@ class TimingStudy : public edm::EDAnalyzer
     int ntrackBPix[3]; // tracks crossing the pixels
     int ntrackFPixvalid[2]; // tracks crossing the pixels with valid hits
     int ntrackBPixvalid[3]; // tracks crossing the pixels with valid hits
-    int nvtx;
-    int vtxntrk;
-    float vtxndof;
-    float vtxchi2;
-    float vtxD0;
-    float vtxX;
-    float vtxY;
-    float vtxZ;
     float trackSep;
 
     std::string list;
 
     EventData() { init(); };
     void init() {
-      run=NOVAL_I;
-      evt=NOVAL_I;
       ls=NOVAL_I;
+      nvtx=vtxntrk=NOVAL_I;
+      run=NOVAL_I;
+      vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
+      evt=NOVAL_I;
       good=NOVAL_I;
       tmuon=NOVAL_F;
       tmuon_err=NOVAL_F;
@@ -127,12 +129,15 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
-      nvtx=vtxntrk=NOVAL_I;
-      vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
       trackSep=NOVAL_F;
-      list="run/I:evt:ls:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:"
-	"orb:ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:nvtx:"
-	"vtxntrk:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:trackSep";
+
+#ifdef COMPLETE
+      list="ls/I:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
+	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:ntracks:"
+	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F";
+#else
+      list="ls/I:nvtx:run:vtxndof/F";
+#endif
     }
 
   } evt_;
@@ -141,58 +146,62 @@ class TimingStudy : public edm::EDAnalyzer
   // Track info
   class TrackData {
    public:
+    int validfpix[2]; // valid recHits in Diks1,2 
+    int validbpix[3]; // valid recHits in Layer 1,2,3
+    int algo;
+    float d0;
+    float dz;
+    float pt;
+    float p;
+    float ndof;
+    float chi2;
+    float eta;
+    float theta;
+    float phi;
+    int fromVtx;
     int i;
     int pix; // total valid hits
     int strip; // total valid hits
     int pixhit[2]; // 0: top, 1: bottom
     int validpixhit[2]; // 0: top, 1: bottom
-    float ndof;
-    float chi2;
-    float d0;
-    float dz;
-    float pt;
-    float p;
-    float eta;
-    float theta;
-    float phi;
     int fpix[2]; // recHits in Diks1,2 
     int bpix[3]; // recHits in Layer 1,2,3
-    int validfpix[2]; // valid recHits in Diks1,2 
-    int validbpix[3]; // valid recHits in Layer 1,2,3
-    int fromVtx;
     int highPurity;
     int quality;
-    int algo;
 
     std::string list;
    
     TrackData() { init(); }
     void init() {
+      validfpix[0]=validfpix[1]=NOVAL_I;
+      validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
+      algo=NOVAL_I;
+      d0=NOVAL_F;
+      dz=NOVAL_F;
+      pt=NOVAL_F;
+      p=NOVAL_F;
+      ndof=NOVAL_F;
+      chi2=NOVAL_F;
+      eta=NOVAL_F;
+      theta=NOVAL_F;
+      phi=NOVAL_F;
+      fromVtx=NOVAL_I;
       i=NOVAL_I;
       pix=NOVAL_I;
       strip=NOVAL_I;
       pixhit[0]=pixhit[1]=NOVAL_I;
       validpixhit[0]=validpixhit[1]=NOVAL_I;
-      ndof=NOVAL_F;
-      chi2=NOVAL_F;
-      d0=NOVAL_F;
-      dz=NOVAL_F;
-      pt=NOVAL_F;
-      p=NOVAL_F;
-      eta=NOVAL_F;
-      theta=NOVAL_F;
-      phi=NOVAL_F;
       fpix[0]=fpix[1]=NOVAL_I;
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
-      validfpix[0]=validfpix[1]=NOVAL_I;
-      validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
-      fromVtx=NOVAL_I;
       highPurity=NOVAL_I;
       quality=NOVAL_I;
-      algo=NOVAL_I;
 
-      list="i/I:pix:strip/I:pixhit[2]/I:validpixhit[2]/I:ndof/F:chi2:d0:dz:pt:p:eta:theta:phi:"
-	"fpix[2]/I:bpix[3]:validfpix[2]:validbpix[3]:fromVtx:highPurity:quality:algo";
+#ifdef COMPLETE
+      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:eta:theta:phi:fromVtx/I:i:"
+	"pix:strip:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:quality";
+#else
+      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:eta:theta:phi";
+#endif
     }
 
   };
@@ -203,12 +212,11 @@ class TimingStudy : public edm::EDAnalyzer
   // Module info
   class ModuleData {
    public:
-    unsigned int rawid;
     int det;
 
     int layer;
     int ladder;
-    int sec;
+    int half;
 
     int side;
     int disk;
@@ -218,9 +226,11 @@ class TimingStudy : public edm::EDAnalyzer
     int module;
     int prt;
     int shl;
+    int sec;
 
-    int half;
     int outer;
+
+    unsigned int rawid;
 
     std::string list;
 
@@ -240,7 +250,11 @@ class TimingStudy : public edm::EDAnalyzer
       shl=NOVAL_I;
       half=NOVAL_I;
       outer=NOVAL_I;
-      list="rawid/i:det/I:layer:ladder:sec:side:disk:blade:panel:module:prt:shl:half:outer";
+#ifdef COMPLETE
+      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:rawid/i";
+#else
+      list="det/I:layer:ladder:half:side:disk:blade:panel:module";
+#endif
     }
 
     std::string shell() {
@@ -293,7 +307,11 @@ class TimingStudy : public edm::EDAnalyzer
       x=NOVAL_F;
       y=NOVAL_F;
       for (size_t i=0; i<1000; i++) adc[i]=NOVAL_F;
+#ifdef COMPLETE
       list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y:adc[size]";
+#else
+      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y";
+#endif
     }
 
   };
@@ -324,25 +342,29 @@ class TimingStudy : public edm::EDAnalyzer
   // Trajectory info
   class TrajMeasData {
    public:
-    int i; // serial num of trajectory measurement on the (single) track of the event
     int validhit;
     int missing;
+    float lx;
+    float ly;
+    float lxmatch;
+    float dx_cl;
+    float dy_cl;
+    float dz_cl;
+    float d_cl;
+    float glx;
+    float gly;
+    float glz;
+    int i; // serial num of trajectory measurement on the (single) track of the event
     int inactive;
     int badhit;
     float alpha;
     float beta;
     float norm_charge;
-    float glx;
-    float gly;
-    float glz;
     float glmatch;
-    float lx;
-    float ly;
     float lz;
     float lx_err;
     float ly_err;
     float lz_err;
-    float lxmatch;
     float lymatch;
     float lxymatch;
     float res_hit;
@@ -352,34 +374,34 @@ class TimingStudy : public edm::EDAnalyzer
     int onedge;
     int dmodule; // D(propagated hit, valid hit)
     int dladder; // D(propagated hit, valid hit)
-    float dx_cl;
-    float dy_cl;
-    float dz_cl;
-    float d_cl;
 
     std::string list;
 
     TrajMeasData() { init(); }
     void init() {
-      i=NOVAL_I;
       validhit=NOVAL_I;
       missing=NOVAL_I;
+      lx=NOVAL_F;
+      ly=NOVAL_F;
+      lxmatch=NOVAL_F;
+      dx_cl=NOVAL_F;
+      dy_cl=NOVAL_F;
+      dz_cl=NOVAL_F;
+      d_cl=NOVAL_F;
+      glx=NOVAL_F;
+      gly=NOVAL_F;
+      glz=NOVAL_F;
+      i=NOVAL_I;
       inactive=NOVAL_I;
       badhit=NOVAL_I;
       alpha=NOVAL_F;
       beta=NOVAL_F;
       norm_charge=NOVAL_F;
-      glx=NOVAL_F;
-      gly=NOVAL_F;
-      glz=NOVAL_F;
       glmatch=NOVAL_F;
-      lx=NOVAL_F;
-      ly=NOVAL_F;
       lz=NOVAL_F;
       lx_err=NOVAL_F;
       ly_err=NOVAL_F;
       lz_err=NOVAL_F;
-      lxmatch=NOVAL_F;
       lymatch=NOVAL_F;
       lxymatch=NOVAL_F;
       res_hit=NOVAL_F;
@@ -389,13 +411,13 @@ class TimingStudy : public edm::EDAnalyzer
       onedge=NOVAL_I;
       dmodule=NOVAL_I;
       dladder=NOVAL_I;
-      dx_cl=NOVAL_F;
-      dy_cl=NOVAL_F;
-      dz_cl=NOVAL_F;
-      d_cl=NOVAL_F;
-      list="i/I:validhit:missing:inactive:badhit:alpha/F:beta:norm_charge:glx:gly:glz:"
-	"glmatch:lx:ly:lz:lx_err:ly_err:lz_err:lxmatch:lymatch:lxymatch:res_hit:sig_hit:"
-	"telescope/I:telescope_valid:onedge:dmodule:dladder:dx_cl/F:dy_cl:dz_cl:d_cl";
+#ifdef COMPLETE
+      list="validhit/I:missing:lx/F:ly:lxmatch:dx_cl:dy_cl:dz_cl:d_cl:glx:gly:glz:"
+	"i/I:inactive:badhit:alpha/F:beta:norm_charge:glmatch:lz:lx_err:ly_err:lz_err:"
+	"lymatch:lxymatch:res_hit:sig_hit:telescope/I:telescope_valid:onedge:dmodule:dladder";
+#else
+      list="validhit/I:missing:lx/F:ly:lxmatch:dx_cl:dy_cl:dz_cl:d_cl";
+#endif
     }
 
   };
