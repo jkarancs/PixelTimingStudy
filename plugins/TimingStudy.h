@@ -69,6 +69,8 @@ class TimingStudy : public edm::EDAnalyzer
   float maxlxmatch_;
   float maxlymatch_;
   bool keepOriginalMissingHit_;
+  bool usePixelCPE_;
+  int minNStripHits_;
 
  public:
 
@@ -149,6 +151,7 @@ class TimingStudy : public edm::EDAnalyzer
     int validfpix[2]; // valid recHits in Diks1,2 
     int validbpix[3]; // valid recHits in Layer 1,2,3
     int algo;
+    int strip; // total valid hits
     float d0;
     float dz;
     float pt;
@@ -156,12 +159,11 @@ class TimingStudy : public edm::EDAnalyzer
     float ndof;
     float chi2;
     float eta;
-    float theta;
     float phi;
+    float theta;
     int fromVtx;
     int i;
     int pix; // total valid hits
-    int strip; // total valid hits
     int pixhit[2]; // 0: top, 1: bottom
     int validpixhit[2]; // 0: top, 1: bottom
     int fpix[2]; // recHits in Diks1,2 
@@ -176,6 +178,7 @@ class TimingStudy : public edm::EDAnalyzer
       validfpix[0]=validfpix[1]=NOVAL_I;
       validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
       algo=NOVAL_I;
+      strip=NOVAL_I;
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
@@ -183,12 +186,11 @@ class TimingStudy : public edm::EDAnalyzer
       ndof=NOVAL_F;
       chi2=NOVAL_F;
       eta=NOVAL_F;
-      theta=NOVAL_F;
       phi=NOVAL_F;
+      theta=NOVAL_F;
       fromVtx=NOVAL_I;
       i=NOVAL_I;
       pix=NOVAL_I;
-      strip=NOVAL_I;
       pixhit[0]=pixhit[1]=NOVAL_I;
       validpixhit[0]=validpixhit[1]=NOVAL_I;
       fpix[0]=fpix[1]=NOVAL_I;
@@ -196,10 +198,11 @@ class TimingStudy : public edm::EDAnalyzer
       highPurity=NOVAL_I;
       quality=NOVAL_I;
 #ifdef COMPLETE
-      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:ndof:chi2:eta:theta:phi:"
-	"fromVtx/I:i:pix:strip:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:quality";
+      list="validfpix[2]/I:validbpix[3]:algo:strip:d0/F:dz:pt:p:ndof:chi2:eta:phi:theta:"
+	"fromVtx/I:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:"
+	"quality";
 #else
-      list="validfpix[2]/I:validbpix[3]:algo:d0/F:dz:pt:p:ndof:chi2:eta:theta:phi";
+      list="validfpix[2]/I:validbpix[3]:algo:strip:d0/F:dz:pt:p:ndof:chi2:eta:phi";
 #endif
     }
 
@@ -235,11 +238,10 @@ class TimingStudy : public edm::EDAnalyzer
 
     ModuleData() { init(); }
     void init() {
-      rawid=abs(NOVAL_I);
       det=NOVAL_I;
       layer=NOVAL_I;
       ladder=NOVAL_I;
-      sec=NOVAL_I;
+      half=NOVAL_I;
       side=NOVAL_I;
       disk=NOVAL_I;
       blade=NOVAL_I;
@@ -247,13 +249,11 @@ class TimingStudy : public edm::EDAnalyzer
       module=NOVAL_I;
       prt=NOVAL_I;
       shl=NOVAL_I;
-      half=NOVAL_I;
+      sec=NOVAL_I;
       outer=NOVAL_I;
-#ifdef COMPLETE
-      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:rawid/i";
-#else
-      list="det/I:layer:ladder:half:side:disk:blade:panel:module";
-#endif
+      rawid=abs(NOVAL_I);
+      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:"
+	"rawid/i";
     }
 
     std::string shell() {
@@ -346,33 +346,34 @@ class TimingStudy : public edm::EDAnalyzer
     float lx;
     float ly;
     float lxmatch;
-    float dx_cl;
-    float dy_cl;
-    float dz_cl;
-    float d_cl;
+    float lymatch;
+    float dx_cl[2];
+    float dy_cl[2];
+    float dx_hit;
+    float dy_hit;
     float glx;
     float gly;
     float glz;
     int i; // serial num of trajectory measurement on the (single) track of the event
+    float norm_charge;
+    int onedge;
+    int telescope;
+    int telescope_valid;
+    int dmodule; // D(propagated hit, valid hit)
+    int dladder; // D(propagated hit, valid hit)
     int inactive;
     int badhit;
     float alpha;
     float beta;
-    float norm_charge;
     float glmatch;
     float lz;
     float lx_err;
     float ly_err;
     float lz_err;
-    float lymatch;
     float lxymatch;
     float res_hit;
     float sig_hit;
-    int telescope;
-    int telescope_valid;
-    int onedge;
-    int dmodule; // D(propagated hit, valid hit)
-    int dladder; // D(propagated hit, valid hit)
+    float d_cl[2];
 
     std::string list;
 
@@ -383,39 +384,43 @@ class TimingStudy : public edm::EDAnalyzer
       lx=NOVAL_F;
       ly=NOVAL_F;
       lxmatch=NOVAL_F;
-      dx_cl=NOVAL_F;
-      dy_cl=NOVAL_F;
-      dz_cl=NOVAL_F;
-      d_cl=NOVAL_F;
+      lymatch=NOVAL_F;
+      dx_cl[0]=dx_cl[1]=NOVAL_F;
+      dy_cl[0]=dy_cl[1]=NOVAL_F;
+      dx_hit=NOVAL_F;
+      dy_hit=NOVAL_F;
       glx=NOVAL_F;
       gly=NOVAL_F;
       glz=NOVAL_F;
       i=NOVAL_I;
+      norm_charge=NOVAL_F;
+      onedge=NOVAL_I;
+      telescope=NOVAL_I;
+      telescope_valid=NOVAL_I;
+      dmodule=NOVAL_I;
+      dladder=NOVAL_I;
       inactive=NOVAL_I;
       badhit=NOVAL_I;
       alpha=NOVAL_F;
       beta=NOVAL_F;
-      norm_charge=NOVAL_F;
       glmatch=NOVAL_F;
       lz=NOVAL_F;
       lx_err=NOVAL_F;
       ly_err=NOVAL_F;
       lz_err=NOVAL_F;
-      lymatch=NOVAL_F;
       lxymatch=NOVAL_F;
       res_hit=NOVAL_F;
       sig_hit=NOVAL_F;
-      telescope=NOVAL_I;
-      telescope_valid=NOVAL_I;
-      onedge=NOVAL_I;
-      dmodule=NOVAL_I;
-      dladder=NOVAL_I;
+      d_cl[0]=d_cl[1]=NOVAL_F;
+
+
 #ifdef COMPLETE
-      list="validhit/I:missing:lx/F:ly:lxmatch:dx_cl:dy_cl:dz_cl:d_cl:glx:gly:glz:"
-	"i/I:inactive:badhit:alpha/F:beta:norm_charge:glmatch:lz:lx_err:ly_err:lz_err:"
-	"lymatch:lxymatch:res_hit:sig_hit:telescope/I:telescope_valid:onedge:dmodule:dladder";
+      list="validhit/I:missing:lx/F:ly:lxmatch:lymatch:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:glx:gly:"
+	"glz:i/I:norm_charge/F:onedge/I:telescope:telescope_valid:dmodule:dladder:inactive:"
+	"badhit:alpha/F:beta:glmatch:lz:lx_err:ly_err:lz_err:lxymatch:res_hit:sig_hit:d_cl[2]";
 #else
-      list="validhit/I:missing:lx/F:ly:lxmatch:dx_cl:dy_cl:dz_cl:d_cl";
+      list="validhit/I:missing:lx/F:ly:lxmatch:lymatch:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:glx:gly:"
+	"glz:i/I:norm_charge/F";
 #endif
     }
 
@@ -491,8 +496,8 @@ class TimingStudy : public edm::EDAnalyzer
   void correctHitTypeAssignment(TrajMeasurement& meas, 
 				TransientTrackingRecHit::ConstRecHitPointer& recHit);
 
-  void findClosestCluster(const edm::Event&, const edm::EventSetup&,
-			  float, float, float, float&, float&, float&);
+  void findClosestClusters(const edm::Event&, const edm::EventSetup&, uint32_t, 
+			   float, float, float*, float*);
 
 };
 

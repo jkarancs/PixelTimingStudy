@@ -67,7 +67,8 @@
 #include <iostream>
 #include <vector>
 
-//set to 1 in order to switch on logging of debug info - may create large log file (set to 0 for Grid runs)
+//set to 1 in order to switch on logging of debug info - may create large log file 
+//(set to 0 for Grid runs)
 #define JKDEBUG 0
 
 using namespace std;
@@ -92,6 +93,8 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   maxlymatch_=0.2;
   keepOriginalMissingHit_=true;
 
+  usePixelCPE_=false;
+  minNStripHits_=11;
 }
 
 
@@ -111,30 +114,36 @@ void TimingStudy::beginJob()
   std::string fileName="test.root";
   if (iConfig_.exists("fileName")) {
     fileName=iConfig_.getParameter<std::string>("fileName");
-    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: fileName= "<<fileName<<std::endl;
+    std::cout<<"NON-DEFAULT PARAMETER: fileName= "<<fileName<<std::endl;
   }
   if (iConfig_.exists("extrapolateFrom")) {
     extrapolateFrom_=iConfig_.getParameter<int>("extrapolateFrom");
-    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: extrapolateFrom= "<<extrapolateFrom_<<std::endl;
+    std::cout<<"NON-DEFAULT PARAMETER: extrapolateFrom= "<<extrapolateFrom_<<std::endl;
   }
   if (iConfig_.exists("extrapolateTo")) {
     extrapolateTo_=iConfig_.getParameter<int>("extrapolateTo");
-    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: extrapolateTo= "<<extrapolateTo_<<std::endl;
+    std::cout<<"NON-DEFAULT PARAMETER: extrapolateTo= "<<extrapolateTo_<<std::endl;
   }
   if (iConfig_.exists("maxLxMatch")) {
     maxlxmatch_=iConfig_.getParameter<int>("maxLxMatch");
-    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: maxLxMatch= "<<maxlxmatch_<<std::endl;
+    std::cout<<"NON-DEFAULT PARAMETER: maxLxMatch= "<<maxlxmatch_<<std::endl;
   }
   if (iConfig_.exists("maxLyMatch")) {
     maxlymatch_=iConfig_.getParameter<int>("maxLyMatch");
-    if (JKDEBUG) std::cout<<"NON-DEFAULT PARAMETER: maxLyMatch= "<<maxlymatch_<<std::endl;
+    std::cout<<"NON-DEFAULT PARAMETER: maxLyMatch= "<<maxlymatch_<<std::endl;
   }
   if (iConfig_.exists("keepOriginalMissingHit")) {
     keepOriginalMissingHit_=iConfig_.getParameter<bool>("keepOriginalMissingHit");
-    if (JKDEBUG) {
-      std::cout<<"NON-DEFAULT PARAMETER: keepOriginalMissingHit= "<<keepOriginalMissingHit_
-	       <<std::endl;
-    }
+    std::cout<<"NON-DEFAULT PARAMETER: keepOriginalMissingHit= "<<keepOriginalMissingHit_
+	     <<std::endl;
+  }
+  if (iConfig_.exists("usePixelCPE")) {
+    usePixelCPE_=iConfig_.getParameter<bool>("usePixelCPE");
+    std::cout<<"NON-DEFAULT PARAMETER: usePixelCPE= "<<usePixelCPE_<<std::endl;
+  }
+  if (iConfig_.exists("minNStripHits")) {
+    minNStripHits_=iConfig_.getParameter<int>("minNStripHits");
+    std::cout<<"NON-DEFAULT PARAMETER: minNStripHits= "<<minNStripHits_<<std::endl;
   }
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
@@ -142,13 +151,13 @@ void TimingStudy::beginJob()
 
   //edm::Service<TFileService> fs;
   outfile_ = new TFile(fileName.c_str(), "RECREATE");
-  if (JKDEBUG) std::cout<<"Output file created: "<<outfile_->GetName()<<std::endl;
+  std::cout<<"Output file created: "<<outfile_->GetName()<<std::endl;
 
   // The event
   eventTree_ = new TTree("eventTree", "The event");
   eventTree_->Branch("event", &evt_, evt_.list.data());
 
-
+  #ifdef COMPLETE
   TrackData track_;
   trackTree_ = new TTree("trackTree", "The track in the event");
   //trackTree_->SetDirectory(outfile_);
@@ -165,7 +174,7 @@ void TimingStudy::beginJob()
   clustTree_->Branch("clust", &clust, clust.list.data());
   clustTree_->Branch("module", &clust.mod, clust.mod.list.data());
   clustTree_->Branch("module_on", &clust.mod_on, clust.mod_on.list.data());
-
+  #endif
 
   TrajMeasurement trajmeas;
   trajTree_ = new TTree("trajTree", "Trajectory measurements in the Pixel");
@@ -173,12 +182,15 @@ void TimingStudy::beginJob()
   //trajTree_->AutoSave();
   trajTree_->Branch("event", &evt_, evt_.list.data());
   trajTree_->Branch("traj", &trajmeas, trajmeas.list.data());
+  #ifdef COMPLETE
   trajTree_->Branch("module", &trajmeas.mod, trajmeas.mod.list.data());
+  #endif
   trajTree_->Branch("module_on", &trajmeas.mod_on, trajmeas.mod_on.list.data());
   trajTree_->Branch("clust", &trajmeas.clu, trajmeas.clu.list.data());
   trajTree_->Branch("track", &trajmeas.trk, trajmeas.trk.list.data());
 
 
+  #ifdef COMPLETE
   Digi digi;
   digiTree_ = new TTree("digiTree", "Pixel digis");
   //digiTree_->SetDirectory(outfile_);
@@ -187,12 +199,12 @@ void TimingStudy::beginJob()
   digiTree_->Branch("digi", &digi, digi.list.data());
   digiTree_->Branch("module", &digi.mod, digi.mod.list.data());
   digiTree_->Branch("module_on", &digi.mod_on, digi.mod_on.list.data());
-
+  #endif
 
   // Some external information until I figure out how to do this inside CMSSW
 
   // Defining read-out groups
-  if (JKDEBUG) std::cout << "\nReading portcardmap.dat\n";
+  std::cout << "\nReading portcardmap.dat\n";
   std::ifstream portcardmap_file;
   portcardmap_file.open ("portcardmap.dat", ifstream::in);
   std::string port, mod, ch;
@@ -214,7 +226,7 @@ void TimingStudy::beginJob()
 
 
   // Get the configured delays for each run in 2009 until Oct23
-  if (JKDEBUG) std::cout << "\nReading Runs_and_delays.txt\n";
+  std::cout << "\nReading Runs_and_delays.txt\n";
   std::ifstream runsndelays_file;
   runsndelays_file.open ("Runs_and_delays.txt", ifstream::in);
   int delay=NOVAL_I;
@@ -249,7 +261,7 @@ void TimingStudy::beginJob()
 
 
   // Get the configured WBC for each run in 2009 until Oct23
-  if (JKDEBUG) std::cout << "\nReading Runs_and_dacs.txt\n";
+  std::cout << "\nReading Runs_and_dacs.txt\n";
   std::ifstream runsndacs_file;
   runsndacs_file.open ("Runs_and_dacs.txt", ifstream::in);
   int dac=NOVAL_I;
@@ -339,7 +351,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.orb=iEvent.orbitNumber();
   
   if (JKDEBUG) {
-    std::cout<<"\n\nProcess Event: Run "<<evt_.run<<" Event "<<evt_.evt<< " LS "<<evt_.ls<<std::endl;
+    std::cout<<"\n\nProcess Event: Run "<<evt_.run<<" Event "<<evt_.evt<< " LS "<<evt_.ls
+	     <<std::endl;
     w.Stop();
     std::cout<<"DONE: Reading event info\n";
     w.Print();
@@ -358,7 +371,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   if (trajTrackCollectionHandle.isValid()||1) {
     if (JKDEBUG) std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
-    if (JKDEBUG) std::cout << " Number of tracks =" << trajTrackCollectionHandle->size() << std::endl;
+    if (JKDEBUG) std::cout << " Number of tracks =" <<trajTrackCollectionHandle->size()<<std::endl;
 
     evt_.ntracks=trajTrackCollectionHandle->size();
 
@@ -477,6 +490,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   // Read digi information
   //
+
+  #ifdef COMPLETE
+
   if (JKDEBUG) w.Start();
 
   edm::Handle<edm::DetSetVector<PixelDigi> >  digiCollectionHandle;
@@ -536,10 +552,15 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     w.Print();
   }
 
+  #endif
+
 
   //
   // Read cluster information
   //
+
+  #ifdef COMPLETE
+
   if (JKDEBUG) w.Start();
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
@@ -595,7 +616,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	clust.mod=module;
 	clust.mod_on=module_on;
 	clusts_.push_back(clust);
-	if (JKDEBUG) std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
+	if (JKDEBUG) {
+	  std::cout<<"\t#"<<clust.i<<" charge "<<clust.charge<<" size "<<clust.size<<std::endl;
+	}
       }
     } // loop on cluster sets
   }
@@ -606,6 +629,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     w.Print();
   }
 
+  #endif
 
   //
   // Process tracks
@@ -694,7 +718,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       if (DEBUG) w2.Print();
 
       if (JKDEBUG) std::cout << "Run " << evt_.run << " Event " << evt_.evt;
-      if (JKDEBUG) std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
+      if (JKDEBUG) {
+	std::cout << " number of measurements on track "<< trajMeasurements.size() << std::endl;
+      }
     
       //int nTopHits=0; int nBottomHits=0; int nTopValidHits=0; int nBottomValidHits=0;
       //int nValidStripHits=0;
@@ -777,7 +803,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    if (chkRecHit->getType()!=TrackingRecHit::missing || keepOriginalMissingHit_) {
 	      expTrajMeasurements.erase(expTrajMeasurements.begin()+imatch);
 	    }
-	    if (JKDEBUG) std::cout<<" and matched to extrapolated hit "<<imatch<<" with accuracy "<<glmatch;
+	    if (JKDEBUG) {
+	      std::cout<<" and matched to extrapolated hit "<<imatch<<" with accuracy "<<glmatch;
+	    }
 	  } else {
 	    if (JKDEBUG) {
 	      std::cout<<" and was not matched to any extrapolated hit, match="<<glmatch;
@@ -841,7 +869,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    theLayerMeasurements->measurements(*pxb1, tsosPXB2, *thePropagator, *estimator);
 	  
 	  if ( !expTrajMeasurements.empty()) {
-	    if (JKDEBUG) std::cout << "size of TM from propagation = " <<expTrajMeasurements.size()<< std::endl;
+	    if (JKDEBUG) {
+	      std::cout <<"size of TM from propagation = "<<expTrajMeasurements.size()<< std::endl;
+	    }
 
 	    TrajectoryMeasurement pxb1TM(expTrajMeasurements.front());
 	    ConstReferenceCountingPointer<TransientTrackingRecHit> pxb1Hit;
@@ -849,8 +879,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    
 	    if (pxb1Hit->geographicalId().rawId()!=0) {
 	      ModuleData pxbMod=getModuleData(pxb1Hit->geographicalId().rawId(), "offline");
-	      if (JKDEBUG) std::cout << "Extrapolated hit found det=" <<
-		pxbMod.det<< " layer=" << pxbMod.layer<< " type=" <<pxb1Hit->getType()<< std::endl;
+	      if (JKDEBUG) {
+		std::cout << "Extrapolated hit found det=" << pxbMod.det<< " layer=";
+		std::cout << pxbMod.layer<< " type=" <<pxb1Hit->getType()<< std::endl;
+	      }
 	    }
 	  }
 	  //
@@ -948,12 +980,14 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	//
 	// New: Nov 7, 2010 - find closest cluster
 	//
-	findClosestCluster(iEvent, iSetup, meas.glx, meas.gly, meas.glz, 
-			   meas.dx_cl, meas.dy_cl, meas.dz_cl);
-	if (meas.dx_cl!=NOVAL_F) {
-	  meas.d_cl=sqrt(meas.dx_cl*meas.dx_cl+meas.dy_cl*meas.dy_cl+meas.dz_cl*meas.dz_cl);
-	} else {
-	  meas.d_cl=NOVAL_F;
+	findClosestClusters(iEvent, iSetup, recHit->geographicalId().rawId(),
+			    meas.lx, meas.ly, meas.dx_cl, meas.dy_cl);
+	for (size_t i=0; i<2; i++) {
+	  if (meas.dx_cl[i]!=NOVAL_F) {
+	    meas.d_cl[i]=sqrt(meas.dx_cl[i]*meas.dx_cl[i]+meas.dy_cl[i]*meas.dy_cl[i]);
+	  } else {
+	    meas.d_cl[i]=NOVAL_F;
+	  }
 	}
 
 	//
@@ -1057,8 +1091,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  if (JKDEBUG) std::cout << " TEC wheel" << TECDetId(meas.mod.rawid).wheel();
 	  if (recHit->isValid()) track_.strip++;
 	} else {
-	  if (JKDEBUG) std::cout << "Detector module not recognized, raw id="<<recHit->geographicalId().rawId();
-	  if (JKDEBUG) std::cout << std::endl;
+	  if (JKDEBUG) {
+	    std::cout<<"Detector module not recognized, raw id="<<recHit->geographicalId().rawId();
+	    std::cout << std::endl;
+	  }
 	  continue;
 	}
 	
@@ -1120,12 +1156,14 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	//
 	// New: Nov 7, 2010 - find closest cluster
 	//
-	findClosestCluster(iEvent, iSetup, meas.glx, meas.gly, meas.glz, 
-			   meas.dx_cl, meas.dy_cl, meas.dz_cl);
-	if (meas.dx_cl!=NOVAL_F) {
-	  meas.d_cl=sqrt(meas.dx_cl*meas.dx_cl+meas.dy_cl*meas.dy_cl+meas.dz_cl*meas.dz_cl);
-	} else {
-	  meas.d_cl=NOVAL_F;
+	findClosestClusters(iEvent, iSetup, recHit->geographicalId().rawId(),
+			    meas.lx, meas.ly, meas.dx_cl, meas.dy_cl);
+	for (size_t i=0; i<2; i++) {
+	  if (meas.dx_cl[i]!=NOVAL_F) {
+	    meas.d_cl[i]=sqrt(meas.dx_cl[i]*meas.dx_cl[i]+meas.dy_cl[i]*meas.dy_cl[i]);
+	  } else {
+	    meas.d_cl[i]=NOVAL_F;
+	  }
 	}
 
 	//
@@ -1326,13 +1364,15 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   eventTree_->SetBranchAddress("event", &evt_);
   eventTree_->Fill();
 
-
+  #ifdef COMPLETE
   for (size_t i=0; i<tracks_.size(); i++) {
     trackTree_->SetBranchAddress("event", &evt_);
     trackTree_->SetBranchAddress("track", &tracks_[i]);
     trackTree_->Fill();
   }
+  #endif
 
+  #ifdef COMPLETE
   for (size_t i=0; i<clusts_.size(); i++) {
     clustTree_->SetBranchAddress("event", &evt_);
     clustTree_->SetBranchAddress("clust", &clusts_[i]);
@@ -1348,12 +1388,37 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     digiTree_->SetBranchAddress("module_on", &digis_[i].mod_on);
     digiTree_->Fill();
   }
+  #endif
 
   for (size_t itrk=0; itrk<trajmeas_.size(); itrk++) {
     for (size_t i=0; i<trajmeas_[itrk].size(); i++) {
+      #ifndef COMPLETE
+      if (trajmeas_[itrk][i].trk.strip<minNStripHits_) continue;
+      #endif
+      
+      // Search for closest other trajmeas before saving it
+      float minD=10000.;
+      for (size_t jtrk=0; jtrk<trajmeas_.size(); jtrk++) {
+	for (size_t j=0; j<trajmeas_[jtrk].size(); j++) {
+	  if (jtrk==itrk && j==i) continue;
+	  if (trajmeas_[jtrk][j].mod_on.rawid!=trajmeas_[itrk][i].mod_on.rawid) continue;
+	  float dx_hit=fabs(trajmeas_[itrk][i].lx-trajmeas_[jtrk][j].lx);
+	  float dy_hit=fabs(trajmeas_[itrk][i].ly-trajmeas_[jtrk][j].ly);
+	  float D=sqrt(dx_hit*dx_hit+dy_hit*dy_hit);
+	  if (D<minD) {
+	    minD=D;
+	    trajmeas_[itrk][i].dx_hit=dx_hit;
+	    trajmeas_[itrk][i].dy_hit=dy_hit;
+	  }
+	}
+      }
+      //
+
       trajTree_->SetBranchAddress("event", &evt_);
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
+      #ifdef COMPLETE
       trajTree_->SetBranchAddress("module", &trajmeas_[itrk][i].mod);
+      #endif
       trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
       trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
       trajTree_->SetBranchAddress("track", &trajmeas_[itrk][i].trk);
@@ -1383,7 +1448,8 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
   } else {
     if (JKDEBUG) std::cout<<"RecHits is _valid_";
   }  
-  if (JKDEBUG) std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","<<meas.badhit<<")";
+  if (JKDEBUG) std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","
+			<<meas.badhit<<")";
 
   // Exceptions:
   // One full module on layer 1 is out. Need to fix classification here, because
@@ -1409,11 +1475,11 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
 }
 
 
-void TimingStudy::findClosestCluster(const edm::Event& iEvent, const edm::EventSetup& iSetup, 
-				     float glx, float gly, float glz, 
-				     float& dx_cl, float& dy_cl, float& dz_cl) {
+void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::EventSetup& iSetup, 
+				      uint32_t rawId, 
+				      float lx, float ly, float* dx_cl, float* dy_cl) {
   
-  dx_cl=dy_cl=dz_cl=NOVAL_F;
+  for (size_t i=0; i<2; i++) dx_cl[i]=dy_cl[i]=NOVAL_F;
 
   edm::ESHandle<PixelClusterParameterEstimator> cpEstimator;
   iSetup.get<TkPixelCPERecord>().get("PixelCPEGeneric", cpEstimator);
@@ -1432,14 +1498,17 @@ void TimingStudy::findClosestCluster(const edm::Event& iEvent, const edm::EventS
   const edmNew::DetSetVector<SiPixelCluster>& clusterCollection=*clusterCollectionHandle;
   edmNew::DetSetVector<SiPixelCluster>::const_iterator itClusterSet= clusterCollection.begin();
 
-  float minD=10000.;
+  float minD[2];
+  minD[0]=minD[1]=10000.;
 
   for ( ; itClusterSet!=clusterCollection.end(); itClusterSet++) {
-      
-    DetId detId(itClusterSet->id());
-    unsigned int subDetId=detId.subdetId();
 
-    // Take only pixel clusters
+    DetId detId(itClusterSet->id());
+
+    std::cout<<detId.rawId()<<", "<<rawId<<std::endl;
+    if (detId.rawId()!=rawId) continue;
+
+    unsigned int subDetId=detId.subdetId();
     if (subDetId!=PixelSubdetector::PixelBarrel &&
 	subDetId!=PixelSubdetector::PixelEndcap) {
       std::cout << "ERROR: not a pixel cluster!!!" << std::endl; // should not happen
@@ -1450,24 +1519,41 @@ void TimingStudy::findClosestCluster(const edm::Event& iEvent, const edm::EventS
 
     edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();  
     for(; itCluster!=itClusterSet->end(); ++itCluster) {
-      PixelClusterParameterEstimator::LocalValues params=cpe.localParameters(*itCluster, *pixdet);
-      const Surface* surface;
-      surface = &(tracker->idToDet(detId)->surface());
-      GlobalPoint gp = surface->toGlobal(params.first);
-      float D=sqrt((gp.x()-glx)*(gp.x()-glx)+(gp.y()-gly)*(gp.y()-gly)+(gp.z()-glz)*(gp.z()-glz));
-      if (D<minD) {
-	minD=D;
-	dx_cl=gp.x();
-	dy_cl=gp.y();
-	dz_cl=gp.z();
+      //const Surface* surface;
+      //surface = &(tracker->idToDet(detId)->surface());
+      //GlobalPoint gp;
+      LocalPoint lp(itCluster->x(), itCluster->y(), 0.);
+      if (usePixelCPE_) {
+	PixelClusterParameterEstimator::LocalValues params=cpe.localParameters(*itCluster,*pixdet);
+	//gp = surface->toGlobal(params.first);
+	lp = params.first;
+      } 
+      //else {
+      //  LocalPoint lp(itCluster->x(), itCluster->y(), 0.);
+      //  gp = surface->toGlobal(lp);
+      //}
+      //floatD=sqrt((gp.x()-glx)*(gp.x()-glx)+(gp.y()-gly)*(gp.y()-gly)+(gp.z()-glz)*(gp.z()-glz));
+      float D = sqrt((lp.x()-lx)*(lp.x()-lx)+(lp.y()-ly)*(lp.y()-ly));
+      if (D<minD[0]) {
+	minD[1]=minD[0];
+	dx_cl[1]=dx_cl[0];
+	dy_cl[1]=dy_cl[0];
+	minD[0]=D;
+	dx_cl[0]=lp.x();
+	dy_cl[0]=lp.y();
+      } else if (D<minD[1]) {
+	minD[1]=D;
+	dx_cl[1]=lp.x();
+	dy_cl[1]=lp.y();
       }
     } // loop on cluster sets
   }
 
-  if (minD<9999.) {
-    dx_cl=fabs(dx_cl-glx);
-    dy_cl=fabs(dy_cl-gly);
-    dz_cl=fabs(dz_cl-glz);
+  for (size_t i=0; i<2; i++) {
+    if (minD[i]<9999.) {
+      dx_cl[i]=fabs(dx_cl[i]-lx);
+      dy_cl[i]=fabs(dy_cl[i]-ly);
+    }
   }
 
 }
@@ -1552,7 +1638,8 @@ TimingStudy::getModuleData(uint32_t rawId, std::string scheme) {
 	  online.sec=i;
 	  sector << i << "_PRT%d";
 	  sscanf(it->second.data(), sector.str().data(), &online.prt);
-	  if (JKDEBUG) std::cout<<" (" << it->second << ": " << online.sec << ", " << online.prt << ")";
+	  if (JKDEBUG) std::cout<<" (" << it->second << ": " << online.sec << ", " << online.prt 
+				<< ")";
 	  break;
 	}
       }
