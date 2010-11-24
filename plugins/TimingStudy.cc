@@ -1505,7 +1505,6 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
 
     DetId detId(itClusterSet->id());
 
-    std::cout<<detId.rawId()<<", "<<rawId<<std::endl;
     if (detId.rawId()!=rawId) continue;
 
     unsigned int subDetId=detId.subdetId();
