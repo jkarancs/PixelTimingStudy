@@ -867,7 +867,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  const TrajectoryStateOnSurface tsosPXB2 = itTraj->updatedState();
 	  expTrajMeasurements = 
 	    theLayerMeasurements->measurements(*pxb1, tsosPXB2, *thePropagator, *estimator);
-	  
+	  delete theLayerMeasurements;
+
 	  if ( !expTrajMeasurements.empty()) {
 	    if (JKDEBUG) {
 	      std::cout <<"size of TM from propagation = "<<expTrajMeasurements.size()<< std::endl;
