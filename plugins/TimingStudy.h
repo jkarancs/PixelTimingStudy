@@ -152,6 +152,7 @@ class TimingStudy : public edm::EDAnalyzer
     int validbpix[3]; // valid recHits in Layer 1,2,3
     int algo;
     int strip; // total valid hits
+    int quality;
     float d0;
     float dz;
     float pt;
@@ -169,7 +170,6 @@ class TimingStudy : public edm::EDAnalyzer
     int fpix[2]; // recHits in Diks1,2 
     int bpix[3]; // recHits in Layer 1,2,3
     int highPurity;
-    int quality;
 
     std::string list;
    
@@ -179,6 +179,7 @@ class TimingStudy : public edm::EDAnalyzer
       validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
       algo=NOVAL_I;
       strip=NOVAL_I;
+      quality=NOVAL_I;
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
@@ -196,13 +197,11 @@ class TimingStudy : public edm::EDAnalyzer
       fpix[0]=fpix[1]=NOVAL_I;
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
       highPurity=NOVAL_I;
-      quality=NOVAL_I;
 #ifdef COMPLETE
-      list="validfpix[2]/I:validbpix[3]:algo:strip:d0/F:dz:pt:p:ndof:chi2:eta:phi:theta:"
-	"fromVtx/I:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity:"
-	"quality";
+      list="validfpix[2]/I:validbpix[3]:algo:strip:quality:d0/F:dz:pt:p:ndof:chi2:eta:phi:theta:"
+	"fromVtx/I:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity";
 #else
-      list="validfpix[2]/I:validbpix[3]:algo:strip:d0/F:dz:pt:p:ndof:chi2:eta:phi";
+      list="validfpix[2]/I:validbpix[3]:algo:strip:quality:d0/F:dz:pt:p:ndof:chi2:eta:phi";
 #endif
     }
 
