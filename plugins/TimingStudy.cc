@@ -105,6 +105,7 @@ void TimingStudy::endJob()
 {
   outfile_->Write();
   outfile_->Close();
+  delete outfile_;
 }
 
 
@@ -1298,6 +1299,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	std::cout<<"DONE: Processing a track\n";
 	w.Print();
       }
+
+      delete thePropagator;
     } // end of tracks loop
 
   }
