@@ -77,6 +77,7 @@ class TimingStudy : public edm::EDAnalyzer
   // Event info
   class EventData {
    public:
+    int orb;
     int ls;
     int nvtx;
     int run;
@@ -98,7 +99,6 @@ class TimingStudy : public edm::EDAnalyzer
     int wbc;
     int delay;
     int bx;
-    int orb;
     int ntracks;
     int ntrackFPix[2]; // tracks crossing the pixels
     int ntrackBPix[3]; // tracks crossing the pixels
@@ -110,6 +110,7 @@ class TimingStudy : public edm::EDAnalyzer
 
     EventData() { init(); };
     void init() {
+      orb=NOVAL_I;
       ls=NOVAL_I;
       nvtx=NOVAL_I;
       run=NOVAL_I;
@@ -126,7 +127,6 @@ class TimingStudy : public edm::EDAnalyzer
       wbc=NOVAL_I;
       delay=NOVAL_I;
       bx=NOVAL_I;
-      orb=NOVAL_I;
       ntracks=NOVAL_I;
       ntrackFPix[0]=ntrackFPix[1]=NOVAL_I;
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
@@ -134,11 +134,11 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
       trackSep=NOVAL_F;
 #ifdef COMPLETE
-      list="ls/I:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
-	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:orb:ntracks:"
+      list="orb/I:ls:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
+	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:ntracks:"
 	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F";
 #else
-      list="ls/I:nvtx:run:vtxndof/F";
+      list="orb/I:ls:nvtx:run:vtxndof/F";
 #endif
     }
 
