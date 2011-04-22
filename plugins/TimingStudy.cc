@@ -1,4 +1,3 @@
-
 //
 //
 //
@@ -17,6 +16,7 @@
 #include "RecoMuon/GlobalTrackingTools/interface/GlobalMuonTrackMatcher.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
 #include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/SiPixelRawData/interface/SiPixelRawDataError.h"
 #include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
 #include "DataFormats/SiPixelDetId/interface/PXFDetId.h"
 #include "DataFormats/SiStripDetId/interface/TIBDetId.h"
@@ -34,7 +34,8 @@
 #include "TrackingTools/PatternTools/interface/TrajTrackAssociation.h"
 #include "RecoLocalTracker/ClusterParameterEstimator/interface/PixelClusterParameterEstimator.h"
 #include "TimingStudy.h"
-#include "Geometry/TrackerTopology/interface/RectangularPixelTopology.h"
+//#include "Geometry/TrackerTopology/interface/RectangularPixelTopology.h"
+#include "Geometry/TrackerGeometryBuilder/interface/RectangularPixelTopology.h"
 #include <Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h>
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -95,6 +96,7 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 
   usePixelCPE_=false;
   minNStripHits_=11;
+
 }
 
 
@@ -299,6 +301,12 @@ void TimingStudy::beginJob()
   }
   runsndacs_file.close();
 
+  if(JKDEBUG){
+    ModuleData modtemp;
+    for(std::map<int, std::string>::iterator it = modtemp.federrortypes.begin();it!=modtemp.federrortypes.end();++it)
+      std::cout << "FED Error type (" << (*it).first << ") : " << (*it).second << std::endl;
+  }
+
 
   edm::LogInfo("TimingStudy") << "Begin Job Finished" << std::endl;
 
@@ -394,6 +402,62 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     std::cout<<"DONE: Reading track info\n";
     w.Print();
   }
+
+
+  // Read FED error info
+
+  federrors.clear();
+  if (JKDEBUG) w.Start();
+  edm::Handle<edm::DetSetVector<SiPixelRawDataError> >  siPixelRawDataErrorCollectionHandle;
+  iEvent.getByLabel("siPixelDigis", siPixelRawDataErrorCollectionHandle);
+  
+  if (siPixelRawDataErrorCollectionHandle.isValid()) {
+    const edm::DetSetVector<SiPixelRawDataError>& siPixelRawDataErrorCollection = *siPixelRawDataErrorCollectionHandle;
+    edm::DetSetVector<SiPixelRawDataError>::const_iterator itPixelErrorSet = siPixelRawDataErrorCollection.begin();
+    std::map<int, int> evt_federrs;
+    for (; itPixelErrorSet!=siPixelRawDataErrorCollection.end(); itPixelErrorSet++) {
+      
+      DetId detId(itPixelErrorSet->detId());
+      unsigned int subDetId=detId.subdetId();
+      
+      // Take only pixel digis
+      if (subDetId!=PixelSubdetector::PixelBarrel &&
+ 	  subDetId!=PixelSubdetector::PixelEndcap) {
+	  if (JKDEBUG) std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
+ 	continue;
+      }
+      
+      edm::DetSet<SiPixelRawDataError>::const_iterator itPixelError=itPixelErrorSet->begin();
+      
+      for(; itPixelError!=itPixelErrorSet->end(); ++itPixelError) {
+ 	  if (JKDEBUG) std::cout << "FED ID: " << itPixelError->getFedId() << std::endl;
+ 	  if (JKDEBUG) std::cout << "Word32: " << itPixelError->getWord32() << std::endl;
+ 	  if (JKDEBUG) std::cout << "Word64: " << itPixelError->getWord64() << std::endl;
+ 	  if (JKDEBUG) std::cout << "Type: " << itPixelError->getType() << std::endl;
+ 	  if (JKDEBUG) std::cout << "Error message: " << itPixelError->getMessage() << std::endl;
+	federrors.insert(std::pair<uint32_t,int>(detId.rawId(), itPixelError->getType()));
+	evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));
+      }
+    }
+#ifdef COMPLETE
+    unsigned int countarr = 0;
+    for(std::map<int,int>::iterator it = evt_federrs.begin(); it != evt_federrs.end(); ++it){
+      if(evt_federrs.size() < 100 || countarr < 100){
+	evt_.federrs_fedid[countarr] = it->first;
+	evt_.federrs_type[countarr] = it->second;
+	countarr++;
+      }
+    }
+    evt_.federrs_size = countarr;
+#endif
+  }
+
+  if (JKDEBUG) {
+    w.Stop();
+    std::cout<<"DONE: Reading FEDError info\n";
+    w.Print();
+  }
+
 
   // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
 
@@ -515,7 +579,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	continue;
       }
       
-      ModuleData module=getModuleData(detId.rawId());
+      ModuleData module=getModuleData(detId.rawId(), federrors);
       
       if (JKDEBUG) {
 	std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of digis on ";
@@ -527,7 +591,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  std::cout << " panel " << module.panel << " module " << module.module << " ";
 	}
       }
-      ModuleData module_on=getModuleData(detId.rawId(), "online");
+      ModuleData module_on=getModuleData(detId.rawId(), federrors, "online");
       if (JKDEBUG) std::cout << ": " << itDigiSet->size() << std::endl;
       
       edm::DetSet<PixelDigi>::const_iterator itDigi=itDigiSet->begin();
@@ -584,7 +648,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	continue;
       }
       
-      ModuleData module=getModuleData(detId.rawId());
+      ModuleData module=getModuleData(detId.rawId(), federrors);
       
       if (JKDEBUG) {
 	std::cout << "Run " << evt_.run << " Event " << evt_.evt << " number of clusters on ";
@@ -596,7 +660,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  std::cout << " panel " << module.panel << " module " << module.module << " ";
 	}
       }
-      ModuleData module_on=getModuleData(detId.rawId(), "online");
+      ModuleData module_on=getModuleData(detId.rawId(), federrors, "online");
       if (JKDEBUG) std::cout << ": " << itClusterSet->size() << std::endl;
 
       edmNew::DetSet<SiPixelCluster>::const_iterator itCluster=itClusterSet->begin();
@@ -735,7 +799,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	TrajMeasurement meas;
 
 	TransientTrackingRecHit::ConstRecHitPointer chkRecHit = itTraj->recHit();
-	ModuleData chkmod=getModuleData(chkRecHit->geographicalId().rawId(), "offline");
+	ModuleData chkmod=getModuleData(chkRecHit->geographicalId().rawId(), federrors, "offline");
 
 	TrajectoryStateOnSurface chkPredTrajState=trajStateComb(itTraj->forwardPredictedState(),
 								itTraj->backwardPredictedState());
@@ -753,7 +817,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  for (size_t iexp=0; iexp<expTrajMeasurements.size(); iexp++) {
 	    ModuleData mod=
 	      getModuleData(expTrajMeasurements[iexp].recHit()->geographicalId().rawId(),
-			    "offline");
+			    federrors, "offline");
 	    if (mod.det!=0 || mod.layer!=extrapolateTo_) continue;
 // 	    if (sqrt(meas.dladder*meas.dladder+meas.dmodule*meas.dmodule)<match) {
 // 	      match=sqrt(meas.dladder*meas.dladder+meas.dmodule*meas.dmodule);
@@ -787,7 +851,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 	    ModuleData mod=
 	      getModuleData(expTrajMeasurements[imatch].recHit()->geographicalId().rawId(),
-			    "offline");
+			    federrors, "offline");
 	    meas.dladder=abs(mod.ladder-chkmod.ladder);
 	    if (meas.dladder>10) meas.dladder=20-meas.dladder;
 	    meas.dmodule=abs(mod.module-chkmod.module);
@@ -840,7 +904,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	      itTraj++;
 	      TransientTrackingRecHit::ConstRecHitPointer nextRecHit = itTraj->recHit();
 	      ModuleData nextmod=getModuleData(nextRecHit->geographicalId().rawId(), 
-					       "offline");
+					       federrors, "offline");
 	      if (nextmod.det==0 && nextmod.layer==extrapolateTo_ ) {
 		lastValidL2=true; //&& !nextRecHit->isValid()) lastValidL2=true;
 	      }
@@ -880,7 +944,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    pxb1Hit = pxb1TM.recHit();
 	    
 	    if (pxb1Hit->geographicalId().rawId()!=0) {
-	      ModuleData pxbMod=getModuleData(pxb1Hit->geographicalId().rawId(), "offline");
+	      ModuleData pxbMod=getModuleData(pxb1Hit->geographicalId().rawId(), federrors, "offline");
 	      if (JKDEBUG) {
 		std::cout << "Extrapolated hit found det=" << pxbMod.det<< " layer=";
 		std::cout << pxbMod.layer<< " type=" <<pxb1Hit->getType()<< std::endl;
@@ -906,7 +970,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	TransientTrackingRecHit::ConstRecHitPointer recHit = itTraj->recHit();
 	if (recHit->geographicalId().det()!=DetId::Tracker) continue;
       
-	meas.mod=getModuleData(recHit->geographicalId().rawId(), "offline");
+	meas.mod=getModuleData(recHit->geographicalId().rawId(), federrors, "offline");
       
 	uint subDetId = recHit->geographicalId().subdetId();
       
@@ -932,7 +996,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  if (recHit->isValid()) track_.strip++;
 	}
 	
-	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
+	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), federrors, "online");
       
 	if (!itTraj->updatedState().isValid()) 
 	  if (JKDEBUG) std::cout<<", updatedState is invalid";
@@ -1068,7 +1132,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  continue;
 	}
 	
-	meas.mod=getModuleData(recHit->geographicalId().rawId(), "offline");
+	meas.mod=getModuleData(recHit->geographicalId().rawId(), federrors, "offline");
 	
 	uint subDetId = recHit->geographicalId().subdetId();
 	
@@ -1100,7 +1164,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  continue;
 	}
 	
-	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), "online");
+	meas.mod_on=getModuleData(recHit->geographicalId().rawId(), federrors, "online");
 	
 	if (!itTraj->updatedState().isValid()) 
 	  if (JKDEBUG) std::cout<<", updatedState is invalid";
@@ -1565,14 +1629,26 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
 
 
 TimingStudy::ModuleData 
-TimingStudy::getModuleData(uint32_t rawId, std::string scheme) {
+  TimingStudy::getModuleData(uint32_t rawId, std::map<uint32_t, int> federrors, std::string scheme) {
 
   ModuleData offline;
   ModuleData online;
 
   offline.rawid = online.rawid = rawId;
   int subDetId = DetId(offline.rawid).subdetId();
-  
+  std::map<uint32_t, int>::iterator federrors_it;
+  uint32_t dummydetid = 0xffffffff;
+  if(federrors.size() > 0){ 
+    federrors_it = federrors.find(offline.rawid);
+    if(federrors_it != federrors.end() && federrors_it->first == dummydetid){
+      // do nothing, skipping errors for which a detId cannot be determined but still stored in the dummy detId = 0xffffffff 
+    }else if(federrors_it != federrors.end() && federrors_it->first != dummydetid) {
+      offline.federr = online.federr = federrors_it->second; 
+    }
+  }else{
+    offline.federr = online.federr = 0;// no errors
+  } 
+
   if (subDetId == PixelSubdetector::PixelBarrel) {
     PXBDetId pxbid=PXBDetId(offline.rawid);
     offline.det=online.det=0;
@@ -1580,7 +1656,6 @@ TimingStudy::getModuleData(uint32_t rawId, std::string scheme) {
     offline.ladder=pxbid.ladder();
     offline.module=pxbid.module();
     offline.half=0;
-
     if (offline.layer==1) {
       if (offline.ladder==5||offline.ladder==6||offline.ladder==15||offline.ladder==16) {
 	offline.half=1;

@@ -16,7 +16,8 @@
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
 #include "DQM/TrackerMonitorTrack/interface/MonitorTrackResiduals.h"
-#include "TrackingTools/PatternTools/interface/TrajectoryFitter.h"
+//#include "TrackingTools/PatternTools/interface/TrajectoryFitter.h"
+#include "TrackingTools/TrackFitters/interface/TrajectoryFitter.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 #include "Alignment/OfflineValidation/interface/TrackerValidationVariables.h"
@@ -63,6 +64,7 @@ class TimingStudy : public edm::EDAnalyzer
   std::map<std::string,std::string> portcardmap;
   std::map<size_t,int> wbc;
   std::map<size_t,int> globaldelay;
+  std::map<uint32_t, int> federrors;
 
   int extrapolateFrom_;
   int extrapolateTo_;
@@ -99,6 +101,9 @@ class TimingStudy : public edm::EDAnalyzer
     int wbc;
     int delay;
     int bx;
+    int federrs_size;
+    int federrs_type[100];
+    int federrs_fedid[100];
     int ntracks;
     int ntrackFPix[2]; // tracks crossing the pixels
     int ntrackBPix[3]; // tracks crossing the pixels
@@ -127,15 +132,17 @@ class TimingStudy : public edm::EDAnalyzer
       wbc=NOVAL_I;
       delay=NOVAL_I;
       bx=NOVAL_I;
+      trackSep=NOVAL_F;
+      federrs_size=NOVAL_I;
+      for (size_t i=0; i<100; i++)federrs_fedid[i]=federrs_type[i]=NOVAL_I;
       ntracks=NOVAL_I;
       ntrackFPix[0]=ntrackFPix[1]=NOVAL_I;
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
-      trackSep=NOVAL_F;
 #ifdef COMPLETE
       list="orb/I:ls:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
-	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:ntracks:"
+	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:federrs_size:federrs_type[100]:federrs_fedid[100]:ntracks:"
 	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F";
 #else
       list="orb/I:ls:nvtx:run:vtxndof/F";
@@ -231,11 +238,14 @@ class TimingStudy : public edm::EDAnalyzer
 
     int outer;
 
+    int federr;
+    std::map<int, std::string> federrortypes;
+
     unsigned int rawid;
 
     std::string list;
 
-    ModuleData() { init(); }
+    ModuleData() { init();}
     void init() {
       det=NOVAL_I;
       layer=NOVAL_I;
@@ -250,9 +260,25 @@ class TimingStudy : public edm::EDAnalyzer
       shl=NOVAL_I;
       sec=NOVAL_I;
       outer=NOVAL_I;
+      federr = NOVAL_I;
       rawid=abs(NOVAL_I);
-      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:"
+      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:federr:"
 	"rawid/i";
+      federrortypes.insert(std::pair<int, std::string>(25, "invalidROC"));
+      federrortypes.insert(std::pair<int, std::string>(26, "gap word"));
+      federrortypes.insert(std::pair<int, std::string>(27, "dummy word"));
+      federrortypes.insert(std::pair<int, std::string>(28, "FIFO full error"));
+      federrortypes.insert(std::pair<int, std::string>(29, "timeout error"));
+      federrortypes.insert(std::pair<int, std::string>(30, "TBM error trailer"));
+      federrortypes.insert(std::pair<int, std::string>(31, "event number error (TBM and FED event number mismatch)"));
+      federrortypes.insert(std::pair<int, std::string>(32, "incorrectly formatted Slink Header"));
+      federrortypes.insert(std::pair<int, std::string>(33, "incorrectly formatted Slink Trailer"));
+      federrortypes.insert(std::pair<int, std::string>(34, "the event size encoded in the Slink Trailer is different than the size found at raw to digi conversion "));
+      federrortypes.insert(std::pair<int, std::string>(35, "invalid FED channel number"));
+      federrortypes.insert(std::pair<int, std::string>(36, "invalid ROC value "));
+      federrortypes.insert(std::pair<int, std::string>(37, "invalid dcol or pixel value "));
+      federrortypes.insert(std::pair<int, std::string>(38, "the pixels on a ROC weren't read out from lowest to highest row and dcol value"));
+      federrortypes.insert(std::pair<int, std::string>(39, "CRC error"));
     }
 
     std::string shell() {
@@ -480,7 +506,6 @@ class TimingStudy : public edm::EDAnalyzer
   };
 
   std::vector<std::vector<TrajMeasurement> > trajmeas_;
-
   
   void init_all() {
     evt_.init();
@@ -490,7 +515,7 @@ class TimingStudy : public edm::EDAnalyzer
     digis_.clear();
   }
 
-  ModuleData getModuleData(uint32_t rawId, std::string scheme="offline");
+  ModuleData getModuleData(uint32_t rawId, std::map<uint32_t, int> federrors, std::string scheme="offline");
 
   void correctHitTypeAssignment(TrajMeasurement& meas, 
 				TransientTrackingRecHit::ConstRecHitPointer& recHit);
