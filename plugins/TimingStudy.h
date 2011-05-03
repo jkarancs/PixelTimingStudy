@@ -23,6 +23,7 @@
 #include "Alignment/OfflineValidation/interface/TrackerValidationVariables.h"
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
+#include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "TObject.h"
 #include "TH1D.h"
 #include "TFile.h"
@@ -30,6 +31,7 @@
 #define NOVAL_I -9999
 #define NOVAL_F -9999.0
 #define DEBUG 0
+#define COMPLETE 0
 
 using namespace reco;
 class TTree;
@@ -47,6 +49,8 @@ class TimingStudy : public edm::EDAnalyzer
   virtual void beginJob();
   virtual void endJob();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
+  virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
+  virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
 
 
  private:
@@ -55,6 +59,7 @@ class TimingStudy : public edm::EDAnalyzer
   edm::ESHandle<MagneticField> magneticField_;
 
   TTree* eventTree_;
+  TTree* lumiTree_;
   TTree* trackTree_;
   TTree* clustTree_;
   TTree* trajTree_;
@@ -64,7 +69,6 @@ class TimingStudy : public edm::EDAnalyzer
   std::map<std::string,std::string> portcardmap;
   std::map<size_t,int> wbc;
   std::map<size_t,int> globaldelay;
-  std::map<uint32_t, int> federrors;
 
   int extrapolateFrom_;
   int extrapolateTo_;
@@ -73,6 +77,9 @@ class TimingStudy : public edm::EDAnalyzer
   bool keepOriginalMissingHit_;
   bool usePixelCPE_;
   int minNStripHits_;
+
+  std::vector<std::string> triggerNames_; // Max 20 trigger names
+  edm::InputTag triggerTag_;
 
  public:
 
@@ -83,6 +90,9 @@ class TimingStudy : public edm::EDAnalyzer
     int ls;
     int nvtx;
     int run;
+    int trig;
+    float intlumi;
+    float instlumi;
     float vtxndof;
     float vtxchi2;
     float vtxD0;
@@ -101,15 +111,15 @@ class TimingStudy : public edm::EDAnalyzer
     int wbc;
     int delay;
     int bx;
-    int federrs_size;
-    int federrs_type[100];
-    int federrs_fedid[100];
     int ntracks;
     int ntrackFPix[2]; // tracks crossing the pixels
     int ntrackBPix[3]; // tracks crossing the pixels
     int ntrackFPixvalid[2]; // tracks crossing the pixels with valid hits
     int ntrackBPixvalid[3]; // tracks crossing the pixels with valid hits
     float trackSep;
+    int federrs_size;
+    // must be the last variable of the object saved to TTree:
+    int federrs[41][2]; // [error index] [0:fedId, 1:errorType]
 
     std::string list;
 
@@ -119,6 +129,9 @@ class TimingStudy : public edm::EDAnalyzer
       ls=NOVAL_I;
       nvtx=NOVAL_I;
       run=NOVAL_I;
+      trig=NOVAL_I;
+      intlumi=NOVAL_F;
+      instlumi=NOVAL_F;
       vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
       vtxntrk=NOVAL_I;
       evt=NOVAL_I;
@@ -132,24 +145,66 @@ class TimingStudy : public edm::EDAnalyzer
       wbc=NOVAL_I;
       delay=NOVAL_I;
       bx=NOVAL_I;
-      trackSep=NOVAL_F;
-      federrs_size=NOVAL_I;
-      for (size_t i=0; i<100; i++)federrs_fedid[i]=federrs_type[i]=NOVAL_I;
       ntracks=NOVAL_I;
       ntrackFPix[0]=ntrackFPix[1]=NOVAL_I;
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
       ntrackFPixvalid[0]=ntrackFPixvalid[1]=NOVAL_I;
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
+      trackSep=NOVAL_F;
+      federrs_size=0;
+      for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
+
 #ifdef COMPLETE
-      list="orb/I:ls:nvtx:run:vtxndof/F:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:evt:good:"
-	"tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:federrs_size:federrs_type[100]:federrs_fedid[100]:ntracks:"
-	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F";
+      list="orb/I:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
+	"vtxntrk/I:evt:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:ntracks:"
+	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
+	"federrs_size/I:federrs[federrs_size][2]";
 #else
-      list="orb/I:ls:nvtx:run:vtxndof/F";
+      list="orb/I:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof";
 #endif
     }
 
+    int federrs_fedid(size_t i) {
+      assert(federrs_size!=NOVAL_I);
+      return (i<size_t(federrs_size)) ? federrs[i][0] : NOVAL_I;
+    }
+
+    int federrs_type(size_t i) {
+      assert(federrs_size!=NOVAL_I);
+      return (i<size_t(federrs_size)) ? federrs[i][1] : NOVAL_I;
+    }
+
   } evt_;
+
+
+  // Lumi info
+  class LumiData {
+   public:
+    int run;
+    int ls;
+    float intlumi;
+    float instlumi;
+    int ntriggers;
+    int prescale[20];
+
+    std::string list;
+
+    LumiData() { init(); };
+    void init() {
+      run=NOVAL_I;
+      ls=NOVAL_I;
+      intlumi=NOVAL_F;
+      instlumi=NOVAL_F;
+      ntriggers=0;
+      for (size_t i=0; i<20; i++) prescale[i]=NOVAL_I;
+#ifdef COMPLETE
+      list="run/I:ls:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
+#else
+      list="run/I:ls:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
+#endif
+    }
+
+  } lumi_;
 
 
   // Track info
@@ -238,14 +293,15 @@ class TimingStudy : public edm::EDAnalyzer
 
     int outer;
 
-    int federr;
-    std::map<int, std::string> federrortypes;
-
     unsigned int rawid;
+
+    int federr;
+
+    std::map<int, std::string> federrortypes;
 
     std::string list;
 
-    ModuleData() { init();}
+    ModuleData() { init(); }
     void init() {
       det=NOVAL_I;
       layer=NOVAL_I;
@@ -260,10 +316,9 @@ class TimingStudy : public edm::EDAnalyzer
       shl=NOVAL_I;
       sec=NOVAL_I;
       outer=NOVAL_I;
-      federr = NOVAL_I;
       rawid=abs(NOVAL_I);
-      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:federr:"
-	"rawid/i";
+      federr = NOVAL_I;
+
       federrortypes.insert(std::pair<int, std::string>(25, "invalidROC"));
       federrortypes.insert(std::pair<int, std::string>(26, "gap word"));
       federrortypes.insert(std::pair<int, std::string>(27, "dummy word"));
@@ -279,6 +334,9 @@ class TimingStudy : public edm::EDAnalyzer
       federrortypes.insert(std::pair<int, std::string>(37, "invalid dcol or pixel value "));
       federrortypes.insert(std::pair<int, std::string>(38, "the pixels on a ROC weren't read out from lowest to highest row and dcol value"));
       federrortypes.insert(std::pair<int, std::string>(39, "CRC error"));
+
+      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:"
+	"rawid/i:federr/I";
     }
 
     std::string shell() {
@@ -297,6 +355,11 @@ class TimingStudy : public edm::EDAnalyzer
       return -1;
     }
 
+    std::string federr_name() {
+      std::map<int, std::string>::const_iterator it=federrortypes.find(federr);
+      return (it!=federrortypes.end()) ? it->second : "FED error not interpreted";
+    }
+
   };
 
 
@@ -313,7 +376,7 @@ class TimingStudy : public edm::EDAnalyzer
     int sizeY;
     float x;
     float y;
-    // must be the last part of the object
+    // must be the last variable of the object saved to TTree:
     float adc[1000];
 
     std::string list;
@@ -322,7 +385,7 @@ class TimingStudy : public edm::EDAnalyzer
     void init() {
       i=NOVAL_I;
       charge=NOVAL_F;
-      size=NOVAL_I;
+      size=0;
       edge=NOVAL_I;
       badpix=NOVAL_I;
       tworoc=NOVAL_I;
@@ -515,7 +578,7 @@ class TimingStudy : public edm::EDAnalyzer
     digis_.clear();
   }
 
-  ModuleData getModuleData(uint32_t rawId, std::map<uint32_t, int> federrors, std::string scheme="offline");
+  ModuleData getModuleData(uint32_t rawId, const std::map<uint32_t, int>& federrors, std::string scheme="offline");
 
   void correctHitTypeAssignment(TrajMeasurement& meas, 
 				TransientTrackingRecHit::ConstRecHitPointer& recHit);

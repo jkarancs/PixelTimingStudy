@@ -50,6 +50,9 @@
 #include "TrackingTools/DetLayers/interface/DetLayer.h"
 #include "RecoTracker/TkDetLayers/interface/GeometricSearchTracker.h"
 #include "TrackingTools/MeasurementDet/interface/LayerMeasurements.h"
+#include "DataFormats/Luminosity/interface/LumiSummary.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "FWCore/Common/interface/TriggerNames.h"
 
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
@@ -81,6 +84,7 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   iConfig_(iConfig)
 {
   eventTree_=NULL;
+  lumiTree_=NULL;
   trackTree_=NULL;
   clustTree_=NULL;
   trajTree_=NULL;
@@ -148,6 +152,18 @@ void TimingStudy::beginJob()
     minNStripHits_=iConfig_.getParameter<int>("minNStripHits");
     std::cout<<"NON-DEFAULT PARAMETER: minNStripHits= "<<minNStripHits_<<std::endl;
   }
+  if (iConfig_.exists("triggerTag")) {
+    triggerTag_=iConfig_.getParameter<edm::InputTag>("triggerTag");
+    std::cout<<"NON-DEFAULT PARAMETER: triggerTag= "<<triggerTag_<<std::endl;
+  } else {
+    triggerTag_=edm::InputTag("TriggerResults","", "HLT");
+  }
+  if (iConfig_.exists("triggerNames")) {
+    triggerNames_=iConfig_.getParameter<std::vector<std::string> >("triggerNames");
+    std::cout<<"NON-DEFAULT PARAMETER: triggerNames= ";
+    for (size_t i=0; i<triggerNames_.size(); i++) std::cout<<triggerNames_[i]<<" ";
+    std::cout<<std::endl;
+  }
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
 //   es.get<IdealMagneticFieldRecord>().get(magneticField_);
@@ -159,6 +175,10 @@ void TimingStudy::beginJob()
   // The event
   eventTree_ = new TTree("eventTree", "The event");
   eventTree_->Branch("event", &evt_, evt_.list.data());
+
+  // The lumi
+  lumiTree_ = new TTree("lumiTree", "The lumi");
+  lumiTree_->Branch("lumi", &lumi_, lumi_.list.data());
 
   #ifdef COMPLETE
   TrackData track_;
@@ -301,9 +321,10 @@ void TimingStudy::beginJob()
   }
   runsndacs_file.close();
 
-  if(JKDEBUG){
+  if (JKDEBUG) {
     ModuleData modtemp;
-    for(std::map<int, std::string>::iterator it = modtemp.federrortypes.begin();it!=modtemp.federrortypes.end();++it)
+    for (std::map<int, std::string>::iterator it = modtemp.federrortypes.begin();
+	 it!=modtemp.federrortypes.end(); ++it)
       std::cout << "FED Error type (" << (*it).first << ") : " << (*it).second << std::endl;
   }
 
@@ -312,6 +333,63 @@ void TimingStudy::beginJob()
 
 }
 
+
+
+void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi, 
+				       edm::EventSetup const& iSetup){
+
+  lumi_.init();
+  edm::Handle<LumiSummary> lumi;
+  iLumi.getByLabel("lumiProducer", lumi);
+  if (!lumi.isValid()) return;
+  lumi_.run=iLumi.run();
+  lumi_.ls=iLumi.luminosityBlock();
+  lumi_.intlumi=lumi->intgRecLumi();
+  lumi_.instlumi=lumi->avgInsDelLumi();
+  std::cout<< "New lumi block: Run "<<lumi_.run<<" LS = "<<lumi_.ls;
+  std::cout << " inst lumi "<<lumi_.instlumi<<" int lumi "<<lumi_.intlumi<<std::endl;
+
+  std::cout<<"Trigger counts\n";
+  for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
+    if (DEBUG) {
+      std::cout<<"\tL1A: "<<lumi->l1info(iL1).ratecount
+	       <<"\tPS: "<<lumi->l1info(iL1).prescale
+	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
+    }
+    for (size_t i=0; i<triggerNames_.size() && i<20; i++) {
+      if (triggerNames_[i]!=lumi->l1info(iL1).triggername) continue;
+      std::cout<<"Found trigger: \tL1A: "<<lumi->l1info(iL1).ratecount
+	       <<"\tPS: "<<lumi->l1info(iL1).prescale
+	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
+      lumi_.prescale[i]=lumi->l1info(iL1).prescale;
+    }
+  }
+  for (size_t iHLT=0; iHLT<lumi->nHLTPath(); iHLT++) {
+    if (DEBUG) {
+      std::cout<<"\tHLTA: "<<lumi->hltinfo(iHLT).ratecount
+	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
+	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
+	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
+    }
+    for (size_t i=0; i<triggerNames_.size() && i<20; i++) {
+      if (triggerNames_[i]!=lumi->hltinfo(iHLT).pathname) continue;
+      std::cout<<"Found trigger: \tHLTA: "<<lumi->hltinfo(iHLT).ratecount
+	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
+	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
+	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
+      lumi_.prescale[i]=lumi->hltinfo(iHLT).prescale;
+    }
+  }
+
+  lumi_.ntriggers=triggerNames_.size() <= 20 ? triggerNames_.size() : 20;
+
+}
+
+
+void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi, 
+				     edm::EventSetup const& iSetup){
+  lumiTree_->Fill();
+}
 
 
 void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
@@ -336,6 +414,14 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.run=iEvent.id().run();
   evt_.evt=iEvent.id().event();
   evt_.ls=iEvent.luminosityBlock();
+
+  if (lumi_.run!=NOVAL_I) {
+    assert(evt_.run==lumi_.run);
+    assert(evt_.ls==lumi_.ls);
+    evt_.instlumi=lumi_.instlumi;
+    evt_.intlumi=lumi_.intlumi;
+  }
+  
   evt_.good=NOVAL_I;
 
   if (evt_.run==124022) {
@@ -359,6 +445,23 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.bx=iEvent.bunchCrossing();
   evt_.orb=iEvent.orbitNumber();
   
+  evt_.trig=NOVAL_I;
+  edm::Handle<edm::TriggerResults> triggerResults;
+  iEvent.getByLabel(triggerTag_, triggerResults);
+  if (triggerResults.isValid()) {
+    evt_.trig=0;
+    const edm::TriggerNames& triggerNames = iEvent.triggerNames(*triggerResults);
+    for (size_t itrig=0; itrig<triggerNames.size(); itrig++) {
+      std::string sname=triggerNames.triggerNames()[itrig];
+      for (size_t k=0; k<triggerNames_.size(); k++) {
+	//if (sname.find(triggerNames_[k])==std::string::npos) continue;
+	if (sname!=triggerNames_[k]) continue;
+	if (triggerResults->accept(itrig)==0) continue;
+	evt_.trig|=(1<<k);
+      }
+    }
+  }
+
   if (JKDEBUG) {
     std::cout<<"\n\nProcess Event: Run "<<evt_.run<<" Event "<<evt_.evt<< " LS "<<evt_.ls
 	     <<std::endl;
@@ -406,7 +509,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   // Read FED error info
 
-  federrors.clear();
+  std::map<uint32_t, int> federrors;
+  assert(evt_.federrs_size==0);
+
   if (JKDEBUG) w.Start();
   edm::Handle<edm::DetSetVector<SiPixelRawDataError> >  siPixelRawDataErrorCollectionHandle;
   iEvent.getByLabel("siPixelDigis", siPixelRawDataErrorCollectionHandle);
@@ -415,41 +520,40 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     const edm::DetSetVector<SiPixelRawDataError>& siPixelRawDataErrorCollection = *siPixelRawDataErrorCollectionHandle;
     edm::DetSetVector<SiPixelRawDataError>::const_iterator itPixelErrorSet = siPixelRawDataErrorCollection.begin();
     std::map<int, int> evt_federrs;
+
     for (; itPixelErrorSet!=siPixelRawDataErrorCollection.end(); itPixelErrorSet++) {
-      
-      DetId detId(itPixelErrorSet->detId());
-      unsigned int subDetId=detId.subdetId();
-      
-      // Take only pixel digis
-      if (subDetId!=PixelSubdetector::PixelBarrel &&
- 	  subDetId!=PixelSubdetector::PixelEndcap) {
-	  if (JKDEBUG) std::cout << "ERROR: not a pixel digi!!!" << std::endl; // should not happen
- 	continue;
-      }
-      
       edm::DetSet<SiPixelRawDataError>::const_iterator itPixelError=itPixelErrorSet->begin();
       
       for(; itPixelError!=itPixelErrorSet->end(); ++itPixelError) {
- 	  if (JKDEBUG) std::cout << "FED ID: " << itPixelError->getFedId() << std::endl;
- 	  if (JKDEBUG) std::cout << "Word32: " << itPixelError->getWord32() << std::endl;
- 	  if (JKDEBUG) std::cout << "Word64: " << itPixelError->getWord64() << std::endl;
- 	  if (JKDEBUG) std::cout << "Type: " << itPixelError->getType() << std::endl;
- 	  if (JKDEBUG) std::cout << "Error message: " << itPixelError->getMessage() << std::endl;
-	federrors.insert(std::pair<uint32_t,int>(detId.rawId(), itPixelError->getType()));
-	evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));
+	if (JKDEBUG) std::cout << "FED ID: " << itPixelError->getFedId() << std::endl;
+	if (JKDEBUG) std::cout << "Word32: " << itPixelError->getWord32() << std::endl;
+	if (JKDEBUG) std::cout << "Word64: " << itPixelError->getWord64() << std::endl;
+	if (JKDEBUG) std::cout << "Type: " << itPixelError->getType() << std::endl;
+	if (JKDEBUG) std::cout << "Error message: " << itPixelError->getMessage() << std::endl;
+
+	pair<std::map<int, int>::iterator,bool> check;
+	check=evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));
+	if (check.second==false) {
+	  std::cout << "ERROR: found new FED error with FED ID already listed in this event\n";
+	}
+	if (itPixelErrorSet->detId()!=0xffffffff) {
+	  DetId detId(itPixelErrorSet->detId());
+	  federrors.insert(std::pair<uint32_t,int>(detId.rawId(), itPixelError->getType()));
+	  evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));	  
+	}
       }
     }
-#ifdef COMPLETE
-    unsigned int countarr = 0;
+
+    if (evt_federrs.size()>40) {
+      std::cout<<"ERROR: found "<<evt_federrs.size()<<" FED errors! Keeping only the first 41\n";
+    }
+
     for(std::map<int,int>::iterator it = evt_federrs.begin(); it != evt_federrs.end(); ++it){
-      if(evt_federrs.size() < 100 || countarr < 100){
-	evt_.federrs_fedid[countarr] = it->first;
-	evt_.federrs_type[countarr] = it->second;
-	countarr++;
-      }
+      evt_.federrs[evt_.federrs_size][0]=it->first;
+      evt_.federrs[evt_.federrs_size][1]=it->second;
+      evt_.federrs_size++;
+      if (evt_.federrs_size>=41) break;
     }
-    evt_.federrs_size = countarr;
-#endif
   }
 
   if (JKDEBUG) {
@@ -543,7 +647,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       evt_.vtxchi2=it->chi2();
       bestVtx=it;
     }
-    if (fabs(it->z())<=15. && fabs(it->position().rho())<=2.) evt_.nvtx++;
+    if (fabs(it->z())<=15. && fabs(it->position().rho())<=2. && it->ndof()>4) evt_.nvtx++;
   }
   
   if (JKDEBUG) {
@@ -1085,7 +1189,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    meas.clu.edge=hit->isOnEdge() ? 1 : 0;
 	    meas.clu.badpix=hit->hasBadPixels() ? 1 : 0;
 	    meas.clu.tworoc=hit->spansTwoROCs() ? 1 : 0;
-	    
+	    meas.clu.sizeX=(*clust).sizeX();
+	    meas.clu.sizeY=(*clust).sizeY();
+	    meas.clu.x=(*clust).x();
+	    meas.clu.y=(*clust).y();
+	    for (int i=0; i<(*clust).size() && i<1000; i++) {
+	      meas.clu.adc[i]=float((*clust).pixelADC()[i])/1000.0;
+	    }
 	    meas.norm_charge = meas.clu.charge*
 	      sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
 	  }
@@ -1629,25 +1739,16 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
 
 
 TimingStudy::ModuleData 
-  TimingStudy::getModuleData(uint32_t rawId, std::map<uint32_t, int> federrors, std::string scheme) {
+  TimingStudy::getModuleData(uint32_t rawId, const std::map<uint32_t, int>& federrors, std::string scheme) {
 
   ModuleData offline;
   ModuleData online;
 
   offline.rawid = online.rawid = rawId;
   int subDetId = DetId(offline.rawid).subdetId();
-  std::map<uint32_t, int>::iterator federrors_it;
-  uint32_t dummydetid = 0xffffffff;
-  if(federrors.size() > 0){ 
-    federrors_it = federrors.find(offline.rawid);
-    if(federrors_it != federrors.end() && federrors_it->first == dummydetid){
-      // do nothing, skipping errors for which a detId cannot be determined but still stored in the dummy detId = 0xffffffff 
-    }else if(federrors_it != federrors.end() && federrors_it->first != dummydetid) {
-      offline.federr = online.federr = federrors_it->second; 
-    }
-  }else{
-    offline.federr = online.federr = 0;// no errors
-  } 
+
+  std::map<uint32_t, int>::const_iterator federrors_it=federrors.find(offline.rawid);
+  offline.federr=online.federr= (federrors_it!=federrors.end()) ? federrors_it->second :0;
 
   if (subDetId == PixelSubdetector::PixelBarrel) {
     PXBDetId pxbid=PXBDetId(offline.rawid);
@@ -1694,6 +1795,7 @@ TimingStudy::ModuleData
 
     online.shl=online.shell_num();
     online.half=offline.half;
+    online.outer=offline.outer;
 
     std::map<std::string, std::string>::const_iterator it;
     std::ostringstream sector;
