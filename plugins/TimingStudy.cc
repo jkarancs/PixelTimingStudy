@@ -207,8 +207,6 @@ void TimingStudy::beginJob()
   trajTree_->Branch("traj", &trajmeas, trajmeas.list.data());
   #ifdef COMPLETE
   trajTree_->Branch("module", &trajmeas.mod, trajmeas.mod.list.data());
-  trajTree_->Branch("coordx", &trajmeas.codx, trajmeas.codx.list.data());
-  trajTree_->Branch("coordy", &trajmeas.cody, trajmeas.cody.list.data());
   #endif
   trajTree_->Branch("module_on", &trajmeas.mod_on, trajmeas.mod_on.list.data());
   trajTree_->Branch("clust", &trajmeas.clu, trajmeas.clu.list.data());
@@ -358,7 +356,7 @@ void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi,
 	       <<"\tPS: "<<lumi->l1info(iL1).prescale
 	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
     }
-    for (size_t i=0; i<triggerNames_.size() && i<20; i++) {
+    for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
       if (triggerNames_[i]!=lumi->l1info(iL1).triggername) continue;
       std::cout<<"Found trigger: \tL1A: "<<lumi->l1info(iL1).ratecount
 	       <<"\tPS: "<<lumi->l1info(iL1).prescale
@@ -373,7 +371,7 @@ void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi,
 	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
 	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
     }
-    for (size_t i=0; i<triggerNames_.size() && i<20; i++) {
+    for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
       if (triggerNames_[i]!=lumi->hltinfo(iHLT).pathname) continue;
       std::cout<<"Found trigger: \tHLTA: "<<lumi->hltinfo(iHLT).ratecount
 	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
@@ -383,7 +381,7 @@ void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi,
     }
   }
 
-  lumi_.ntriggers=triggerNames_.size() <= 20 ? triggerNames_.size() : 20;
+  lumi_.ntriggers=triggerNames_.size() <= 32 ? triggerNames_.size() : 32;
 
 }
 
@@ -781,7 +779,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	clust.sizeX=itCluster->sizeX();
 	clust.sizeY=itCluster->sizeY();
 	for (int i=0; i<itCluster->size() && i<1000; i++) {
-	  clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
+	  clust.pix[i][0]=float(itCluster->pixelADC()[i])/1000.0;
+	  clust.pix[i][1]=((itCluster->pixels())[i]).x;
+	  clust.pix[i][2]=((itCluster->pixels())[i]).y;
 	}
 	
 	clust.mod=module;
@@ -1195,12 +1195,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    meas.clu.sizeY=(*clust).sizeY();
 	    meas.clu.x=(*clust).x();
 	    meas.clu.y=(*clust).y();
-	    meas.codx.size = (*clust).size();
-	    meas.cody.size = (*clust).size();
 	    for (int i=0; i<(*clust).size() && i<1000; i++) {
-	      meas.clu.adc[i]=float((*clust).pixelADC()[i])/1000.0;
-	      meas.codx.x[i]=(float)(((*clust).pixels())[i]).x;
-	      meas.cody.x[i]=(float)(((*clust).pixels())[i]).y;
+	      meas.clu.pix[i][0]=float((*clust).pixelADC()[i])/1000.0;
+	      meas.clu.pix[i][1]=(((*clust).pixels())[i]).x;
+	      meas.clu.pix[i][2]=(((*clust).pixels())[i]).y;
 	    }
 	    meas.norm_charge = meas.clu.charge*
 	      sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
@@ -1602,8 +1600,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
       #ifdef COMPLETE
       trajTree_->SetBranchAddress("module", &trajmeas_[itrk][i].mod);
-      trajTree_->SetBranchAddress("coordx", &trajmeas_[itrk][i].codx);
-      trajTree_->SetBranchAddress("coordy", &trajmeas_[itrk][i].cody);
       #endif
       trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
       trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
