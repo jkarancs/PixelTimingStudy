@@ -31,7 +31,7 @@
 #define NOVAL_I -9999
 #define NOVAL_F -9999.0
 #define DEBUG 0
-#define COMPLETE 0
+//#define COMPLETE 0
 
 using namespace reco;
 class TTree;
@@ -87,6 +87,7 @@ class TimingStudy : public edm::EDAnalyzer
   class EventData {
    public:
     int orb;
+    int bx;
     int ls;
     int nvtx;
     int run;
@@ -110,7 +111,6 @@ class TimingStudy : public edm::EDAnalyzer
     float field;
     int wbc;
     int delay;
-    int bx;
     int ntracks;
     int ntrackFPix[2]; // tracks crossing the pixels
     int ntrackBPix[3]; // tracks crossing the pixels
@@ -126,6 +126,7 @@ class TimingStudy : public edm::EDAnalyzer
     EventData() { init(); };
     void init() {
       orb=NOVAL_I;
+      bx=NOVAL_I;
       ls=NOVAL_I;
       nvtx=NOVAL_I;
       run=NOVAL_I;
@@ -144,7 +145,6 @@ class TimingStudy : public edm::EDAnalyzer
       field=NOVAL_F;
       wbc=NOVAL_I;
       delay=NOVAL_I;
-      bx=NOVAL_I;
       ntracks=NOVAL_I;
       ntrackFPix[0]=ntrackFPix[1]=NOVAL_I;
       ntrackBPix[0]=ntrackBPix[1]=ntrackBPix[2]=NOVAL_I;
@@ -155,12 +155,12 @@ class TimingStudy : public edm::EDAnalyzer
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
 #ifdef COMPLETE
-      list="orb/I:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
-	"vtxntrk/I:evt:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:bx:ntracks:"
+      list="orb/I:bx:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
+	"vtxntrk/I:evt:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:"
 	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
 	"federrs_size/I:federrs[federrs_size][2]";
 #else
-      list="orb/I:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof";
+      list="orb/I:bx:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof";
 #endif
     }
 
@@ -185,7 +185,7 @@ class TimingStudy : public edm::EDAnalyzer
     float intlumi;
     float instlumi;
     int ntriggers;
-    int prescale[20];
+    int prescale[32];
 
     std::string list;
 
@@ -377,7 +377,8 @@ class TimingStudy : public edm::EDAnalyzer
     float x;
     float y;
     // must be the last variable of the object saved to TTree:
-    float adc[1000];
+    // adc, x, y
+    float pix[1000][3];
 
     std::string list;
 
@@ -393,29 +394,14 @@ class TimingStudy : public edm::EDAnalyzer
       sizeY=NOVAL_I;
       x=NOVAL_F;
       y=NOVAL_F;
-      for (size_t i=0; i<1000; i++) adc[i]=NOVAL_F;
+      for (size_t i=0; i<1000; i++) pix[i][0]=pix[i][1]=pix[i][2]=NOVAL_F;
 #ifdef COMPLETE
-      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y:adc[size]";
+      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y:pix[size][3]";
 #else
       list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y";
 #endif
     }
 
-  };
-
-  // Cluster pixel coordinate info
-  class CoordinateData {
-  public:
-    int size;
-    int x[1000];
-
-    std::string list;
-    CoordinateData() { init(); }
-    void init() {
-      size = 0;
-      for(size_t i = 0; i < 1000; i++) x[i] = NOVAL_I;
-      list="size/I:x[size]";
-    }
   };
 
 
@@ -535,8 +521,8 @@ class TimingStudy : public edm::EDAnalyzer
 
     ModuleData mod; // offline module number
     ModuleData mod_on; // online module number
-    
-    Cluster() { mod.init(); mod_on.init(); }
+
+    Cluster() { mod.init(); mod_on.init();}
     void init() {
       ClustData::init();
       mod.init();
@@ -572,18 +558,14 @@ class TimingStudy : public edm::EDAnalyzer
     ModuleData mod_on; // online module number
     ClustData clu;
     TrackData trk;
-    CoordinateData codx;
-    CoordinateData cody;
 
-    TrajMeasurement() { mod.init(); mod_on.init(); clu.init(); trk.init(); codx.init(); cody.init(); }
+    TrajMeasurement() { mod.init(); mod_on.init(); clu.init(); trk.init(); }
     void init() {
       TrajMeasData::init();
       mod.init();
       mod_on.init();
       clu.init();
       trk.init();
-      codx.init();
-      cody.init();
     }
   };
 
