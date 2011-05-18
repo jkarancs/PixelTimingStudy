@@ -207,6 +207,8 @@ void TimingStudy::beginJob()
   trajTree_->Branch("traj", &trajmeas, trajmeas.list.data());
   #ifdef COMPLETE
   trajTree_->Branch("module", &trajmeas.mod, trajmeas.mod.list.data());
+  trajTree_->Branch("coordx", &trajmeas.codx, trajmeas.codx.list.data());
+  trajTree_->Branch("coordy", &trajmeas.cody, trajmeas.cody.list.data());
   #endif
   trajTree_->Branch("module_on", &trajmeas.mod_on, trajmeas.mod_on.list.data());
   trajTree_->Branch("clust", &trajmeas.clu, trajmeas.clu.list.data());
@@ -1193,8 +1195,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    meas.clu.sizeY=(*clust).sizeY();
 	    meas.clu.x=(*clust).x();
 	    meas.clu.y=(*clust).y();
+	    meas.codx.size = (*clust).size();
+	    meas.cody.size = (*clust).size();
 	    for (int i=0; i<(*clust).size() && i<1000; i++) {
 	      meas.clu.adc[i]=float((*clust).pixelADC()[i])/1000.0;
+	      meas.codx.x[i]=(float)(((*clust).pixels())[i]).x;
+	      meas.cody.x[i]=(float)(((*clust).pixels())[i]).y;
 	    }
 	    meas.norm_charge = meas.clu.charge*
 	      sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
@@ -1596,6 +1602,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
       #ifdef COMPLETE
       trajTree_->SetBranchAddress("module", &trajmeas_[itrk][i].mod);
+      trajTree_->SetBranchAddress("coordx", &trajmeas_[itrk][i].codx);
+      trajTree_->SetBranchAddress("coordy", &trajmeas_[itrk][i].cody);
       #endif
       trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
       trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);

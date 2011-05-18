@@ -403,6 +403,21 @@ class TimingStudy : public edm::EDAnalyzer
 
   };
 
+  // Cluster pixel coordinate info
+  class CoordinateData {
+  public:
+    int size;
+    int x[1000];
+
+    std::string list;
+    CoordinateData() { init(); }
+    void init() {
+      size = 0;
+      for(size_t i = 0; i < 1000; i++) x[i] = NOVAL_I;
+      list="size/I:x[size]";
+    }
+  };
+
 
   // Digi info
   class DigiData {
@@ -557,14 +572,18 @@ class TimingStudy : public edm::EDAnalyzer
     ModuleData mod_on; // online module number
     ClustData clu;
     TrackData trk;
+    CoordinateData codx;
+    CoordinateData cody;
 
-    TrajMeasurement() { mod.init(); mod_on.init(); clu.init(); trk.init(); }
+    TrajMeasurement() { mod.init(); mod_on.init(); clu.init(); trk.init(); codx.init(); cody.init(); }
     void init() {
       TrajMeasData::init();
       mod.init();
       mod_on.init();
       clu.init();
       trk.init();
+      codx.init();
+      cody.init();
     }
   };
 
