@@ -86,11 +86,12 @@ class TimingStudy : public edm::EDAnalyzer
   // Event info
   class EventData {
    public:
+    int run;
+    int ls;
     int orb;
     int bx;
-    int ls;
+    int evt;
     int nvtx;
-    int run;
     int trig;
     float intlumi;
     float instlumi;
@@ -101,7 +102,6 @@ class TimingStudy : public edm::EDAnalyzer
     float vtxY;
     float vtxZ;
     int vtxntrk;
-    int evt;
     int good;
     float tmuon;
     float tmuon_err;
@@ -125,17 +125,18 @@ class TimingStudy : public edm::EDAnalyzer
 
     EventData() { init(); };
     void init() {
+      run=NOVAL_I;
+      ls=NOVAL_I;
       orb=NOVAL_I;
       bx=NOVAL_I;
-      ls=NOVAL_I;
+      evt=NOVAL_I;
       nvtx=NOVAL_I;
-      run=NOVAL_I;
       trig=NOVAL_I;
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
-      vtxndof=vtxchi2=vtxD0=vtxX=vtxY=vtxZ=NOVAL_F;
+      vtxndof=vtxD0=vtxZ=NOVAL_F;
+      vtxX=vtxY=vtxchi2=NOVAL_F;
       vtxntrk=NOVAL_I;
-      evt=NOVAL_I;
       good=NOVAL_I;
       tmuon=NOVAL_F;
       tmuon_err=NOVAL_F;
@@ -155,12 +156,13 @@ class TimingStudy : public edm::EDAnalyzer
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
 #ifdef COMPLETE
-      list="orb/I:bx:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
-	"vtxntrk/I:evt:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:"
-	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
-	"federrs_size/I:federrs[federrs_size][2]";
+      list="run/I:ls:orb:bx:evt:nvtx:trig:intlumi/F:instlumi:vtxndof:vtxchi2:"
+	"vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:"
+	"tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:"
+	"ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:federrs_size/I:"
+	"federrs[federrs_size][2]";
 #else
-      list="orb/I:bx:ls:nvtx:run:trig:intlumi/F:instlumi:vtxndof";
+      list="run/I:ls:orb:bx:evt:nvtx:trig:intlumi/F:instlumi:vtxndof";
 #endif
     }
 
@@ -196,12 +198,8 @@ class TimingStudy : public edm::EDAnalyzer
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
       ntriggers=0;
-      for (size_t i=0; i<20; i++) prescale[i]=NOVAL_I;
-#ifdef COMPLETE
+
       list="run/I:ls:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
-#else
-      list="run/I:ls:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
-#endif
     }
 
   } lumi_;
@@ -210,20 +208,22 @@ class TimingStudy : public edm::EDAnalyzer
   // Track info
   class TrackData {
    public:
+    // Non-split mode from here - keep order of variables
     int validfpix[2]; // valid recHits in Diks1,2 
     int validbpix[3]; // valid recHits in Layer 1,2,3
-    int algo;
     int strip; // total valid hits
     int quality;
     float d0;
     float dz;
     float pt;
-    float p;
+    // From here Split mode (if SPLIT defined)
     float ndof;
     float chi2;
     float eta;
     float phi;
     float theta;
+    float p;
+    int algo;
     int fromVtx;
     int i;
     int pix; // total valid hits
@@ -239,18 +239,18 @@ class TimingStudy : public edm::EDAnalyzer
     void init() {
       validfpix[0]=validfpix[1]=NOVAL_I;
       validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
-      algo=NOVAL_I;
       strip=NOVAL_I;
       quality=NOVAL_I;
       d0=NOVAL_F;
       dz=NOVAL_F;
       pt=NOVAL_F;
-      p=NOVAL_F;
       ndof=NOVAL_F;
       chi2=NOVAL_F;
       eta=NOVAL_F;
       phi=NOVAL_F;
       theta=NOVAL_F;
+      p=NOVAL_F;
+      algo=NOVAL_I;
       fromVtx=NOVAL_I;
       i=NOVAL_I;
       pix=NOVAL_I;
@@ -260,10 +260,10 @@ class TimingStudy : public edm::EDAnalyzer
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
       highPurity=NOVAL_I;
 #ifdef COMPLETE
-      list="validfpix[2]/I:validbpix[3]:algo:strip:quality:d0/F:dz:pt:p:ndof:chi2:eta:phi:theta:"
-	"fromVtx/I:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity";
+      list="validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt:ndof:chi2:eta:phi:theta:p:"
+	"algo/I:fromVtx:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity";
 #else
-      list="validfpix[2]/I:validbpix[3]:algo:strip:quality:d0/F:dz:pt:p:ndof:chi2:eta:phi";
+      list="validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt:ndof:chi2:eta:phi";
 #endif
     }
 
@@ -276,17 +276,17 @@ class TimingStudy : public edm::EDAnalyzer
   class ModuleData {
    public:
     int det;
-
     int layer;
     int ladder;
     int half;
-
-    int side;
+    int module;
     int disk;
     int blade;
     int panel;
 
-    int module;
+    int federr;
+
+    int side;
     int prt;
     int shl;
     int sec;
@@ -294,8 +294,6 @@ class TimingStudy : public edm::EDAnalyzer
     int outer;
 
     unsigned int rawid;
-
-    int federr;
 
     std::map<int, std::string> federrortypes;
 
@@ -307,17 +305,18 @@ class TimingStudy : public edm::EDAnalyzer
       layer=NOVAL_I;
       ladder=NOVAL_I;
       half=NOVAL_I;
-      side=NOVAL_I;
+      module=NOVAL_I;
       disk=NOVAL_I;
       blade=NOVAL_I;
       panel=NOVAL_I;
-      module=NOVAL_I;
+      federr = NOVAL_I;
+      side=NOVAL_I;
       prt=NOVAL_I;
       shl=NOVAL_I;
       sec=NOVAL_I;
       outer=NOVAL_I;
       rawid=abs(NOVAL_I);
-      federr = NOVAL_I;
+
 
       federrortypes.insert(std::pair<int, std::string>(25, "invalidROC"));
       federrortypes.insert(std::pair<int, std::string>(26, "gap word"));
@@ -334,9 +333,12 @@ class TimingStudy : public edm::EDAnalyzer
       federrortypes.insert(std::pair<int, std::string>(37, "invalid dcol or pixel value "));
       federrortypes.insert(std::pair<int, std::string>(38, "the pixels on a ROC weren't read out from lowest to highest row and dcol value"));
       federrortypes.insert(std::pair<int, std::string>(39, "CRC error"));
-
-      list="det/I:layer:ladder:half:side:disk:blade:panel:module:prt:shl:sec:outer:"
-	"rawid/i:federr/I";
+#ifdef COMPLETE
+      list="det/I:layer:ladder:half:module:disk:blade:panel:federr:side:prt:shl:"
+	"sec:outer:rawid/i";
+#else
+      list="det/I:layer:ladder:half:module:disk:blade:panel:federr";
+#endif
     }
 
     std::string shell() {
@@ -366,16 +368,18 @@ class TimingStudy : public edm::EDAnalyzer
   // Cluster info
   class ClustData {
    public:
+    // Paired branches (SPLIT mode)
+    float x;
+    float y;
+    int sizeX;
+    int sizeY;
+    // From here Split mode (if SPLIT defined)
     int i; // serial num of cluster in the given module
-    float charge;
-    int size;
     int edge;     // set if there is a valid hit
     int badpix;   // set if there is a valid hit
     int tworoc;   // set if there is a valid hit
-    int sizeX;
-    int sizeY;
-    float x;
-    float y;
+    int size;
+    float charge;
     // must be the last variable of the object saved to TTree:
     // adc, x, y
     float pix[1000][3];
@@ -384,22 +388,19 @@ class TimingStudy : public edm::EDAnalyzer
 
     ClustData() { init(); }
     void init() {
+      x=NOVAL_F;
+      y=NOVAL_F;
+      sizeX=NOVAL_I;
+      sizeY=NOVAL_I;
       i=NOVAL_I;
-      charge=NOVAL_F;
-      size=0;
       edge=NOVAL_I;
       badpix=NOVAL_I;
       tworoc=NOVAL_I;
-      sizeX=NOVAL_I;
-      sizeY=NOVAL_I;
-      x=NOVAL_F;
-      y=NOVAL_F;
+      size=0;
+      charge=NOVAL_F;
       for (size_t i=0; i<1000; i++) pix[i][0]=pix[i][1]=pix[i][2]=NOVAL_F;
-#ifdef COMPLETE
-      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y:pix[size][3]";
-#else
-      list="i/I:charge/F:size/I:edge:badpix:tworoc:sizeX:sizeY:x/F:y";
-#endif
+
+      list="x:y:sizeX/I:sizeY:i:edge:badpix:tworoc:size:charge/F:pix[size][3]";
     }
 
   };
@@ -430,32 +431,35 @@ class TimingStudy : public edm::EDAnalyzer
   // Trajectory info
   class TrajMeasData {
    public:
+    // Non-split mode from here - keep order of variables
     int validhit;
     int missing;
     float lx;
     float ly;
-    float lxmatch;
-    float lymatch;
     float dx_cl[2];
     float dy_cl[2];
     float dx_hit;
     float dy_hit;
+    // Paired branch (keep order)
+    float alpha;
+    float beta;
+    // From here Split mode (if SPLIT defined)
+    float lz;
     float glx;
     float gly;
     float glz;
-    int i; // serial num of trajectory measurement on the (single) track of the event
+    float lxmatch;
+    float lymatch;
     float norm_charge;
+    int i; // serial num of trajectory measurement on the (single) track of the event
     int onedge;
+    int inactive;
+    int badhit;
     int telescope;
     int telescope_valid;
     int dmodule; // D(propagated hit, valid hit)
     int dladder; // D(propagated hit, valid hit)
-    int inactive;
-    int badhit;
-    float alpha;
-    float beta;
     float glmatch;
-    float lz;
     float lx_err;
     float ly_err;
     float lz_err;
@@ -472,28 +476,28 @@ class TimingStudy : public edm::EDAnalyzer
       missing=NOVAL_I;
       lx=NOVAL_F;
       ly=NOVAL_F;
-      lxmatch=NOVAL_F;
-      lymatch=NOVAL_F;
       dx_cl[0]=dx_cl[1]=NOVAL_F;
       dy_cl[0]=dy_cl[1]=NOVAL_F;
       dx_hit=NOVAL_F;
       dy_hit=NOVAL_F;
+      alpha=NOVAL_F;
+      beta=NOVAL_F;
+      lz=NOVAL_F;
       glx=NOVAL_F;
       gly=NOVAL_F;
       glz=NOVAL_F;
-      i=NOVAL_I;
+      lxmatch=NOVAL_F;
+      lymatch=NOVAL_F;
       norm_charge=NOVAL_F;
+      i=NOVAL_I;
       onedge=NOVAL_I;
+      inactive=NOVAL_I;
+      badhit=NOVAL_I;
       telescope=NOVAL_I;
       telescope_valid=NOVAL_I;
       dmodule=NOVAL_I;
       dladder=NOVAL_I;
-      inactive=NOVAL_I;
-      badhit=NOVAL_I;
-      alpha=NOVAL_F;
-      beta=NOVAL_F;
       glmatch=NOVAL_F;
-      lz=NOVAL_F;
       lx_err=NOVAL_F;
       ly_err=NOVAL_F;
       lz_err=NOVAL_F;
@@ -502,14 +506,13 @@ class TimingStudy : public edm::EDAnalyzer
       sig_hit=NOVAL_F;
       d_cl[0]=d_cl[1]=NOVAL_F;
 
-
 #ifdef COMPLETE
-      list="validhit/I:missing:lx/F:ly:lxmatch:lymatch:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:glx:gly:"
-	"glz:i/I:norm_charge/F:onedge/I:telescope:telescope_valid:dmodule:dladder:inactive:"
-	"badhit:alpha/F:beta:glmatch:lz:lx_err:ly_err:lz_err:lxymatch:res_hit:sig_hit:d_cl[2]";
+      list="validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:alpha:beta:"
+	"lz:glx:gly:glz:lxmatch:lymatch:norm_charge:i/I:onedge:inactive:badhit:"
+	"telescope:telescope_valid:dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:"
+	"lxymatch:res_hit:sig_hit:d_cl[2]";
 #else
-      list="validhit/I:missing:lx/F:ly:lxmatch:lymatch:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:glx:gly:"
-	"glz:i/I:norm_charge/F";
+      list="validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:alpha:beta:";
 #endif
     }
 
