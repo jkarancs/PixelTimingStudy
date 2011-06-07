@@ -74,6 +74,7 @@
 //set to 1 in order to switch on logging of debug info - may create large log file 
 //(set to 0 for Grid runs)
 #define JKDEBUG 0
+#define SPLIT 0
 
 using namespace std;
 using namespace edm;
@@ -180,6 +181,7 @@ void TimingStudy::beginJob()
   lumiTree_ = new TTree("lumiTree", "The lumi");
   lumiTree_->Branch("lumi", &lumi_, lumi_.list.data());
 
+  #ifndef SPLIT
   #ifdef COMPLETE
   TrackData track_;
   trackTree_ = new TTree("trackTree", "The track in the event");
@@ -222,6 +224,111 @@ void TimingStudy::beginJob()
   digiTree_->Branch("digi", &digi, digi.list.data());
   digiTree_->Branch("module", &digi.mod, digi.mod.list.data());
   digiTree_->Branch("module_on", &digi.mod_on, digi.mod_on.list.data());
+  #endif
+
+  // Split mode
+  #else
+  TrajMeasurement trajmeas;
+  trajTree_ = new TTree("trajTree", "Trajectory measurements in the Pixel");
+  //trajTree_->SetDirectory(outfile_);
+  //trajTree_->AutoSave();
+  
+  // Non-splitted branches
+  trajTree_->Branch("event", &evt_, evt_.list.data());
+  trajTree_->Branch("module_on", &trajmeas.mod_on, trajmeas.mod_on.list.data());
+  
+  // traj
+  // Non-splitted branch
+  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit");
+  // Paired branches
+  trajTree_->Branch("traj_alphabeta",        &trajmeas.alpha,           "alpha/F:beta");
+  // Split-mode branches
+  #ifdef COMPLETE
+  trajTree_->Branch("traj_lz",               &trajmeas.lz,              "lz/F");
+  trajTree_->Branch("traj_glx",              &trajmeas.glx,             "glx/F");
+  trajTree_->Branch("traj_gly",              &trajmeas.gly,             "gly/F");
+  trajTree_->Branch("traj_glz",              &trajmeas.glz,             "glz/F");
+  trajTree_->Branch("traj_lxmatch",          &trajmeas.lxmatch,         "lxmatch/F");
+  trajTree_->Branch("traj_lymatch",          &trajmeas.lymatch,         "lymatch/F");
+  trajTree_->Branch("traj_norm_charge",      &trajmeas.norm_charge,     "norm_charge/F");
+  trajTree_->Branch("traj_i",                &trajmeas.i,               "i/I");
+  trajTree_->Branch("traj_onedge",           &trajmeas.onedge,          "onedge/I");
+  trajTree_->Branch("traj_inactive",         &trajmeas.inactive,        "inactive/I");
+  trajTree_->Branch("traj_badhit",           &trajmeas.badhit,          "badhit/I");
+  //   trajTree_->Branch("traj_telescope",        &trajmeas.telescope,       "telescope/I"); // Not used variables
+  //   trajTree_->Branch("traj_telescope_valid",  &trajmeas.telescope_valid, "telescope_valid/I");
+  //   trajTree_->Branch("traj_dmodule",          &trajmeas.dmodule,         "dmodule/I");
+  //   trajTree_->Branch("traj_dladder",          &trajmeas.dladder,         "dladder/I");
+  //   trajTree_->Branch("traj_glmatch",          &trajmeas.glmatch,         "glmatch/F");
+  //   trajTree_->Branch("traj_lx_err",           &trajmeas.lx_err,          "lx_err/F");
+  //   trajTree_->Branch("traj_ly_err",           &trajmeas.ly_err,          "ly_err/F");
+  //   trajTree_->Branch("traj_lz_err",           &trajmeas.lz_err,          "lz_err/F");
+  //   trajTree_->Branch("traj_lxymatch",         &trajmeas.lxymatch,        "lxymatch/F");
+  //   trajTree_->Branch("traj_res_hit",          &trajmeas.res_hit,         "res_hit/F");
+  //   trajTree_->Branch("traj_sig_hit",          &trajmeas.sig_hit,         "sig_hit/F");
+  //   trajTree_->Branch("traj_d_cl",             &trajmeas.d_cl,            "d_cl[2]/F");
+  #endif
+  
+  // clust
+  // Paired branches
+  trajTree_->Branch("clust_xy",              &trajmeas.clu.x,           "x/F:y");
+  trajTree_->Branch("clust_sizeXY",          &trajmeas.clu.sizeX,       "sizeX/I:sizeY");
+  // Split-mode branches
+  #ifdef COMPLETE
+  //   trajTree_->Branch("clust_i",               &trajmeas.clu.i,           "i/I"); // NOVAL_I (trajTree)
+  trajTree_->Branch("clust_edge",            &trajmeas.clu.edge,        "edge/I");
+  trajTree_->Branch("clust_badpix",          &trajmeas.clu.badpix,      "badpix/I");
+  trajTree_->Branch("clust_tworoc",          &trajmeas.clu.tworoc,      "tworoc/I");
+  #endif
+  trajTree_->Branch("clust_size",            &trajmeas.clu.size,        "size/I");
+  trajTree_->Branch("clust_charge",          &trajmeas.clu.charge,      "charge/F");
+  trajTree_->Branch("clust_pix",             &trajmeas.clu.pix,         "pix[size][3]/F");
+  
+  // track
+  // Non-splitted branch
+  trajTree_->Branch("track", &trajmeas.trk, "validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt");
+  // Paired branches
+  trajTree_->Branch("track_ndofchi2",        &trajmeas.trk.ndof,        "ndof/F:chi2");
+  // Split-mode branches
+  trajTree_->Branch("track_eta",             &trajmeas.trk.eta,         "eta/F");
+  trajTree_->Branch("track_phi",             &trajmeas.trk.phi,         "phi/F");
+  #ifdef COMPLETE
+  trajTree_->Branch("track_theta",           &trajmeas.trk.theta,       "theta/F");
+  trajTree_->Branch("track_p",               &trajmeas.trk.p,           "p/F");
+  trajTree_->Branch("track_algo",            &trajmeas.trk.algo,        "algo/I");
+  trajTree_->Branch("track_i",               &trajmeas.trk.i,           "i/I");
+  trajTree_->Branch("track_pix",             &trajmeas.trk.pix,         "pix/I");
+  trajTree_->Branch("track_pixhit",          &trajmeas.trk.pixhit,      "pixhit[2]/I");
+  trajTree_->Branch("track_validpixhit",     &trajmeas.trk.validpixhit, "validpixhit[2]/I");
+  trajTree_->Branch("track_fpix",            &trajmeas.trk.fpix,        "fpix[2]/I");
+  trajTree_->Branch("track_bpix",            &trajmeas.trk.bpix,        "bpix[3]/I");
+  trajTree_->Branch("track_highPurity",      &trajmeas.trk.highPurity,  "highPurity/I");
+  //   trajTree_->Branch("track_fromVtx",         &trajmeas.trk.fromVtx,     "fromVtx/I"); // old
+  #endif
+    
+  #ifdef COMPLETE
+  Cluster clust;
+  clustTree_ = new TTree("clustTree", "Pixel clusters");
+  //clustTree_->SetDirectory(outfile_);
+  //clustTree_->AutoSave();
+
+  // Non-splitted branches
+  clustTree_->Branch("event", &evt_, evt_.list.data());
+  clustTree_->Branch("module_on", &clust.mod_on, clust.mod_on.list.data());
+
+  // clust
+  // Paired branches
+  clustTree_->Branch("clust_xy",              &clust.x,               "x/F:y");
+  clustTree_->Branch("clust_sizeXY",          &clust.sizeX,           "sizeX/I:sizeY");
+  // Split-mode branches
+  clustTree_->Branch("clust_i",               &clust.i,               "i/I");
+  clustTree_->Branch("clust_edge",            &clust.edge,            "edge/I");
+  clustTree_->Branch("clust_badpix",          &clust.badpix,          "badpix/I");
+  clustTree_->Branch("clust_tworoc",          &clust.tworoc,          "tworoc/I");
+  clustTree_->Branch("clust_size",            &clust.size,            "size/I");
+  clustTree_->Branch("clust_charge",          &clust.charge,          "charge/F");
+  clustTree_->Branch("clust_pix",             &clust.pix,             "pix[size][3]/F");
+  #endif
   #endif
 
   // Some external information until I figure out how to do this inside CMSSW
@@ -647,7 +754,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       evt_.vtxchi2=it->chi2();
       bestVtx=it;
     }
-    if (fabs(it->z())<=15. && fabs(it->position().rho())<=2. && it->ndof()>4) evt_.nvtx++;
+    if (fabs(it->z())<=20. && fabs(it->position().rho())<=2. && it->ndof()>4) evt_.nvtx++;
   }
   
   if (JKDEBUG) {
@@ -1546,6 +1653,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   eventTree_->SetBranchAddress("event", &evt_);
   eventTree_->Fill();
 
+  #ifndef SPLIT
   #ifdef COMPLETE
   for (size_t i=0; i<tracks_.size(); i++) {
     trackTree_->SetBranchAddress("event", &evt_);
@@ -1553,16 +1661,38 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     trackTree_->Fill();
   }
   #endif
+  #endif
 
   #ifdef COMPLETE
   for (size_t i=0; i<clusts_.size(); i++) {
+    #ifndef SPLIT
     clustTree_->SetBranchAddress("event", &evt_);
     clustTree_->SetBranchAddress("clust", &clusts_[i]);
     clustTree_->SetBranchAddress("module", &clusts_[i].mod);
     clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
+    #else
+    // Split mode
+    // Non-splitted branches
+    clustTree_->SetBranchAddress("event", &evt_);
+    clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
+    
+    // clust
+    // Paired branches
+    clustTree_->SetBranchAddress("clust_xy",              &clusts_[i]x);
+    clustTree_->SetBranchAddress("clust_sizeXY",          &clusts_[i]sizeX);
+    // Split-mode branches
+    clustTree_->SetBranchAddress("clust_i",               &clusts_[i]i);
+    clustTree_->SetBranchAddress("clust_edge",            &clusts_[i]edge);
+    clustTree_->SetBranchAddress("clust_badpix",          &clusts_[i]badpix);
+    clustTree_->SetBranchAddress("clust_tworoc",          &clusts_[i]tworoc);
+    clustTree_->SetBranchAddress("clust_size",            &clusts_[i]size);
+    clustTree_->SetBranchAddress("clust_charge",          &clusts_[i]charge);
+    clustTree_->SetBranchAddress("clust_pix",             &clusts_[i]pix);
+    #endif
     clustTree_->Fill();
   }
 
+  #ifndef SPLIT
   for (size_t i=0; i<digis_.size(); i++) {
     digiTree_->SetBranchAddress("event", &evt_);
     digiTree_->SetBranchAddress("digi", &digis_[i]);
@@ -1570,6 +1700,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     digiTree_->SetBranchAddress("module_on", &digis_[i].mod_on);
     digiTree_->Fill();
   }
+  #endif
   #endif
 
   for (size_t itrk=0; itrk<trajmeas_.size(); itrk++) {
@@ -1594,8 +1725,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  }
 	}
       }
-      //
-
+      #ifndef SPLIT
       trajTree_->SetBranchAddress("event", &evt_);
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
       #ifdef COMPLETE
@@ -1604,6 +1734,82 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
       trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
       trajTree_->SetBranchAddress("track", &trajmeas_[itrk][i].trk);
+      #else
+      // Split mode
+      // Non-splitted branches
+      trajTree_->SetBranchAddress("event",                 &evt_);
+      trajTree_->SetBranchAddress("module_on",             &trajmeas_[itrk][i].mod_on);
+            
+      // traj
+      // Non-splitted branch
+      trajTree_->SetBranchAddress("traj",                  &trajmeas_[itrk][i]);
+      // Paired branches
+      trajTree_->SetBranchAddress("traj_alphabeta",        &trajmeas_[itrk][i].alpha);
+      // Split-mode branches
+      #ifdef COMPLETE
+      trajTree_->SetBranchAddress("traj_lz",               &trajmeas_[itrk][i].lz);
+      trajTree_->SetBranchAddress("traj_glx",              &trajmeas_[itrk][i].glx);
+      trajTree_->SetBranchAddress("traj_gly",              &trajmeas_[itrk][i].gly);
+      trajTree_->SetBranchAddress("traj_glz",              &trajmeas_[itrk][i].glz);
+      trajTree_->SetBranchAddress("traj_lxmatch",          &trajmeas_[itrk][i].lxmatch);
+      trajTree_->SetBranchAddress("traj_lymatch",          &trajmeas_[itrk][i].lymatch);
+      trajTree_->SetBranchAddress("traj_norm_charge",      &trajmeas_[itrk][i].norm_charge);
+      trajTree_->SetBranchAddress("traj_i",                &trajmeas_[itrk][i].i);
+      trajTree_->SetBranchAddress("traj_onedge",           &trajmeas_[itrk][i].onedge);
+      trajTree_->SetBranchAddress("traj_inactive",         &trajmeas_[itrk][i].inactive);
+      trajTree_->SetBranchAddress("traj_badhit",           &trajmeas_[itrk][i].badhit);
+      //   trajTree_->SetBranchAddress("traj_telescope",        &trajmeas_[itrk][i].telescope);
+      //   trajTree_->SetBranchAddress("traj_telescope_valid",  &trajmeas_[itrk][i].telescope_valid);
+      //   trajTree_->SetBranchAddress("traj_dmodule",          &trajmeas_[itrk][i].dmodule);
+      //   trajTree_->SetBranchAddress("traj_dladder",          &trajmeas_[itrk][i].dladder);
+      //   trajTree_->SetBranchAddress("traj_glmatch",          &trajmeas_[itrk][i].glmatch);
+      //   trajTree_->SetBranchAddress("traj_lx_err",           &trajmeas_[itrk][i].lx_err);
+      //   trajTree_->SetBranchAddress("traj_ly_err",           &trajmeas_[itrk][i].ly_err);
+      //   trajTree_->SetBranchAddress("traj_lz_err",           &trajmeas_[itrk][i].lz_err);
+      //   trajTree_->SetBranchAddress("traj_lxymatch",         &trajmeas_[itrk][i].lxymatch);
+      //   trajTree_->SetBranchAddress("traj_res_hit",          &trajmeas_[itrk][i].res_hit);
+      //   trajTree_->SetBranchAddress("traj_sig_hit",          &trajmeas_[itrk][i].sig_hit);
+      //   trajTree_->SetBranchAddress("traj_d_cl",             &trajmeas_[itrk][i].d_cl);
+      #endif
+      
+      // clust
+      // Paired branches
+      trajTree_->SetBranchAddress("clust_xy",              &trajmeas_[itrk][i].clu.x);
+      trajTree_->SetBranchAddress("clust_sizeXY",          &trajmeas_[itrk][i].clu.sizeX);
+      // Split-mode branches
+      #ifdef COMPLETE
+      //   trajTree_->SetBranchAddress("clust_i",               &trajmeas_[itrk][i].clu.i);
+      trajTree_->SetBranchAddress("clust_edge",            &trajmeas_[itrk][i].clu.edge);
+      trajTree_->SetBranchAddress("clust_badpix",          &trajmeas_[itrk][i].clu.badpix);
+      trajTree_->SetBranchAddress("clust_tworoc",          &trajmeas_[itrk][i].clu.tworoc);
+      #endif
+      trajTree_->SetBranchAddress("clust_size",            &trajmeas_[itrk][i].clu.size);
+      trajTree_->SetBranchAddress("clust_charge",          &trajmeas_[itrk][i].clu.charge);
+      trajTree_->SetBranchAddress("clust_pix",             &trajmeas_[itrk][i].clu.pix);
+      
+      
+      // track
+      // Non-splitted branch
+      trajTree_->SetBranchAddress("track",                 &trajmeas_[itrk][i].trk);
+      // Paired branches
+      trajTree_->SetBranchAddress("track_ndofchi2",        &trajmeas_[itrk][i].trk.ndof);
+      // Split-mode branches
+      trajTree_->SetBranchAddress("track_eta",             &trajmeas_[itrk][i].trk.eta);
+      trajTree_->SetBranchAddress("track_phi",             &trajmeas_[itrk][i].trk.phi);
+      #ifdef COMPLETE
+      trajTree_->SetBranchAddress("track_theta",           &trajmeas_[itrk][i].trk.theta);
+      trajTree_->SetBranchAddress("track_p",               &trajmeas_[itrk][i].trk.p);
+      trajTree_->SetBranchAddress("track_algo",            &trajmeas_[itrk][i].trk.algo);
+      trajTree_->SetBranchAddress("track_i",               &trajmeas_[itrk][i].trk.i);
+      trajTree_->SetBranchAddress("track_pix",             &trajmeas_[itrk][i].trk.pix);
+      trajTree_->SetBranchAddress("track_pixhit",          &trajmeas_[itrk][i].trk.pixhit);
+      trajTree_->SetBranchAddress("track_validpixhit",     &trajmeas_[itrk][i].trk.validpixhit);
+      trajTree_->SetBranchAddress("track_fpix",            &trajmeas_[itrk][i].trk.fpix);
+      trajTree_->SetBranchAddress("track_bpix",            &trajmeas_[itrk][i].trk.bpix);
+      trajTree_->SetBranchAddress("track_highPurity",      &trajmeas_[itrk][i].trk.highPurity);
+      //   trajTree_->SetBranchAddress("track_fromVtx",         &trajmeas_[itrk][i].trk.fromVtx);
+      #endif
+      #endif
       trajTree_->Fill();
     }
   }
@@ -1618,12 +1824,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas, 
 					   TransientTrackingRecHit::ConstRecHitPointer& recHit) {
-
+  
   meas.validhit= (recHit->getType()==TrackingRecHit::valid) ? 1 : 0;
   meas.missing= (recHit->getType()==TrackingRecHit::missing) ? 1 : 0;
   meas.inactive= (recHit->getType()==TrackingRecHit::inactive) ? 1 : 0;
   meas.badhit= (recHit->getType()==TrackingRecHit::bad) ? 1 : 0;
-
+  
   if (!recHit->isValid()) {
     //meas.validhit=0;
     if (JKDEBUG) std::cout << "RecHit is _non-valid_";
@@ -1632,7 +1838,7 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
   }  
   if (JKDEBUG) std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","
 			<<meas.badhit<<")";
-
+  
   // Exceptions:
   // One full module on layer 1 is out. Need to fix classification here, because
   // the trajectory propagation does not include this
