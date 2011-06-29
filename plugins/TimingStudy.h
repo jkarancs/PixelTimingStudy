@@ -81,6 +81,8 @@ class TimingStudy : public edm::EDAnalyzer
   std::vector<std::string> triggerNames_; // Max 20 trigger names
   edm::InputTag triggerTag_;
 
+  bool isNewLS_;
+
  public:
 
   // Event info

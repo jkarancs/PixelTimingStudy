@@ -102,6 +102,8 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   usePixelCPE_=false;
   minNStripHits_=11;
 
+  isNewLS_ = false;
+  lumi_.init(); // ctor of lumi_ should take care of this, but just to be sure
 }
 
 
@@ -445,10 +447,35 @@ void TimingStudy::beginJob()
 void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi, 
 				       edm::EventSetup const& iSetup){
 
-  lumi_.init();
+  // isNewLS_ should be set false either in the ctor or by the endLumiBlock(..
+  assert(isNewLS_==false); 
+  isNewLS_=true;
+  
+  assert(lumi_.run==NOVAL_I);
+  assert(lumi_.ls==NOVAL_I);
+
+}
+
+
+void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi, 
+				     edm::EventSetup const& iSetup){
+
+  // isNewLS_ should be set false by the first event, if it is not false,
+  // there was no event in this lumisection!!!!
+  assert(isNewLS_==false);
+
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
-  if (!lumi.isValid()) return;
+  if (!lumi.isValid()) {
+    std::cout<<"** ERROR: no LuminosityBlock info is available\n";
+    return;
+  }
+
+  // check that this lumiblock info is consistent with the last event
+  assert(lumi_.run == int(iLumi.run()));
+  assert(lumi_.ls == int(iLumi.luminosityBlock()));
+
+  lumi_.init(); // temporal values deleted, now we fill it for real
   lumi_.run=iLumi.run();
   lumi_.ls=iLumi.luminosityBlock();
   lumi_.intlumi=lumi->intgRecLumi();
@@ -490,17 +517,29 @@ void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi,
 
   lumi_.ntriggers=triggerNames_.size() <= 32 ? triggerNames_.size() : 32;
 
-}
-
-
-void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi, 
-				     edm::EventSetup const& iSetup){
   lumiTree_->Fill();
+
+  // make sure that the beginLuminosityBlock can check that we were called:
+  lumi_.init();
+
 }
 
 
 void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+
+  if (isNewLS_==true) { // beginLuminosityBlock() was just called
+    lumi_.run=iEvent.id().run();
+    lumi_.ls=iEvent.luminosityBlock();
+    isNewLS_=false;
+  } else {
+    // if following fails, it can mean two things:
+    // 1. either beginLuminosityBlock() was not called, e.g. LuminosityBlock
+    //    is not in sync with the data, but we changed to a new LS block
+    // 2. or an event from another lumi block got mixed here
+    assert(lumi_.run == int(iEvent.id().run()));
+    assert(lumi_.ls == int(iEvent.luminosityBlock()));
+  }
 
   TStopwatch w;
   if (JKDEBUG) w.Start();
@@ -522,11 +561,21 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.evt=iEvent.id().event();
   evt_.ls=iEvent.luminosityBlock();
 
-  if (lumi_.run!=NOVAL_I) {
-    assert(evt_.run==lumi_.run);
-    assert(evt_.ls==lumi_.ls);
-    evt_.instlumi=lumi_.instlumi;
-    evt_.intlumi=lumi_.intlumi;
+  edm::LuminosityBlock const& iLumi = iEvent.getLuminosityBlock();
+  edm::Handle<LumiSummary> lumi;
+  iLumi.getByLabel("lumiProducer", lumi);
+  // This will only work when running on RECO until they fix the bug in the FW.
+  // When running on RAW and reconstructing the LumiSummary, it will not appear
+  // in the event before reaching endLuminosityBlock(). Therefore, it is not
+  // possible to fill every event with this info. However, if the bug is fixed
+  // running or RAW should produce the same result as RECO
+  if (lumi.isValid()) {
+    evt_.intlumi=lumi->intgRecLumi();
+    evt_.instlumi=lumi->avgInsDelLumi();
+  } else {
+    //std::cout << "** ERROR: Event does not get lumi info\n";
+    evt_.intlumi=NOVAL_F;
+    evt_.instlumi=NOVAL_F;
   }
   
   evt_.good=NOVAL_I;
