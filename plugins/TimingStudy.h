@@ -95,6 +95,7 @@ class TimingStudy : public edm::EDAnalyzer
     int evt;
     int nvtx;
     int trig;
+    unsigned int beamint[2];
     float intlumi;
     float instlumi;
     float vtxndof;
@@ -134,6 +135,7 @@ class TimingStudy : public edm::EDAnalyzer
       evt=NOVAL_I;
       nvtx=NOVAL_I;
       trig=NOVAL_I;
+      beamint[0]=beamint[1]=abs(NOVAL_I);
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
       vtxndof=vtxD0=vtxZ=NOVAL_F;
@@ -158,13 +160,13 @@ class TimingStudy : public edm::EDAnalyzer
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
 #ifdef COMPLETE
-      list="run/I:ls:orb:bx:evt:nvtx:trig:intlumi/F:instlumi:vtxndof:vtxchi2:"
-	"vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:"
-	"tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:"
-	"ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:federrs_size/I:"
-	"federrs[federrs_size][2]";
+      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:"
+	"vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:"
+	"tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:"
+	"ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
+	"federrs_size/I:federrs[federrs_size][2]";
 #else
-      list="run/I:ls:orb:bx:evt:nvtx:trig:intlumi/F:instlumi:vtxndof";
+      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:vtxndof";
 #endif
     }
 
@@ -186,6 +188,7 @@ class TimingStudy : public edm::EDAnalyzer
    public:
     int run;
     int ls;
+    unsigned int beamint[2];
     float intlumi;
     float instlumi;
     int ntriggers;
@@ -197,11 +200,12 @@ class TimingStudy : public edm::EDAnalyzer
     void init() {
       run=NOVAL_I;
       ls=NOVAL_I;
+      beamint[0]=beamint[1]=abs(NOVAL_I);
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
       ntriggers=0;
 
-      list="run/I:ls:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
+      list="run/I:ls:beamint[2]/i:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
     }
 
   } lumi_;

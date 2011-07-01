@@ -51,6 +51,7 @@
 #include "RecoTracker/TkDetLayers/interface/GeometricSearchTracker.h"
 #include "TrackingTools/MeasurementDet/interface/LayerMeasurements.h"
 #include "DataFormats/Luminosity/interface/LumiSummary.h"
+#include "DataFormats/Common/interface/ConditionsInEdm.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 
@@ -471,6 +472,14 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
     return;
   }
 
+  // get ConditionsInLumiBlock
+  edm::Handle<edm::ConditionsInLumiBlock> cond;
+  iLumi.getByLabel("conditionsInEdm", cond);
+  if (!cond.isValid()) {
+    std::cout<<"** ERROR: no ConditionsInLumiBlock info is available\n";
+    return;
+  }
+
   // check that this lumiblock info is consistent with the last event
   assert(lumi_.run == int(iLumi.run()));
   assert(lumi_.ls == int(iLumi.luminosityBlock()));
@@ -480,8 +489,11 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   lumi_.ls=iLumi.luminosityBlock();
   lumi_.intlumi=lumi->intgRecLumi();
   lumi_.instlumi=lumi->avgInsDelLumi();
+  lumi_.beamint[0]=cond->totalIntensityBeam1;
+  lumi_.beamint[1]=cond->totalIntensityBeam2;
   std::cout<< "New lumi block: Run "<<lumi_.run<<" LS = "<<lumi_.ls;
   std::cout << " inst lumi "<<lumi_.instlumi<<" int lumi "<<lumi_.intlumi<<std::endl;
+  std::cout << " beam 1 int "<<lumi_.beamint[0]<<" beam 2 int "<<lumi_.beamint[1]<<std::endl;
 
   std::cout<<"Trigger counts\n";
   for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
@@ -564,6 +576,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   edm::LuminosityBlock const& iLumi = iEvent.getLuminosityBlock();
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
+  edm::Handle<edm::ConditionsInLumiBlock> cond;
+  iLumi.getByLabel("conditionsInEdm", cond);
   // This will only work when running on RECO until they fix the bug in the FW.
   // When running on RAW and reconstructing the LumiSummary, it will not appear
   // in the event before reaching endLuminosityBlock(). Therefore, it is not
@@ -572,10 +586,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if (lumi.isValid()) {
     evt_.intlumi=lumi->intgRecLumi();
     evt_.instlumi=lumi->avgInsDelLumi();
+    evt_.beamint[0]=cond->totalIntensityBeam1;
+    evt_.beamint[1]=cond->totalIntensityBeam2;
   } else {
     //std::cout << "** ERROR: Event does not get lumi info\n";
     evt_.intlumi=NOVAL_F;
     evt_.instlumi=NOVAL_F;
+    evt_.beamint[0]=evt_.beamint[1]=abs(NOVAL_I);
   }
   
   evt_.good=NOVAL_I;
