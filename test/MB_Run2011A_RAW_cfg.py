@@ -40,7 +40,7 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "GR_P_V17::All"
 #process.GlobalTag.globaltag = "GR_R_41_V0::All""
 #process.GlobalTag.globaltag = "GR_R_38X_V15::All"
-process.GlobalTag.globaltag = "GR_R_42_V14::All"
+process.GlobalTag.globaltag = "GR_R_42_V15::All"
 
 
 #-------------------------
@@ -187,38 +187,52 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      extrapolateTo = cms.int32(1),
                                      keepOriginalMissingHit = cms.bool(False),
                                      usePixelCPE= cms.bool(True),
-                                     triggerNames=cms.vstring("HLT_IsoTrackHB_8E29",
-                                                              "HLT_IsoTrackHE_8E29",
-                                                              "HLT_IsoTrackHE"
-                                                              "HLT_L1Tech_BSC_HighMultiplicity",
-                                                              "HLT_L1Tech_BSC_halo_forPhysicsBackground",
-                                                              "HLT_L1Tech_HCAL_HF",
-                                                              "HLT_L1Tech_RPC_TTU_RBst1_collisions",
-                                                              "HLT_L1_BscMinBiasOR_BptxPlusORMinus",
-                                                              "HLT_MinBiasBSC",
-                                                              "HLT_MinBiasBSC_NoBPTX",
-                                                              "HLT_L1Tech_BSC_minBias",
-                                                              "HLT_L1Tech_BSC_minBias_OR",
-                                                              "HLT_MinBiasPixel_DoubleIsoTrack5",
-                                                              "HLT_MinBiasPixel_DoubleTrack",
-                                                              "HLT_MinBiasPixel_SingleTrack",
-                                                              "HLT_PixelTracks_Multiplicity40",
-                                                              "HLT_PixelTracks_Multiplicity70",
-                                                              "HLT_PixelTracks_Multiplicity85",
-                                                              "HLT_PixelTracks_Multiplicity100",
-                                                              "HLT_StoppedHSCP_8E29",
-                                                              "HLT_StoppedHSCP",
-                                                              "HLT_StoppedHSCP20_v3",
-                                                              "HLT_StoppedHSCP35_v3",
-                                                              "HLT_ZeroBiasPixel_SingleTrack",
-                                                              "HLT_ZeroBias",
-                                                              "HLT_L1Tech_BSC_minBias",
-                                                              "HLT_MultiVertex6",
-                                                              "HLT_MultiVertex8_L1ETT60",
-                                                              "HLT_L1_BPTX",
-                                                              "HLT_L1_BPTX_MinusOnly",
-                                                              "HLT_L1_BPTX_PlusOnly",
-                                                              "HLT_Random")
+#5e32 and 1e33
+                                     triggerNames=cms.vstring("HLT_Random_v1",
+                                                              "HLT_Physics_v1",
+                                                              "HLT_ZeroBias_v1",
+                                                              "HLT_ZeroBias_v2",
+                                                              "HLT_ZeroBias_v3",
+                                                              "HLT_L1Tech_BSC_minBias_OR_v1",
+                                                              "HLT_L1Tech_BSC_minBias_threshold1_v1",
+                                                              "HLT_L1Tech_BSC_minBias_threshold1_v3",
+                                                              "HLT_L1Tech_BSC_minBias_threshold1_v4",
+                                                              "HLT_PixelTracks_Multiplicity80_v2",
+                                                              "HLT_PixelTracks_Multiplicity80_v3",
+                                                              "HLT_PixelTracks_Multiplicity100_v2",
+                                                              "HLT_PixelTracks_Multiplicity100_v3",
+                                                              "HLT_PixelTracks_Multiplicity110_v2",
+                                                              "HLT_PixelTracks_Multiplicity125_v2",
+                                                              "HLT_JetE30_NoBPTX_v1",
+                                                              "HLT_JetE30_NoBPTX_v2",
+                                                              "HLT_JetE30_NoBPTX_v3",
+                                                              "HLT_JetE30_NoBPTX_v4",
+                                                              "HLT_JetE30_NoBPTX_NoHalo_v1",
+                                                              "HLT_JetE30_NoBPTX_NoHalo_v2",
+                                                              "HLT_JetE30_NoBPTX_NoHalo_v4",
+                                                              "HLT_JetE30_NoBPTX_NoHalo_v5",
+                                                              "HLT_JetE30_NoBPTX_NoHalo_v6",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v1",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v2",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v4",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v5",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v6",
+                                                              "HLT_JetE50_NoBPTX3BX_NoHalo_v1",
+                                                              "HLT_JetE50_NoBPTX3BX_NoHalo_v2")
+#1.4e33                             
+#                                     triggerNames=cms.vstring("HLT_Random_v1",
+#                                                              "HLT_Physics_v2",
+#                                                              "HLT_ZeroBias_v4",
+#                                                              "HLT_PixelTracks_Multiplicity80_v5",
+#                                                              "HLT_PixelTracks_Multiplicity100_v5",
+#                                                              "HLT_JetE30_NoBPTX_v5",
+#                                                              "HLT_JetE30_NoBPTX_NoHalo_v7",
+#                                                              "HLT_JetE30_NoBPTX3BX_NoHalo_v7",
+#                                                              "HLT_JetE50_NoBPTX3BX_NoHalo_v3",
+#                                                              "HLT_BeamGas_BSC_v4",
+#                                                              "HLT_BeamGas_HF_v6",
+#                                                              "HLT_L1_Interbunch_BSC_v3",
+#                                                              "HLT_L1_PreCollisions_v3")
 )
 
 # For the three cases:
@@ -253,14 +267,6 @@ process.source = cms.Source("PoolSource",
                             #interval = cms.uint32(1),
                             #firstLuminosityBlock = cms.untracked.uint32(44),
     fileNames = cms.untracked.vstring(
-#'file:/shared/data/CMSSW_4_1_2/MinimumBias__Run2011A-v1__RAW/DA580914-CE54-E011-AFB9-003048F024FE.root'
-#'file:/data/jkarancs/RAW/MinimumBias_Run2011A-v1_RAW/BC11BA35-B492-E011-AF17-003048F118E0.root'
-#'file:/data/jkarancs/RAW/MinimumBias_Run2011A-v1_RAW/10020C19-4353-E011-8BAE-001617E30D40.root'
-#'file:/data/jkarancs/RAW/MinimumBias_Run2011A-v1_RAW/DA580914-CE54-E011-AFB9-003048F024FE.root'
-#'file:/data/jkarancs/RAW/MinimumBias_Run2011A-v1_RAW/72DAFE04-F84D-E011-A8EE-0030487C2B86.root'
-#'/store/data/Run2010A/MinimumBias/RAW/v1/000/136/035/54C7B44E-8B65-DF11-A80A-0030487CD840.root'
-#'/store/data/Run2010B/MinimumBias/RAW/v1/000/149/181/6EE133DC-3BE2-DF11-841D-003048F01E88.root'
-'file:/data/jkarancs/RAW/MinimumBias_Run2010B-v1_RAW/6EE133DC-3BE2-DF11-841D-003048F01E88.root'
 )
 )
 
@@ -275,7 +281,7 @@ process.source = cms.Source("PoolSource",
 #-------------------------------------------------
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10) )
+    input = cms.untracked.int32(-1) )
 
 #-------------------------------------------------
 # Path
@@ -292,16 +298,19 @@ process.p = cms.Path(
     #process.hltPhysicsDeclared*
     #process.hltfilter*
     # Reco:
+    process.gtEvmDigis*
     process.siPixelDigis*process.siStripDigis*
     #//process.RawToDigi*process.reconstructionCosmics*
     # Beamspot:
     process.offlineBeamSpot*
     # Track reco:
-    process.trackerlocalreco*process.recopixelvertexing*process.ckftracks_plus_pixelless*
+    process.trackerlocalreco*process.recopixelvertexing*
+    process.ckftracks*
+    #process.ckftracks_plus_pixelless*
     # Vertex reco:
     process.vertexreco*
     # Lumi blocks:
-    process.lumiProducer*process.conditionsInEdm*
+    process.conditionsInEdm*process.lumiProducer*
     # Refitters:
 #    process.ctfRefitter*
     process.ckfRefitter*
