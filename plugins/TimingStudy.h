@@ -159,16 +159,11 @@ class TimingStudy : public edm::EDAnalyzer
       federrs_size=0;
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
-#ifdef COMPLETE
       list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:"
 	"vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:"
 	"tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:"
 	"ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
 	"federrs_size/I:federrs[federrs_size][2]";
-#else
-      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:vtxndof"
-      "federrs_size/I:federrs[federrs_size][2]";
-#endif
     }
 
     int federrs_fedid(size_t i) {
