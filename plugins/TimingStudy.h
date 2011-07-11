@@ -166,7 +166,8 @@ class TimingStudy : public edm::EDAnalyzer
 	"ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
 	"federrs_size/I:federrs[federrs_size][2]";
 #else
-      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:vtxndof";
+      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:vtxndof"
+      "federrs_size/I:federrs[federrs_size][2]";
 #endif
     }
 
