@@ -246,6 +246,7 @@ void TimingStudy::beginJob()
   // Paired branches
   trajTree_->Branch("traj_alphabeta",        &trajmeas.alpha,           "alpha/F:beta");
   // Split-mode branches
+  trajTree_->Branch("traj_norm_charge",      &trajmeas.norm_charge,     "norm_charge/F");
   #ifdef COMPLETE
   trajTree_->Branch("traj_lz",               &trajmeas.lz,              "lz/F");
   trajTree_->Branch("traj_glx",              &trajmeas.glx,             "glx/F");
@@ -253,7 +254,6 @@ void TimingStudy::beginJob()
   trajTree_->Branch("traj_glz",              &trajmeas.glz,             "glz/F");
   trajTree_->Branch("traj_lxmatch",          &trajmeas.lxmatch,         "lxmatch/F");
   trajTree_->Branch("traj_lymatch",          &trajmeas.lymatch,         "lymatch/F");
-  trajTree_->Branch("traj_norm_charge",      &trajmeas.norm_charge,     "norm_charge/F");
   trajTree_->Branch("traj_i",                &trajmeas.i,               "i/I");
   trajTree_->Branch("traj_onedge",           &trajmeas.onedge,          "onedge/I");
   trajTree_->Branch("traj_inactive",         &trajmeas.inactive,        "inactive/I");
@@ -1812,6 +1812,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // Paired branches
       trajTree_->SetBranchAddress("traj_alphabeta",        &trajmeas_[itrk][i].alpha);
       // Split-mode branches
+      trajTree_->SetBranchAddress("traj_norm_charge",      &trajmeas_[itrk][i].norm_charge);
       #ifdef COMPLETE
       trajTree_->SetBranchAddress("traj_lz",               &trajmeas_[itrk][i].lz);
       trajTree_->SetBranchAddress("traj_glx",              &trajmeas_[itrk][i].glx);
@@ -1819,7 +1820,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajTree_->SetBranchAddress("traj_glz",              &trajmeas_[itrk][i].glz);
       trajTree_->SetBranchAddress("traj_lxmatch",          &trajmeas_[itrk][i].lxmatch);
       trajTree_->SetBranchAddress("traj_lymatch",          &trajmeas_[itrk][i].lymatch);
-      trajTree_->SetBranchAddress("traj_norm_charge",      &trajmeas_[itrk][i].norm_charge);
       trajTree_->SetBranchAddress("traj_i",                &trajmeas_[itrk][i].i);
       trajTree_->SetBranchAddress("traj_onedge",           &trajmeas_[itrk][i].onedge);
       trajTree_->SetBranchAddress("traj_inactive",         &trajmeas_[itrk][i].inactive);
