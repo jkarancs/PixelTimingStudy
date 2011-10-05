@@ -598,27 +598,37 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   edm::LuminosityBlock const& iLumi = iEvent.getLuminosityBlock();
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
-  edm::Handle<edm::ConditionsInLumiBlock> cond;
-  iLumi.getByLabel("conditionsInEdm", cond);
   // This will only work when running on RECO until they fix the bug in the FW.
   // When running on RAW and reconstructing the LumiSummary, it will not appear
   // in the event before reaching endLuminosityBlock(). Therefore, it is not
   // possible to fill every event with this info. However, if the bug is fixed
   // running or RAW should produce the same result as RECO
-  edm::Handle<Level1TriggerScalersCollection> l1trig;
-  iEvent.getByLabel("scalersRawToDigi", l1trig);
-  if (!l1trig.isValid()) std::cout<<"BAZDMEG"<<std::endl;
-    evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   if (lumi.isValid()) {
     evt_.intlumi=lumi->intgRecLumi();
     evt_.instlumi=lumi->avgInsDelLumi();
+  } else {
+    std::cout << "** ERROR: LumiSummary missing\n";
+    evt_.intlumi=NOVAL_F;
+    evt_.instlumi=NOVAL_F;
+  }
+
+  edm::Handle<edm::ConditionsInLumiBlock> cond;
+  iLumi.getByLabel("conditionsInEdm", cond);
+  if (cond.isValid()) {
     evt_.beamint[0]=cond->totalIntensityBeam1;
     evt_.beamint[1]=cond->totalIntensityBeam2;
   } else {
-    //std::cout << "** ERROR: Event does not get lumi info\n";
-    evt_.intlumi=NOVAL_F;
-    evt_.instlumi=NOVAL_F;
+    std::cout << "** ERROR: conditionsInEdm block missing\n";
     evt_.beamint[0]=evt_.beamint[1]=abs(NOVAL_I);
+  }
+
+  edm::Handle<Level1TriggerScalersCollection> l1trig;
+  iEvent.getByLabel("scalersRawToDigi", l1trig);
+  if (l1trig.isValid()) {
+    evt_.l1_rate=l1trig->begin()->gtTriggersRate();
+  } else {
+    std::cout<<"** ERROR: L1 Trigger Information missing"<<std::endl;
+    evt_.l1_rate=NOVAL_F;
   }
   
   evt_.good=NOVAL_I;
