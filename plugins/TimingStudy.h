@@ -49,6 +49,8 @@ class TimingStudy : public edm::EDAnalyzer
   virtual void beginJob();
   virtual void endJob();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
+  virtual void beginRun(edm::Run const&, edm::EventSetup const&);
+  virtual void endRun(edm::Run const&, edm::EventSetup const&);
   virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
   virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&);
 
@@ -85,9 +87,12 @@ class TimingStudy : public edm::EDAnalyzer
 
  public:
 
+  int lhcFillNumber_;
+
   // Event info
   class EventData {
    public:
+    int fill;
     int run;
     int ls;
     int orb;
@@ -96,6 +101,7 @@ class TimingStudy : public edm::EDAnalyzer
     int nvtx;
     int trig;
     unsigned int beamint[2];
+    float l1_rate;
     float intlumi;
     float instlumi;
     float vtxndof;
@@ -128,6 +134,7 @@ class TimingStudy : public edm::EDAnalyzer
 
     EventData() { init(); };
     void init() {
+      fill=NOVAL_I;
       run=NOVAL_I;
       ls=NOVAL_I;
       orb=NOVAL_I;
@@ -136,6 +143,7 @@ class TimingStudy : public edm::EDAnalyzer
       nvtx=NOVAL_I;
       trig=NOVAL_I;
       beamint[0]=beamint[1]=abs(NOVAL_I);
+      l1_rate=NOVAL_F;
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
       vtxndof=vtxD0=vtxZ=NOVAL_F;
@@ -159,7 +167,7 @@ class TimingStudy : public edm::EDAnalyzer
       federrs_size=0;
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
-      list="run/I:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:intlumi/F:instlumi:"
+      list="fill/I:run:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:l1_rate/F:intlumiinstlumi:"
 	"vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:"
 	"tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:"
 	"ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
@@ -182,26 +190,35 @@ class TimingStudy : public edm::EDAnalyzer
   // Lumi info
   class LumiData {
    public:
+    int fill;
     int run;
     int ls;
+    unsigned int time; // Unix time - seconds starting from 1970 Jan 01 00:00
     unsigned int beamint[2];
     float intlumi;
     float instlumi;
     int ntriggers;
     int prescale[32];
+    int l1_size;
+    int l1[1000][2]; // [i][0]: rate [i][1]: prescale for ith L1 trigger
 
     std::string list;
 
     LumiData() { init(); };
     void init() {
+      fill=NOVAL_I;
       run=NOVAL_I;
       ls=NOVAL_I;
+      time=abs(NOVAL_I);
       beamint[0]=beamint[1]=abs(NOVAL_I);
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
       ntriggers=0;
+      for (size_t i=0; i<32; i++) prescale[i]=NOVAL_I;
+      l1_size=0;
+      for (size_t i=0; i<1000; i++) l1[i][0]=l1[i][0]=NOVAL_I;
 
-      list="run/I:ls:beamint[2]/i:intlumi/F:instlumi:ntriggers/I:prescale[ntriggers]";
+      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:ntriggers/I:prescale[32]:l1_size:I:l1[l1_size][2]";
     }
 
   } lumi_;

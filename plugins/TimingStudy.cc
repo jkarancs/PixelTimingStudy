@@ -54,6 +54,7 @@
 #include "DataFormats/Common/interface/ConditionsInEdm.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
+#include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
 
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
@@ -443,13 +444,28 @@ void TimingStudy::beginJob()
 
 }
 
+void TimingStudy::beginRun(edm::Run const& iRun,
+			   edm::EventSetup const& iSetup){
+  lhcFillNumber_ = NOVAL_I;
+  // get ConditionsInRunBlock
+  edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
+  iRun.getByLabel("conditionsInEdm", condInRunBlock);
+  if (!condInRunBlock.isValid()) {
+    std::cout<<"** ERROR: no RunBlock info is available\n";
+    return;
+  }
+  lhcFillNumber_ = condInRunBlock->lhcFillNumber;
+}
 
+void TimingStudy::endRun(edm::Run const& iRun,
+			   edm::EventSetup const& iSetup){
+}
 
 void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi, 
 				       edm::EventSetup const& iSetup){
 
   // isNewLS_ should be set false either in the ctor or by the endLumiBlock(..
-  assert(isNewLS_==false); 
+  //   assert(isNewLS_==false); 
   isNewLS_=true;
   
   assert(lumi_.run==NOVAL_I);
@@ -463,7 +479,7 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
 
   // isNewLS_ should be set false by the first event, if it is not false,
   // there was no event in this lumisection!!!!
-  assert(isNewLS_==false);
+  //   assert(isNewLS_==false);
 
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
@@ -481,12 +497,14 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   }
 
   // check that this lumiblock info is consistent with the last event
-  assert(lumi_.run == int(iLumi.run()));
-  assert(lumi_.ls == int(iLumi.luminosityBlock()));
+  //   assert(lumi_.run == int(iLumi.run()));
+  //   assert(lumi_.ls == int(iLumi.luminosityBlock()));
 
   lumi_.init(); // temporal values deleted, now we fill it for real
+  lumi_.fill=lhcFillNumber_;
   lumi_.run=iLumi.run();
   lumi_.ls=iLumi.luminosityBlock();
+  lumi_.time=iLumi.beginTime().unixTime();
   lumi_.intlumi=lumi->intgRecLumi();
   lumi_.instlumi=lumi->avgInsDelLumi();
   lumi_.beamint[0]=cond->totalIntensityBeam1;
@@ -496,7 +514,10 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   std::cout << " beam 1 int "<<lumi_.beamint[0]<<" beam 2 int "<<lumi_.beamint[1]<<std::endl;
 
   std::cout<<"Trigger counts\n";
+  lumi_.l1_size = lumi->nTriggerLine();
   for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
+    lumi_.l1[iL1][0] = lumi->l1info(iL1).ratecount;
+    lumi_.l1[iL1][1] = lumi->l1info(iL1).prescale;
     if (DEBUG) {
       std::cout<<"\tL1A: "<<lumi->l1info(iL1).ratecount
 	       <<"\tPS: "<<lumi->l1info(iL1).prescale
@@ -569,6 +590,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Read event info
   //
   if (JKDEBUG) w.Start();
+  evt_.fill=lhcFillNumber_;
   evt_.run=iEvent.id().run();
   evt_.evt=iEvent.id().event();
   evt_.ls=iEvent.luminosityBlock();
@@ -583,6 +605,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // in the event before reaching endLuminosityBlock(). Therefore, it is not
   // possible to fill every event with this info. However, if the bug is fixed
   // running or RAW should produce the same result as RECO
+  edm::Handle<Level1TriggerScalersCollection> l1trig;
+  iEvent.getByLabel("scalersRawToDigi", l1trig);
+  if (!l1trig.isValid()) std::cout<<"BAZDMEG"<<std::endl;
+    evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   if (lumi.isValid()) {
     evt_.intlumi=lumi->intgRecLumi();
     evt_.instlumi=lumi->avgInsDelLumi();
