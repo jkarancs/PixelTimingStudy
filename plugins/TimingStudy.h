@@ -167,11 +167,11 @@ class TimingStudy : public edm::EDAnalyzer
       federrs_size=0;
       for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
 
-      list="fill/I:run:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:l1_rate/F:intlumiinstlumi:"
-	"vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:"
-	"tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:"
-	"ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:"
-	"federrs_size/I:federrs[federrs_size][2]";
+      list="fill/I:run:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:l1_rate/F:intlumi:"
+	"instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:"
+	"tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:"
+	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:"
+	"trackSep/F:federrs_size/I:federrs[federrs_size][2]";
     }
 
     int federrs_fedid(size_t i) {
@@ -216,9 +216,10 @@ class TimingStudy : public edm::EDAnalyzer
       ntriggers=0;
       for (size_t i=0; i<32; i++) prescale[i]=NOVAL_I;
       l1_size=0;
-      for (size_t i=0; i<1000; i++) l1[i][0]=l1[i][0]=NOVAL_I;
-
-      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:ntriggers/I:prescale[32]:l1_size:I:l1[l1_size][2]";
+      for (size_t i=0; i<1000; i++) l1[i][0]=l1[i][1]=NOVAL_I;
+      
+      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:ntriggers/I:"
+	"prescale[32]:l1_size:l1[l1_size][2]";
     }
 
   } lumi_;
