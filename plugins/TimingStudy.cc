@@ -88,6 +88,7 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 {
   eventTree_=NULL;
   lumiTree_=NULL;
+  runTree_=NULL;
   trackTree_=NULL;
   clustTree_=NULL;
   trajTree_=NULL;
@@ -185,6 +186,10 @@ void TimingStudy::beginJob()
   lumiTree_ = new TTree("lumiTree", "The lumi");
   lumiTree_->Branch("lumi", &lumi_, lumi_.list.data());
 
+  // The run
+  runTree_ = new TTree("runTree", "The run");
+  runTree_->Branch("run", &run_, run_.list.data());
+
   #ifndef SPLIT
   #ifdef COMPLETE
   TrackData track_;
@@ -201,6 +206,7 @@ void TimingStudy::beginJob()
   //clustTree_->AutoSave();
   clustTree_->Branch("event", &evt_, evt_.list.data());
   clustTree_->Branch("clust", &clust, clust.list.data());
+  clustTree_->Branch("clust_pix", &clust.pix, "pix[size][2]/F");
   clustTree_->Branch("module", &clust.mod, clust.mod.list.data());
   clustTree_->Branch("module_on", &clust.mod_on, clust.mod_on.list.data());
   #endif
@@ -216,6 +222,7 @@ void TimingStudy::beginJob()
   #endif
   trajTree_->Branch("module_on", &trajmeas.mod_on, trajmeas.mod_on.list.data());
   trajTree_->Branch("clust", &trajmeas.clu, trajmeas.clu.list.data());
+  trajTree_->Branch("clust_pix", &trajmeas.clu.pix, "pix[size][2]/F");
   trajTree_->Branch("track", &trajmeas.trk, trajmeas.trk.list.data());
 
 
@@ -243,9 +250,13 @@ void TimingStudy::beginJob()
   
   // traj
   // Non-splitted branch
-  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit");
+  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:clust_near/I:hit_near");
   // Paired branches
+  #if SPLIT > 0
   trajTree_->Branch("traj_alphabeta",        &trajmeas.alpha,           "alpha/F:beta");
+  trajTree_->Branch("traj_dxy_cl",           &trajmeas.dx_cl,           "dx_cl[2]/F:dy_cl[2]");
+  trajTree_->Branch("traj_dxy_hit",          &trajmeas.dx_hit,          "dx_hit/F:dy_hit");
+  #endif
   // Split-mode branches
   trajTree_->Branch("traj_norm_charge",      &trajmeas.norm_charge,     "norm_charge/F");
   #ifdef COMPLETE
@@ -275,8 +286,10 @@ void TimingStudy::beginJob()
   
   // clust
   // Paired branches
+  #if SPLIT > 1
   trajTree_->Branch("clust_xy",              &trajmeas.clu.x,           "x/F:y");
   trajTree_->Branch("clust_sizeXY",          &trajmeas.clu.sizeX,       "sizeX/I:sizeY");
+  #endif
   // Split-mode branches
   #ifdef COMPLETE
   //   trajTree_->Branch("clust_i",               &trajmeas.clu.i,           "i/I"); // NOVAL_I (trajTree)
@@ -285,8 +298,11 @@ void TimingStudy::beginJob()
   trajTree_->Branch("clust_tworoc",          &trajmeas.clu.tworoc,      "tworoc/I");
   #endif
   trajTree_->Branch("clust_size",            &trajmeas.clu.size,        "size/I");
+  trajTree_->Branch("clust_adc",             &trajmeas.clu.pix,         "adc[size]/F");
+  #if SPLIT > 1
   trajTree_->Branch("clust_charge",          &trajmeas.clu.charge,      "charge/F");
-  trajTree_->Branch("clust_pix",             &trajmeas.clu.pix,         "pix[size][3]/F");
+  trajTree_->Branch("clust_pix",             &trajmeas.clu.pix,         "pix[size][2]/F");
+  #endif
   
   // track
   // Non-splitted branch
@@ -331,7 +347,8 @@ void TimingStudy::beginJob()
   clustTree_->Branch("clust_tworoc",          &clust.tworoc,          "tworoc/I");
   clustTree_->Branch("clust_size",            &clust.size,            "size/I");
   clustTree_->Branch("clust_charge",          &clust.charge,          "charge/F");
-  clustTree_->Branch("clust_pix",             &clust.pix,             "pix[size][3]/F");
+  clustTree_->Branch("clust_adc",             &clust.adc,             "adc[size]/F");
+  clustTree_->Branch("clust_pix",             &clust.pix,             "pix[size][2]/F");
   #endif
   #endif
 
@@ -446,19 +463,26 @@ void TimingStudy::beginJob()
 
 void TimingStudy::beginRun(edm::Run const& iRun,
 			   edm::EventSetup const& iSetup){
-  lhcFillNumber_ = NOVAL_I;
+  run_.init();
+  // get ConditionsInRunBlock
+  edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
+  iRun.getByLabel("conditionsInEdm", condInRunBlock);
+  if (!condInRunBlock.isValid()) { return; }
+  run_.fill = condInRunBlock->lhcFillNumber;
+}
+
+void TimingStudy::endRun(edm::Run const& iRun,
+			   edm::EventSetup const& iSetup){
   // get ConditionsInRunBlock
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
   if (!condInRunBlock.isValid()) {
     std::cout<<"** ERROR: no RunBlock info is available\n";
-    return;
+  } else {
+    run_.fill = condInRunBlock->lhcFillNumber;
+    run_.run = iRun.run();
   }
-  lhcFillNumber_ = condInRunBlock->lhcFillNumber;
-}
-
-void TimingStudy::endRun(edm::Run const& iRun,
-			   edm::EventSetup const& iSetup){
+  runTree_->Fill();
 }
 
 void TimingStudy::beginLuminosityBlock(edm::LuminosityBlock const& iLumi, 
@@ -501,7 +525,7 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   //   assert(lumi_.ls == int(iLumi.luminosityBlock()));
 
   lumi_.init(); // temporal values deleted, now we fill it for real
-  lumi_.fill=lhcFillNumber_;
+  lumi_.fill=run_.fill;
   lumi_.run=iLumi.run();
   lumi_.ls=iLumi.luminosityBlock();
   lumi_.time=iLumi.beginTime().unixTime();
@@ -524,7 +548,8 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
 	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
     }
     for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
-      if (triggerNames_[i]!=lumi->l1info(iL1).triggername) continue;
+      // if (triggerNames_[i]!=lumi->l1info(iL1).triggername) continue;
+      if (lumi->l1info(iL1).triggername.find(triggerNames_[i])) continue;
       std::cout<<"Found trigger: \tL1A: "<<lumi->l1info(iL1).ratecount
 	       <<"\tPS: "<<lumi->l1info(iL1).prescale
 	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
@@ -539,7 +564,8 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
 	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
     }
     for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
-      if (triggerNames_[i]!=lumi->hltinfo(iHLT).pathname) continue;
+      // if (triggerNames_[i]!=lumi->hltinfo(iHLT).pathname) continue;
+      if (lumi->hltinfo(iHLT).pathname.find(triggerNames_[i])) continue;
       std::cout<<"Found trigger: \tHLTA: "<<lumi->hltinfo(iHLT).ratecount
 	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
 	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
@@ -590,7 +616,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Read event info
   //
   if (JKDEBUG) w.Start();
-  evt_.fill=lhcFillNumber_;
+  evt_.fill=run_.fill;
   evt_.run=iEvent.id().run();
   evt_.evt=iEvent.id().event();
   evt_.ls=iEvent.luminosityBlock();
@@ -607,7 +633,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     evt_.intlumi=lumi->intgRecLumi();
     evt_.instlumi=lumi->avgInsDelLumi();
   } else {
-    std::cout << "** ERROR: LumiSummary missing\n";
+    // std::cout << "** ERROR: LumiSummary missing\n";
     evt_.intlumi=NOVAL_F;
     evt_.instlumi=NOVAL_F;
   }
@@ -618,7 +644,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     evt_.beamint[0]=cond->totalIntensityBeam1;
     evt_.beamint[1]=cond->totalIntensityBeam2;
   } else {
-    std::cout << "** ERROR: conditionsInEdm block missing\n";
+    // std::cout << "** ERROR: conditionsInEdm block missing\n";
     evt_.beamint[0]=evt_.beamint[1]=abs(NOVAL_I);
   }
 
@@ -627,7 +653,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if (l1trig.isValid()) {
     evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   } else {
-    std::cout<<"** ERROR: L1 Trigger Information missing"<<std::endl;
+    // std::cout<<"** ERROR: L1 Trigger Information missing"<<std::endl;
     evt_.l1_rate=NOVAL_F;
   }
   
@@ -664,7 +690,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       std::string sname=triggerNames.triggerNames()[itrig];
       for (size_t k=0; k<triggerNames_.size(); k++) {
 	//if (sname.find(triggerNames_[k])==std::string::npos) continue;
-	if (sname!=triggerNames_[k]) continue;
+	// if (sname!=triggerNames_[k]) continue;
+	if (sname.find(triggerNames_[k])) continue;
 	if (triggerResults->accept(itrig)==0) continue;
 	evt_.trig|=(1<<k);
       }
@@ -719,6 +746,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Read FED error info
 
   std::map<uint32_t, int> federrors;
+  int federr[15];
+  for (int i=0; i<15; i++) federr[i]=0;
   assert(evt_.federrs_size==0);
 
   if (JKDEBUG) w.Start();
@@ -728,40 +757,34 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if (siPixelRawDataErrorCollectionHandle.isValid()) {
     const edm::DetSetVector<SiPixelRawDataError>& siPixelRawDataErrorCollection = *siPixelRawDataErrorCollectionHandle;
     edm::DetSetVector<SiPixelRawDataError>::const_iterator itPixelErrorSet = siPixelRawDataErrorCollection.begin();
-    std::map<int, int> evt_federrs;
+    //std::map<int, int> evt_federrs;
 
     for (; itPixelErrorSet!=siPixelRawDataErrorCollection.end(); itPixelErrorSet++) {
       edm::DetSet<SiPixelRawDataError>::const_iterator itPixelError=itPixelErrorSet->begin();
       
       for(; itPixelError!=itPixelErrorSet->end(); ++itPixelError) {
-	if (JKDEBUG) std::cout << "FED ID: " << itPixelError->getFedId() << std::endl;
-	if (JKDEBUG) std::cout << "Word32: " << itPixelError->getWord32() << std::endl;
-	if (JKDEBUG) std::cout << "Word64: " << itPixelError->getWord64() << std::endl;
-	if (JKDEBUG) std::cout << "Type: " << itPixelError->getType() << std::endl;
-	if (JKDEBUG) std::cout << "Error message: " << itPixelError->getMessage() << std::endl;
-
-	pair<std::map<int, int>::iterator,bool> check;
-	check=evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));
-	if (check.second==false) {
-	  std::cout << "ERROR: found new FED error with FED ID already listed in this event\n";
+	if (JKDEBUG) { 
+	  std::cout << "FED ID: " << itPixelError->getFedId() << std::endl;
+	  std::cout << "Word32: " << itPixelError->getWord32() << std::endl;
+	  std::cout << "Word64: " << itPixelError->getWord64() << std::endl;
+	  std::cout << "Type: " << itPixelError->getType() << std::endl;
+	  std::cout << "Error message: " << itPixelError->getMessage() << std::endl;
 	}
 	if (itPixelErrorSet->detId()!=0xffffffff) {
 	  DetId detId(itPixelErrorSet->detId());
-	  federrors.insert(std::pair<uint32_t,int>(detId.rawId(), itPixelError->getType()));
-	  evt_federrs.insert(std::pair<int,int>(itPixelError->getFedId(),itPixelError->getType()));	  
+	  int type = itPixelError->getType();
+	  federrors.insert(std::pair<uint32_t,int>(detId.rawId(), type));
+	  if (type>24&&type<40) federr[type-25]++;
+	  else std::cout<<"ERROR: Found new FED error with not recognised Error type: "<<type<<std::endl;
 	}
       }
     }
-
-    if (evt_federrs.size()>40) {
-      std::cout<<"ERROR: found "<<evt_federrs.size()<<" FED errors! Keeping only the first 41\n";
-    }
-
-    for(std::map<int,int>::iterator it = evt_federrs.begin(); it != evt_federrs.end(); ++it){
-      evt_.federrs[evt_.federrs_size][0]=it->first;
-      evt_.federrs[evt_.federrs_size][1]=it->second;
-      evt_.federrs_size++;
-      if (evt_.federrs_size>=41) break;
+    for (int i=0; i<15; i++) {
+      if (federr[i]!=0) {
+	evt_.federrs[evt_.federrs_size][0]=federr[i];
+	evt_.federrs[evt_.federrs_size][1]=i+25;
+	evt_.federrs_size++;
+      }
     }
   }
 
@@ -988,9 +1011,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	clust.sizeX=itCluster->sizeX();
 	clust.sizeY=itCluster->sizeY();
 	for (int i=0; i<itCluster->size() && i<1000; i++) {
-	  clust.pix[i][0]=float(itCluster->pixelADC()[i])/1000.0;
-	  clust.pix[i][1]=((itCluster->pixels())[i]).x;
-	  clust.pix[i][2]=((itCluster->pixels())[i]).y;
+	  clust.adc[i]=float(itCluster->pixelADC()[i])/1000.0;
+	  clust.pix[i][0]=((itCluster->pixels())[i]).x;
+	  clust.pix[i][1]=((itCluster->pixels())[i]).y;
 	}
 	
 	clust.mod=module;
@@ -1008,7 +1031,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     std::cout<<"DONE: Reading the Clusters\n";
     w.Print();
   }
-
+  
   #endif
 
   //
@@ -1405,9 +1428,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    meas.clu.x=(*clust).x();
 	    meas.clu.y=(*clust).y();
 	    for (int i=0; i<(*clust).size() && i<1000; i++) {
-	      meas.clu.pix[i][0]=float((*clust).pixelADC()[i])/1000.0;
-	      meas.clu.pix[i][1]=(((*clust).pixels())[i]).x;
-	      meas.clu.pix[i][2]=(((*clust).pixels())[i]).y;
+	      meas.clu.adc[i]=float((*clust).pixelADC()[i])/1000.0;
+	      meas.clu.pix[i][0]=(((*clust).pixels())[i]).x;
+	      meas.clu.pix[i][1]=(((*clust).pixels())[i]).y;
 	    }
 	    meas.norm_charge = meas.clu.charge*
 	      sqrt(1.0/(1.0/pow(tan(meas.alpha),2)+1.0/pow(tan(meas.beta),2)+1.0));
@@ -1770,6 +1793,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     #ifndef SPLIT
     clustTree_->SetBranchAddress("event", &evt_);
     clustTree_->SetBranchAddress("clust", &clusts_[i]);
+    clustTree_->SetBranchAddress("clust_pix", &clusts_[i].pix);
     clustTree_->SetBranchAddress("module", &clusts_[i].mod);
     clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
     #else
@@ -1780,16 +1804,17 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     
     // clust
     // Paired branches
-    clustTree_->SetBranchAddress("clust_xy",              &clusts_[i]x);
-    clustTree_->SetBranchAddress("clust_sizeXY",          &clusts_[i]sizeX);
+    clustTree_->SetBranchAddress("clust_xy",              &clusts_[i].x);
+    clustTree_->SetBranchAddress("clust_sizeXY",          &clusts_[i].sizeX);
     // Split-mode branches
-    clustTree_->SetBranchAddress("clust_i",               &clusts_[i]i);
-    clustTree_->SetBranchAddress("clust_edge",            &clusts_[i]edge);
-    clustTree_->SetBranchAddress("clust_badpix",          &clusts_[i]badpix);
-    clustTree_->SetBranchAddress("clust_tworoc",          &clusts_[i]tworoc);
-    clustTree_->SetBranchAddress("clust_size",            &clusts_[i]size);
-    clustTree_->SetBranchAddress("clust_charge",          &clusts_[i]charge);
-    clustTree_->SetBranchAddress("clust_pix",             &clusts_[i]pix);
+    clustTree_->SetBranchAddress("clust_i",               &clusts_[i].i);
+    clustTree_->SetBranchAddress("clust_edge",            &clusts_[i].edge);
+    clustTree_->SetBranchAddress("clust_badpix",          &clusts_[i].badpix);
+    clustTree_->SetBranchAddress("clust_tworoc",          &clusts_[i].tworoc);
+    clustTree_->SetBranchAddress("clust_size",            &clusts_[i].size);
+    clustTree_->SetBranchAddress("clust_charge",          &clusts_[i].charge);
+    clustTree_->SetBranchAddress("clust_adc",             &clusts_[i].adc);
+    clustTree_->SetBranchAddress("clust_pix",             &clusts_[i].pix);
     #endif
     clustTree_->Fill();
   }
@@ -1827,6 +1852,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  }
 	}
       }
+      trajmeas_[itrk][i].clust_near = (trajmeas_[itrk][i].d_cl[0]!=NOVAL_F&&trajmeas_[itrk][i].d_cl[0]<0.05);
+      trajmeas_[itrk][i].hit_near = (minD<0.5);
+
       #ifndef SPLIT
       trajTree_->SetBranchAddress("event", &evt_);
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
@@ -1835,6 +1863,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       #endif
       trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
       trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
+      trajTree_->SetBranchAddress("clust_pix", &trajmeas_[itrk][i].clu.pix);
       trajTree_->SetBranchAddress("track", &trajmeas_[itrk][i].trk);
       #else
       // Split mode
@@ -1846,7 +1875,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // Non-splitted branch
       trajTree_->SetBranchAddress("traj",                  &trajmeas_[itrk][i]);
       // Paired branches
+      #if SPLIT > 0
       trajTree_->SetBranchAddress("traj_alphabeta",        &trajmeas_[itrk][i].alpha);
+      trajTree_->SetBranchAddress("traj_dxy_cl",           &trajmeas_[itrk][i].dx_cl);
+      trajTree_->SetBranchAddress("traj_dxy_hit",          &trajmeas_[itrk][i].dx_hit);
+      #endif
       // Split-mode branches
       trajTree_->SetBranchAddress("traj_norm_charge",      &trajmeas_[itrk][i].norm_charge);
       #ifdef COMPLETE
@@ -1876,8 +1909,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       
       // clust
       // Paired branches
+      #if SPLIT > 1
       trajTree_->SetBranchAddress("clust_xy",              &trajmeas_[itrk][i].clu.x);
       trajTree_->SetBranchAddress("clust_sizeXY",          &trajmeas_[itrk][i].clu.sizeX);
+      #endif
       // Split-mode branches
       #ifdef COMPLETE
       //   trajTree_->SetBranchAddress("clust_i",               &trajmeas_[itrk][i].clu.i);
@@ -1886,8 +1921,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajTree_->SetBranchAddress("clust_tworoc",          &trajmeas_[itrk][i].clu.tworoc);
       #endif
       trajTree_->SetBranchAddress("clust_size",            &trajmeas_[itrk][i].clu.size);
+      trajTree_->SetBranchAddress("clust_adc",             &trajmeas_[itrk][i].clu.adc);
+      #if SPLIT > 1
       trajTree_->SetBranchAddress("clust_charge",          &trajmeas_[itrk][i].clu.charge);
       trajTree_->SetBranchAddress("clust_pix",             &trajmeas_[itrk][i].clu.pix);
+      #endif
       
       
       // track
@@ -1992,9 +2030,9 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
   minD[0]=minD[1]=10000.;
 
   for ( ; itClusterSet!=clusterCollection.end(); itClusterSet++) {
-
+    
     DetId detId(itClusterSet->id());
-
+    
     if (detId.rawId()!=rawId) continue;
 
     unsigned int subDetId=detId.subdetId();
