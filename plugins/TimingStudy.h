@@ -62,6 +62,7 @@ class TimingStudy : public edm::EDAnalyzer
 
   TTree* eventTree_;
   TTree* lumiTree_;
+  TTree* runTree_;
   TTree* trackTree_;
   TTree* clustTree_;
   TTree* trajTree_;
@@ -86,8 +87,6 @@ class TimingStudy : public edm::EDAnalyzer
   bool isNewLS_;
 
  public:
-
-  int lhcFillNumber_;
 
   // Event info
   class EventData {
@@ -128,7 +127,7 @@ class TimingStudy : public edm::EDAnalyzer
     float trackSep;
     int federrs_size;
     // must be the last variable of the object saved to TTree:
-    int federrs[41][2]; // [error index] [0:fedId, 1:errorType]
+    int federrs[15][2]; // [error index] [0:Nerror, 1:errorType]
 
     std::string list;
 
@@ -165,7 +164,7 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
       trackSep=NOVAL_F;
       federrs_size=0;
-      for (size_t i=0; i<41; i++) federrs[i][0]=federrs[i][0]=NOVAL_I;
+      for (size_t i=0; i<15; i++) federrs[i][0]=federrs[i][1]=NOVAL_I;
 
       list="fill/I:run:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:l1_rate/F:intlumi:"
 	"instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:"
@@ -223,6 +222,25 @@ class TimingStudy : public edm::EDAnalyzer
     }
 
   } lumi_;
+
+
+  // Run info
+  class RunData {
+   public:
+    int fill;
+    int run;
+
+    std::string list;
+
+    RunData() { init(); };
+    void init() {
+      fill=NOVAL_I;
+      run=NOVAL_I;
+      
+      list="fill/I:run";
+    }
+
+  } run_;
 
 
   // Track info
@@ -400,9 +418,9 @@ class TimingStudy : public edm::EDAnalyzer
     int tworoc;   // set if there is a valid hit
     int size;
     float charge;
-    // must be the last variable of the object saved to TTree:
-    // adc, x, y
-    float pix[1000][3];
+    // adc must be the last variable of the branch
+    float adc[1000];
+    float pix[1000][2];
 
     std::string list;
 
@@ -418,9 +436,9 @@ class TimingStudy : public edm::EDAnalyzer
       tworoc=NOVAL_I;
       size=0;
       charge=NOVAL_F;
-      for (size_t i=0; i<1000; i++) pix[i][0]=pix[i][1]=pix[i][2]=NOVAL_F;
+      for (size_t i=0; i<1000; i++) adc[i]=pix[i][0]=pix[i][1]=NOVAL_F;
 
-      list="x:y:sizeX/I:sizeY:i:edge:badpix:tworoc:size:charge/F:pix[size][3]";
+      list="x:y:sizeX/I:sizeY:i:edge:badpix:tworoc:size:charge/F:adc[size]";
     }
 
   };
@@ -456,21 +474,23 @@ class TimingStudy : public edm::EDAnalyzer
     int missing;
     float lx;
     float ly;
+    int clust_near;
+    int hit_near;
+    // Paired branch (keep order)
+    float alpha;
+    float beta;
     float dx_cl[2];
     float dy_cl[2];
     float dx_hit;
     float dy_hit;
-    // Paired branch (keep order)
-    float alpha;
-    float beta;
     // From here Split mode (if SPLIT defined)
+    float norm_charge;
     float lz;
     float glx;
     float gly;
     float glz;
     float lxmatch;
     float lymatch;
-    float norm_charge;
     int i; // serial num of trajectory measurement on the (single) track of the event
     int onedge;
     int inactive;
@@ -496,12 +516,14 @@ class TimingStudy : public edm::EDAnalyzer
       missing=NOVAL_I;
       lx=NOVAL_F;
       ly=NOVAL_F;
+      clust_near=NOVAL_I;
+      hit_near=NOVAL_I;
+      alpha=NOVAL_F;
+      beta=NOVAL_F;
       dx_cl[0]=dx_cl[1]=NOVAL_F;
       dy_cl[0]=dy_cl[1]=NOVAL_F;
       dx_hit=NOVAL_F;
       dy_hit=NOVAL_F;
-      alpha=NOVAL_F;
-      beta=NOVAL_F;
       lz=NOVAL_F;
       glx=NOVAL_F;
       gly=NOVAL_F;
@@ -527,12 +549,14 @@ class TimingStudy : public edm::EDAnalyzer
       d_cl[0]=d_cl[1]=NOVAL_F;
 
 #ifdef COMPLETE
-      list="validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:alpha:beta:"
-	"lz:glx:gly:glz:lxmatch:lymatch:norm_charge:i/I:onedge:inactive:badhit:"
-	"telescope:telescope_valid:dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:"
-	"lxymatch:res_hit:sig_hit:d_cl[2]";
+      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:alpha/F:beta:"
+	"dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:norm_charge:lz:glx:gly:glz:lxmatch:"
+	"lymatch:i/I:onedge:inactive:badhit:telescope:telescope_valid:"
+	"dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:lxymatch:res_hit:"
+	"sig_hit:d_cl[2]";
 #else
-      list="validhit/I:missing:lx/F:ly:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:alpha:beta:";
+      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:alpha/F:beta:"
+	"dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:norm_charge";
 #endif
     }
 
