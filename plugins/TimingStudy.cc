@@ -55,6 +55,7 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 #include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
+#include <DataFormats/Common/interface/EDCollection.h>
 
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
@@ -537,44 +538,17 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   std::cout << " inst lumi "<<lumi_.instlumi<<" int lumi "<<lumi_.intlumi<<std::endl;
   std::cout << " beam 1 int "<<lumi_.beamint[0]<<" beam 2 int "<<lumi_.beamint[1]<<std::endl;
 
-  std::cout<<"Trigger counts\n";
+  std::cout<<"L1 trigger prescales\n";
   lumi_.l1_size = lumi->nTriggerLine();
   for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
-    lumi_.l1[iL1][0] = lumi->l1info(iL1).ratecount;
-    lumi_.l1[iL1][1] = lumi->l1info(iL1).prescale;
-    if (DEBUG) {
-      std::cout<<"\tL1A: "<<lumi->l1info(iL1).ratecount
-	       <<"\tPS: "<<lumi->l1info(iL1).prescale
-	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
-    }
-    for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
-      // if (triggerNames_[i]!=lumi->l1info(iL1).triggername) continue;
-      if (lumi->l1info(iL1).triggername.find(triggerNames_[i])) continue;
-      std::cout<<"Found trigger: \tL1A: "<<lumi->l1info(iL1).ratecount
-	       <<"\tPS: "<<lumi->l1info(iL1).prescale
-	       <<"\tL1: "<<lumi->l1info(iL1).triggername<<std::endl;
-      lumi_.prescale[i]=lumi->l1info(iL1).prescale;
-    }
+    lumi_.l1_prescale[iL1] = lumi->l1info(iL1).prescale;
+    if (DEBUG) std::cout<<"\tPS: "<<lumi->l1info(iL1).prescale<<std::endl;
+    /* Note: input/ratecounts are no longer stored
+       The trigger name info can only be accessed from vectors
+       in a new object: LumiSummaryRunHeader
+       RECO data: Cannot test until new RECO data ready
+       RAW  data: This info is created in endRun only, match recursively? */
   }
-  for (size_t iHLT=0; iHLT<lumi->nHLTPath(); iHLT++) {
-    if (DEBUG) {
-      std::cout<<"\tHLTA: "<<lumi->hltinfo(iHLT).ratecount
-	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
-	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
-	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
-    }
-    for (size_t i=0; i<triggerNames_.size() && i<32; i++) {
-      // if (triggerNames_[i]!=lumi->hltinfo(iHLT).pathname) continue;
-      if (lumi->hltinfo(iHLT).pathname.find(triggerNames_[i])) continue;
-      std::cout<<"Found trigger: \tHLTA: "<<lumi->hltinfo(iHLT).ratecount
-	       <<"\tL1I:  "<<lumi->hltinfo(iHLT).inputcount
-	       <<"\tPS: "<<lumi->hltinfo(iHLT).prescale
-	       <<"\tHLT: "<<lumi->hltinfo(iHLT).pathname<<std::endl;
-      lumi_.prescale[i]=lumi->hltinfo(iHLT).prescale;
-    }
-  }
-
-  lumi_.ntriggers=triggerNames_.size() <= 32 ? triggerNames_.size() : 32;
 
   lumiTree_->Fill();
 
@@ -746,8 +720,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Read FED error info
 
   std::map<uint32_t, int> federrors;
-  int federr[15];
-  for (int i=0; i<15; i++) federr[i]=0;
+  int federr[16];
+  for (int i=0; i<16; i++) federr[i]=0;
   assert(evt_.federrs_size==0);
 
   if (JKDEBUG) w.Start();
@@ -774,12 +748,47 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  DetId detId(itPixelErrorSet->detId());
 	  int type = itPixelError->getType();
 	  federrors.insert(std::pair<uint32_t,int>(detId.rawId(), type));
-	  if (type>24&&type<40) federr[type-25]++;
+	  if (type>24&&type<=40) federr[type-25]++;
 	  else std::cout<<"ERROR: Found new FED error with not recognised Error type: "<<type<<std::endl;
 	}
       }
     }
-    for (int i=0; i<15; i++) {
+    for (int i=0; i<16; i++) {
+      if (federr[i]!=0) {
+	evt_.federrs[evt_.federrs_size][0]=federr[i];
+	evt_.federrs[evt_.federrs_size][1]=i+25;
+	evt_.federrs_size++;
+      }
+    }
+  }
+
+  // Run this if siPixelRawDataErrorCollection is not available (eg in RECO)
+  if (!siPixelRawDataErrorCollectionHandle.isValid()) {
+    
+    // Tracking Error list
+    edm::Handle<edm::EDCollection<DetId> > TrackingErrorDetIdCollectionHandle;
+    iEvent.getByLabel("siPixelDigis", TrackingErrorDetIdCollectionHandle);
+    
+    if (TrackingErrorDetIdCollectionHandle.isValid()) {
+      const edm::EDCollection<DetId>& TrackingErrorDetIdCollection = *TrackingErrorDetIdCollectionHandle;
+      for (size_t i=0; i<TrackingErrorDetIdCollection.size(); i++) {
+	federrors.insert(std::pair<uint32_t,int>(TrackingErrorDetIdCollection[i].rawId(), 29));
+	federr[4]++;
+      }
+    }
+    
+    // User Error List (Overflow only by default)
+    edm::Handle<edm::EDCollection<DetId> > UserErrorDetIdCollectionHandle;
+    iEvent.getByLabel("siPixelDigis", "UserErrorModules", UserErrorDetIdCollectionHandle);
+    
+    if (UserErrorDetIdCollectionHandle.isValid()) {
+      const edm::EDCollection<DetId>& UserErrorDetIdCollection = *UserErrorDetIdCollectionHandle;
+      for (size_t i=0; i<UserErrorDetIdCollection.size(); i++) {
+	federrors.insert(std::pair<uint32_t,int>(UserErrorDetIdCollection[i].rawId(), 40));
+	federr[15]++;
+      }
+    }
+    for (int i=0; i<16; i++) {
       if (federr[i]!=0) {
 	evt_.federrs[evt_.federrs_size][0]=federr[i];
 	evt_.federrs[evt_.federrs_size][1]=i+25;
@@ -960,9 +969,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Read cluster information
   //
 
-  #ifdef COMPLETE
-
   if (JKDEBUG) w.Start();
+
+  for (size_t i=0; i<4; i++) evt_.nclu[i]=evt_.npix[i]=0;
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
@@ -1015,6 +1024,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  clust.pix[i][0]=((itCluster->pixels())[i]).x;
 	  clust.pix[i][1]=((itCluster->pixels())[i]).y;
 	}
+	if (module_on.det!=NOVAL_I) {
+	  evt_.nclu[(1-module_on.det)*module_on.layer]++;
+	  evt_.npix[(1-module_on.det)*module_on.layer]+=itCluster->size();
+	}
 	
 	clust.mod=module;
 	clust.mod_on=module_on;
@@ -1025,15 +1038,19 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
     } // loop on cluster sets
   }
-
+  if (JKDEBUG) {
+    std::cout<<"Nclusters on L1: "<<evt_.nclu[1]<<" L2: "<<evt_.nclu[2]
+	     <<" L3: "<<evt_.nclu[3]<<" FPix: "<<evt_.nclu[0]
+	     <<"\tNpixels on L1: "<<evt_.npix[1]<<" L2: "<<evt_.npix[2]
+	     <<" L3: "<<evt_.npix[3]<<" FPix: "<<evt_.npix[0]<<std::endl;
+  }
+  
   if (JKDEBUG) {
     w.Stop();
     std::cout<<"DONE: Reading the Clusters\n";
     w.Print();
   }
   
-  #endif
-
   //
   // Process tracks
   //

@@ -99,6 +99,8 @@ class TimingStudy : public edm::EDAnalyzer
     int evt;
     int nvtx;
     int trig;
+    int nclu[4]; // [0: fpix, i: layer i]
+    int npix[4]; // [0: fpix, i: layer i]
     unsigned int beamint[2];
     float l1_rate;
     float intlumi;
@@ -127,7 +129,7 @@ class TimingStudy : public edm::EDAnalyzer
     float trackSep;
     int federrs_size;
     // must be the last variable of the object saved to TTree:
-    int federrs[15][2]; // [error index] [0:Nerror, 1:errorType]
+    int federrs[16][2]; // [error index] [0:Nerror, 1:errorType]
 
     std::string list;
 
@@ -141,6 +143,7 @@ class TimingStudy : public edm::EDAnalyzer
       evt=NOVAL_I;
       nvtx=NOVAL_I;
       trig=NOVAL_I;
+      for (size_t i=0; i<4; i++) nclu[i]=npix[i]=NOVAL_I;
       beamint[0]=beamint[1]=abs(NOVAL_I);
       l1_rate=NOVAL_F;
       intlumi=NOVAL_F;
@@ -164,25 +167,14 @@ class TimingStudy : public edm::EDAnalyzer
       ntrackBPixvalid[0]=ntrackBPixvalid[1]=ntrackBPixvalid[2]=NOVAL_I;
       trackSep=NOVAL_F;
       federrs_size=0;
-      for (size_t i=0; i<15; i++) federrs[i][0]=federrs[i][1]=NOVAL_I;
+      for (size_t i=0; i<16; i++) federrs[i][0]=federrs[i][1]=NOVAL_I;
 
-      list="fill/I:run:ls:orb:bx:evt:nvtx:trig:beamint[2]/i:l1_rate/F:intlumi:"
-	"instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:"
-	"tmuon_err:tecal:tecal_raw:tecal_err:field:wbc/I:delay:ntracks:"
-	"ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:ntrackBPixvalid[3]:"
-	"trackSep/F:federrs_size/I:federrs[federrs_size][2]";
+      list="fill/I:run:ls:orb:bx:evt:nvtx:trig:nclu[4]:npix[4]:beamint[2]/i:"
+	"l1_rate/F:intlumi:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
+	"vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:"
+	"wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:"
+	"ntrackBPixvalid[3]:trackSep/F:federrs_size/I:federrs[federrs_size][2]";
     }
-
-    int federrs_fedid(size_t i) {
-      assert(federrs_size!=NOVAL_I);
-      return (i<size_t(federrs_size)) ? federrs[i][0] : NOVAL_I;
-    }
-
-    int federrs_type(size_t i) {
-      assert(federrs_size!=NOVAL_I);
-      return (i<size_t(federrs_size)) ? federrs[i][1] : NOVAL_I;
-    }
-
   } evt_;
 
 
@@ -196,10 +188,8 @@ class TimingStudy : public edm::EDAnalyzer
     unsigned int beamint[2];
     float intlumi;
     float instlumi;
-    int ntriggers;
-    int prescale[32];
     int l1_size;
-    int l1[1000][2]; // [i][0]: rate [i][1]: prescale for ith L1 trigger
+    int l1_prescale[1000]; // prescale for the L1 trigger with idx
 
     std::string list;
 
@@ -212,13 +202,11 @@ class TimingStudy : public edm::EDAnalyzer
       beamint[0]=beamint[1]=abs(NOVAL_I);
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
-      ntriggers=0;
-      for (size_t i=0; i<32; i++) prescale[i]=NOVAL_I;
       l1_size=0;
-      for (size_t i=0; i<1000; i++) l1[i][0]=l1[i][1]=NOVAL_I;
+      for (size_t i=0; i<1000; i++) l1_prescale[i]=NOVAL_I;
       
-      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:ntriggers/I:"
-	"prescale[32]:l1_size:l1[l1_size][2]";
+      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:l1_size/I:"
+	"l1_prescale[l1_size]";
     }
 
   } lumi_;
