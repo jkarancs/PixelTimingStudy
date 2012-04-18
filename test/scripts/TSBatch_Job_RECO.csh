@@ -22,7 +22,11 @@ echo
 
 source ${VO_CMS_SW_DIR}/cmsset_default.csh
 if ( $1 =~ "CMSSW_5_"* ) then
-    setenv SCRAM_ARCH slc5_amd64_gcc462
+    if ( $1 =~ "CMSSW_5_0_"* ) then
+	setenv SCRAM_ARCH slc5_amd64_gcc434
+    else
+	setenv SCRAM_ARCH slc5_amd64_gcc462
+    endif
 else
     setenv SCRAM_ARCH slc5_amd64_gcc434
 endif
