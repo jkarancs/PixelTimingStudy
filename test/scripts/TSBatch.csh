@@ -10,11 +10,9 @@
 #   Feel free to try it!
 #
 # Job info: See test/scripts/TSBatch_Job_RECO.csh file
-#   The Job Script saves files to /castor/... so make sure 
-#   that you edit it first! (see BSub  tutorial)
-#   Or if you have access, you can also save to EOS with the command below
-#   eg:
-#   cmsStage <file> /store/caf/user/<username>/<dir>
+#   The Job Script moves output files to EOS:
+#   /store/caf/user/<username>/...
+#   So make sure that you edit USERDIR first! (see BSub  tutorial)
 #   I don't know yet how to delegate proxy on batch to copy outside CERN
 #   You can try a test task with Create and then
 #   run a test job on one file only (see BSub tutorial below)
@@ -23,12 +21,8 @@
 #   - if a submit/resubmit script (see Usage) suggest sourcing a file view it first!
 #   - make a test job out of the first line like in the example
 #     - edit test/scripts/TSBatch_Job_RECO.csh
-#       replace /castor/cern.ch/user/j/jkarancs/lxplus_run/
-#       with your directory, modify directory to be writeable from outside
-#	eg:
-#       rfmkdir /castor/cern.ch/user/<initial>/<username>/<dir>
-#       rfchmod 777 /castor/cern.ch/user/<initial>/<username>/<dir>
-#     - do previous step for other scripts in test/scripts
+#       replace the USERDIR string ("jkarancs/crab") with your username
+#     - do previous step for test/scrips/eosmis.csh as well
 #     - Create a task by doing Step 0,1 of Usage below (it is a working example)
 #     - you can replace the cmscaf1nd queue (Step 1) if you don't have access
 #       with 8nm or just delete "-q <queue>"
@@ -38,7 +32,7 @@
 #     cp test/scripts/TSBatch_Job_RECO.csh test.csh
 #     chmod 777 test.csh     #This is needed so lxbatch job can access it
 #     bsub -L tcsh test.csh CMSSW_5_2_3_patch1 GR_R_52_V7 0001_test /store/data/Commissioning12/ZeroBias1/RECO/PromptReco-v1/000/190/411/FE4CD0E8-DD80-E111-88F1-5404A638869B.root 10
-#
+#    - Now added a testing script for the submit option (Step 2)
 #
 # Usage - In Steps 0-6:
 #
@@ -71,7 +65,7 @@
 # 
 #   source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.csh
 #   voms-proxy-init --voms cms -valid 120:00
-#   source test/scripts/TSBatch.csh create v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2 input.txt cmscaf1nd test/scripts/TSBatch_Job_RECO.csh CMSSW_5_2_3_patch1 GR_R_52_V7
+#   source test/scripts/TSBatch.csh create v3029_INC_SPL0_442p2_MB0TN_Run2011A_PR_RECO_HV5 input.txt cmscaf1nd test/scripts/TSBatch_Job_RECO.csh CMSSW_4_4_2_patch2 GR_R_44_V15
 #
 # 
 # Step 2 - Submit - TSBatch.csh submit [TaskDir]
@@ -116,35 +110,44 @@ if ( $1 == "create" ) then
 	if ( ! -e $3 ) then
 	    echo "Input file does not exist"
 	else
+	    echo "--------------------------------------------------------------------------------"
 	    mkdir $2
 	    chmod 777 $2
-	    echo "--------------------------------------------------------------------------------"
-	    echo "Creating Task: "$2
-	    echo "Input file: "$3
-	    echo "Lxbatch queue: "$4
-	    echo "Job Scrip file: "$5
-	    echo "CMSSW version: "$6
-	    echo "Global Tag: "$7
-	    echo
+	    echo "Task Name:       "$2
 	    cp $3 $2/input.txt
-	    cp $5 $2/jobscript.csh
+	    echo "Input file:      "$3
+	    set NJOBS = `wc -l $2/input.txt | awk '{ print $1}'`
+	    echo "Number of Jobs:  "$NJOBS
+	    echo "Lxbatch queue:   "$4
+	    sed "s;outdir;"$2";" $5 > $2/jobscript.csh
 	    chmod 777 $2/jobscript.csh
+	    echo "Job Script file: "$5
+	    echo "CMSSW version:   "$6
+	    echo "Global Tag:      "$7
+	    echo
 	    cd $2
-	    sed = input.txt | sed 'N;s;\n; ;' | sed '1,9s;^;000;' | sed '10,99s;^;00;' | sed '100,999s;^;0;' | awk '{ print "bsub -q '$4' -L tcsh jobscript.csh '$6' '$7' "$1" "$2 }' > alljobs.csh
+	    mkdir STDOUT
+	    chmod 666 STDOUT
+	    sed = input.txt | sed 'N;s;\n; ;' | sed '1,9s;^;000;' | sed '10,99s;^;00;' | sed '100,999s;^;0;' | awk '{ print "bsub -oo STDOUT/JOB_"$1".log -q '$4' -L tcsh jobscript.csh '$6' '$7' "$1" "$2 }' > alljobs.csh
 	    cd -
 	    echo "Task Created"
 	    echo "--------------------------------------------------------------------------------"
 	endif
     endif
 else if ( $1 == "submit" ) then
-    echo "Source this file:"
     echo "cd "$2 >! $2/submit.csh
     cat $2/alljobs.csh >> $2/submit.csh
     echo "cd -" >> $2/submit.csh
+    echo "cd "$2 >! $2/test.csh
+    head -1 $2/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;0001;test;;s;0001;test;" >> $2/test.csh
+    echo "cd -" >> $2/test.csh
+    echo "Source this file:"
     echo "source "$2"/submit.csh"
+    echo "or for testing:"
+    echo "source "$2"/test.csh"
 else if ( $1 == "missing" ) then
     set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
-    source test/scripts/castormis.csh ../lxplus_run $NJOBS
+    source test/scripts/eosmis.csh $2 $NJOBS
 else if ( $1 == "resubmit" ) then
     echo "cd "$2 >! $2/resub.csh
     source test/scripts/resub.csh $2/alljobs.csh $3 >> $2/resub.csh
@@ -153,7 +156,7 @@ else if ( $1 == "resubmit" ) then
     echo "source "$2"/resub.csh"
 else if ( $1 == "resubmit_missing" ) then
     set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
-    set LIST = `source test/scripts/castormis.csh ../lxplus_run $NJOBS`
+    set LIST = `source test/scripts/eosmis.csh $2 $NJOBS`
     echo "cd "$2 >! $2/resub.csh
     source test/scripts/resub.csh $2/alljobs.csh $LIST >> $2/resub.csh
     echo "cd -" >> $2/resub.csh
