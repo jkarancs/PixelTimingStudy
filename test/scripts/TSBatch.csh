@@ -13,7 +13,8 @@
 #   The Job Script moves output files to EOS:
 #   /store/caf/user/<username>/...
 #   So make sure that you edit USERDIR first! (see BSub  tutorial)
-#   I don't know yet how to delegate proxy on batch to copy outside CERN
+#   I don't know yet, how to delegate proxy on lxbatch to save to other SE,
+#   but there is an option to copy output from EOS to T2_HU_Budapest
 #   You can try a test task with Create and then
 #   run a test job on one file only (see BSub tutorial below)
 #
@@ -22,32 +23,26 @@
 #   - make a test job out of the first line like in the example
 #     - edit test/scripts/TSBatch_Job_RECO.csh
 #       replace the USERDIR string ("jkarancs/crab") with your username
-#     - do previous step for test/scrips/eosmis.csh as well
+#     - do previous step for test/scrips/eosmis.csh and copy_to_kfki.csh as well,
 #     - Create a task by doing Step 0,1 of Usage below (it is a working example)
 #     - you can replace the cmscaf1nd queue (Step 1) if you don't have access
-#       with 8nm or just delete "-q <queue>"
+#       with 8nm or just delete "-q <queue>" equivalently
 #       Available queues for user: bqueues -u <username>
 #     - specify a maximum number of events, eg 10
 #     eg:
 #     cp test/scripts/TSBatch_Job_RECO.csh test.csh
 #     chmod 777 test.csh     #This is needed so lxbatch job can access it
 #     bsub -L tcsh test.csh CMSSW_5_2_3_patch1 GR_R_52_V7 0001_test /store/data/Commissioning12/ZeroBias1/RECO/PromptReco-v1/000/190/411/FE4CD0E8-DD80-E111-88F1-5404A638869B.root 10
-#    - Now added a testing script for the submit option (Step 2)
+#    - The above steps are done in the test.csh script of the submit option (Step 2)
 #
 # Usage - In Steps 0-6:
 #
-# Step 0 - Check out PixelTimingStudy
+# Step 0 - Check out PixelTimingStudy (or just the test directory like below)
 #   eg:
-#   setenv SCRAM_ARCH slc5_amd64_gcc462
-#   cmsrel CMSSW_5_2_3_patch1
-#   cd CMSSW_5_2_3_patch1/src
-#   cmsenv
-#   mkdir DPGAnalysis
-#   cd DPGAnalysis
-#   cvs co -d PixelTimingStudy UserCode/Debrecen/PixelTimingStudy
-#   cd PixelTimingStudy/
+#   cmsenv      #in any CMSSW release area
+#   cvs co -d test UserCode/Debrecen/PixelTimingStudy/test
 #
-#   - This script uses other scripts in the test/scripts directory so stay in the PixelTimingStudy directory
+#   - This script uses other scripts in the test/scripts directory so stay in the current directory
 #   - Create a list of input files that are accessible within CERN (T2/T1/T0_CERN_CH, T2_CH_CAF etc)
 #   - Put it inside a file like input.txt
 #   eg:
@@ -65,13 +60,13 @@
 # 
 #   source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.csh
 #   voms-proxy-init --voms cms -valid 120:00
+#   <Grid pass phrase>
 #   source test/scripts/TSBatch.csh create v3029_INC_SPL0_442p2_MB0TN_Run2011A_PR_RECO_HV5 input.txt cmscaf1nd test/scripts/TSBatch_Job_RECO.csh CMSSW_4_4_2_patch2 GR_R_44_V15
 #
 # 
 # Step 2 - Submit - TSBatch.csh submit [TaskDir]
 #
 #   source test/scripts/TSBatch.csh submit v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
-#   > Source this file:
 #   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/submit.csh
 #
 #
@@ -84,7 +79,6 @@
 # Step 4 - Resubmit * - TSBatch.csh resubmit [TaskDir] [list]
 #
 #   source test/scripts/TSBatch.csh resubmit v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2 21,105,165,345,524
-#   > Source this file:
 #   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/resub.csh
 # 
 #
@@ -92,11 +86,16 @@
 #   * Combines the above two automatically
 #
 #   source test/scripts/TSBatch.csh resubmit_missing v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
-#   > Source this file:
 #   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/resub.csh
 #
 #
-# Step 6 - Delete - TSBatch.csh delete [TaskDir]
+# Step 6 - Copy to KFKI - TSBatch.csh copy_to_kfki [TaskDir]
+#
+#   source test/scripts/TSBatch.csh copy_to_kfki v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
+#   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/copy_to_kfki.csh
+#
+#
+# Step 7 - Delete - TSBatch.csh delete [TaskDir]
 #   - Or you can simply delete the directory now
 #
 #   source test/scripts/TSBatch.csh delete v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
@@ -141,9 +140,8 @@ else if ( $1 == "submit" ) then
     echo "cd "$2 >! $2/test.csh
     head -1 $2/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;0001;test;;s;0001;test;" >> $2/test.csh
     echo "cd -" >> $2/test.csh
-    echo "Source this file:"
     echo "source "$2"/submit.csh"
-    echo "or for testing:"
+    echo "Or you can try this test script:"
     echo "source "$2"/test.csh"
 else if ( $1 == "missing" ) then
     set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
@@ -152,7 +150,6 @@ else if ( $1 == "resubmit" ) then
     echo "cd "$2 >! $2/resub.csh
     source test/scripts/resub.csh $2/alljobs.csh $3 >> $2/resub.csh
     echo "cd -" >> $2/resub.csh
-    echo "Source this file:"
     echo "source "$2"/resub.csh"
 else if ( $1 == "resubmit_missing" ) then
     set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
@@ -160,8 +157,19 @@ else if ( $1 == "resubmit_missing" ) then
     echo "cd "$2 >! $2/resub.csh
     source test/scripts/resub.csh $2/alljobs.csh $LIST >> $2/resub.csh
     echo "cd -" >> $2/resub.csh
-    echo "Source this file:"
     echo "source "$2"/resub.csh"
+else if ( $1 == "copy_to_kfki" ) then
+    if ( $2 != "" ) then
+	set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
+	set LIST = `source test/scripts/eosmis.csh $2 $NJOBS`
+	if ( $LIST != "" ) then
+	    echo "Some files still missing: "$LIST
+	endif
+	source test/scripts/eos_to_kfki.csh $2 >! $2/copy_to_kfki.csh
+	echo "source "$2"/copy_to_kfki.csh"
+    else
+	echo "Missing Task Directory argument"
+    endif
 else if ( $1 == "delete" ) then
     if ( -d $2) then
 	rm -r $2
@@ -176,5 +184,6 @@ else
     echo "TSBatch.csh missing [TaskDir]"
     echo "TSBatch.csh resubmit [TaskDir] [list]"
     echo "TSBatch.csh resubmit_missing [TaskDir]"
+    echo "TSBatch.csh copy_to_kfki [TaskDir]"
     echo "TSBatch.csh delete [TaskDir]"
 endif
