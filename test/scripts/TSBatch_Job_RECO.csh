@@ -1,11 +1,13 @@
 #!/bin/tcsh
 ##########################################################################
 # Script to run TimingStudy on RECO data on an lxbatch node.
-# It runs a cmsRun on a specified file and saves the output to Castor on:
-# /castor/cern.ch/user/j/jkarancs/lxplus_run/
+# It runs a cmsRun on a specified file and moves the output to EOS:
+# /store/caf/user/<username>/...
+# Make sure to modify USERDIR (and OUTDIR, TSBatch.csh does it automatically)
+# on the bottom of the script
 #
 # Default settings:
-# INCOMPLETE, SPLIT 2, Nstrip > 0
+# INCOMPLETE, SPLIT 0, Nstrip > 0
 #
 # Usage:
 # source TS_BatchJob_RECO.csh [CMSSW version] [GlobalTag] [job number] [/store/...] [Nevent = -1]
@@ -31,7 +33,7 @@ mkdir DPGAnalysis
 cd DPGAnalysis
 cvs co -d PixelTimingStudy UserCode/Debrecen/PixelTimingStudy
 cd PixelTimingStudy/
-sed -i "s;#define SPLIT 0;#define SPLIT 2;" plugins/TimingStudy.cc
+#sed -i "s;#define SPLIT 0;#define SPLIT 2;" plugins/TimingStudy.cc
 sed -i "s;MB_RECO.root;MB_RECO_"$3".root;" test/MB_RECO_cfg.py
 sed -i "s;#minNStripHits = cms.int32(0),;minNStripHits = cms.int32(0),;" test/MB_RECO_cfg.py
 sed -i "s;GR_R_52_V7;"$2";" test/MB_RECO_cfg.py
@@ -54,19 +56,29 @@ echo "                                 Compiling ready"
 echo "                               Starting JOB ["$3"]"
 echo
 
-cmsRun test/MB_RECO_cfg.py | tee JOB_$3.log
+cmsRun test/MB_RECO_cfg.py
 
 echo
 echo "--------------------------------------------------------------------------------"
 echo "                               JOB ["$3"] Finished"
-echo "                            Writing output to Castor..."
+echo "                            Writing output to EOS..."
 echo
 
-# Copy to Castor
-rfcp MB_RECO_$3.root /castor/cern.ch/user/j/jkarancs/lxplus_run/
-rfcp JOB_$3.log /castor/cern.ch/user/j/jkarancs/lxplus_run/LOG/
-rfdir /castor/cern.ch/user/j/jkarancs/lxplus_run/ | grep MB_RECO_$3.root
-rfdir /castor/cern.ch/user/j/jkarancs/lxplus_run/LOG/ | grep JOB_$3.log
+# Copy to Eos
+set USERDIR = "jkarancs/crab"
+set OUTDIR = "outdir"
+cmsLs /store/caf/user/$USERDIR | grep $OUTDIR > ! checkdir.txt
+if ( -z checkdir.txt ) then
+    cmsMkdir /store/caf/user/$USERDIR/$OUTDIR
+    echo "Created directory on EOS"
+endif
+rm checkdir.txt
+
+cmsStage MB_RECO_$3.root /store/caf/user/$USERDIR/$OUTDIR
+
+echo
+echo "Output: "
+cmsLs /store/caf/user/$USERDIR/$OUTDIR/MB_RECO_$3.root
 
 cd ../../../..
 rm -r $1
