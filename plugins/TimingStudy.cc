@@ -60,6 +60,7 @@
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 // For ROOT
 #include <TROOT.h>
@@ -105,6 +106,8 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 
   usePixelCPE_=false;
   minNStripHits_=11;
+
+  mcLumiScale_=1.0;
 
   isNewLS_ = false;
   lumi_.init(); // ctor of lumi_ should take care of this, but just to be sure
@@ -170,6 +173,10 @@ void TimingStudy::beginJob()
     std::cout<<"NON-DEFAULT PARAMETER: triggerNames= ";
     for (size_t i=0; i<triggerNames_.size(); i++) std::cout<<triggerNames_[i]<<" ";
     std::cout<<std::endl;
+  }
+  if (iConfig_.exists("mcLumiScale")) {
+    mcLumiScale_=iConfig_.getParameter<double>("mcLumiScale");
+    std::cout<<"NON-DEFAULT PARAMETER: mcLumiScale= "<<mcLumiScale_<<std::endl;
   }
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
@@ -509,7 +516,12 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
   if (!lumi.isValid()) {
-    std::cout<<"** ERROR: no LuminosityBlock info is available\n";
+    if (run_.fill!=0) {
+      std::cout<<"** ERROR: no LuminosityBlock info is available\n";
+    } else {
+      std::cout<<"** WARNING: no LuminosityBlock info is available, likely running on MC\n";
+      lumi_.init();
+    }
     return;
   }
 
@@ -623,14 +635,44 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
 
   edm::Handle<Level1TriggerScalersCollection> l1trig;
-  iEvent.getByLabel("scalersRawToDigi", l1trig);
-  if (l1trig.isValid()) {
+
+  if (l1trig.isValid() && l1trig->size()!=0) {
     evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   } else {
     // std::cout<<"** ERROR: L1 Trigger Information missing"<<std::endl;
     evt_.l1_rate=NOVAL_F;
   }
   
+
+  // For Monte Carlo, estimate the instantaneous luminosity based on number of true interactions
+  //
+  if (run_.fill==0) {
+    edm::Handle<std::vector<PileupSummaryInfo> > puInfo;
+    iEvent.getByLabel("addPileupInfo", puInfo);
+    
+    if (puInfo.isValid()) {
+      // look for the intime PileupSummaryInfo
+      std::vector<PileupSummaryInfo>::const_iterator pu;
+      std::vector<PileupSummaryInfo>::const_iterator pu0=puInfo->end();
+
+      for(pu=puInfo->begin(); pu!=puInfo->end(); ++pu) {
+	if (pu->getBunchCrossing()==0) pu0=pu;
+	if (JKDEBUG) {
+	  std::cout<<"BX="<<pu->getBunchCrossing()<<" - N_int="<<pu->getPU_NumInteractions()<<" / "
+		   <<"N_true="<<pu->getTrueNumInteractions()<<"\n";
+	}
+      }
+
+      if(pu0!=puInfo->end()) {
+	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
+      } else {
+	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
+      }
+    }
+
+  }
+
+
   evt_.good=NOVAL_I;
 
   if (evt_.run==124022) {

@@ -80,6 +80,7 @@ class TimingStudy : public edm::EDAnalyzer
   bool keepOriginalMissingHit_;
   bool usePixelCPE_;
   int minNStripHits_;
+  double mcLumiScale_;
 
   std::vector<std::string> triggerNames_; // Max 20 trigger names
   edm::InputTag triggerTag_;

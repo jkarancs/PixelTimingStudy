@@ -31,7 +31,8 @@ process.load("Configuration.StandardSequences.Geometry_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "GR_R_42_V25::All"
 #process.GlobalTag.globaltag = "GR_R_44_V15::All"
-process.GlobalTag.globaltag = "GR_R_52_V7::All"
+#process.GlobalTag.globaltag = "GR_R_52_V7::All"
+process.GlobalTag.globaltag = "START44_V13::All"
 
 
 #-------------------------
@@ -209,6 +210,7 @@ process.source = cms.Source("PoolSource",
                             #firstRun = cms.untracked.uint32(64108),
                             #interval = cms.uint32(1),
     fileNames = cms.untracked.vstring(
+'file:/home/jkarancs/GEN-SIM-RECO/MinBias_TuneD6T_7TeV-pythia6__Fall11-PU_S6_START44_V9B-v1__GEN-SIM-RECO/F69916DE-D440-E111-82AB-0026189438F6.root'
 # High Background Fill to test 42X
 #'/store/data/Run2011B/MinimumBias/RECO/PromptReco-v1/000/178/421/54F5B35E-1EF8-E011-A5BD-BCAEC5329720.root'
 #'/store/data/Commissioning12/MinimumBias/RECO/PromptReco-v1/000/188/997/B8C350C8-E376-E111-91BE-001D09F27067.root'
@@ -237,7 +239,7 @@ process.p = cms.Path(
     #process.siPixelDigis*process.siStripDigis*
     #//process.RawToDigi*process.reconstructionCosmics*
     # Beamspot:
-    process.offlineBeamSpot*
+    #process.offlineBeamSpot*
     # Track reco:
     #process.trackerlocalreco*process.recopixelvertexing*process.ckftracks_plus_pixelless*
     # Refitters:
