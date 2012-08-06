@@ -449,7 +449,7 @@ class Analysis {
     TFile *fo= new TFile(outfile_.c_str(),"recreate");
     ah.calc_write(var);
     fo->Close();
-    std::cout<<"File: "<<outfile_<<" ready."<<std::endl;
+    std::cout<<"Histo File:  "<<outfile_<<" ready."<<std::endl;
   }
 
   // Accessors

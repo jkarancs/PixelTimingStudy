@@ -1,5 +1,3 @@
-#include "TimingStudyCuts.h"
-
 class Variables {
   
 public:
