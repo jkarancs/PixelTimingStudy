@@ -31,8 +31,10 @@ process.load("Configuration.StandardSequences.Geometry_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "GR_R_42_V25::All"
 #process.GlobalTag.globaltag = "GR_R_44_V15::All"
-#process.GlobalTag.globaltag = "GR_R_52_V7::All"
-process.GlobalTag.globaltag = "START44_V13::All"
+process.GlobalTag.globaltag = "GR_R_53_V14::All"
+
+# For MC
+#process.GlobalTag.globaltag = "START53_V7A::All"
 
 
 #-------------------------
@@ -139,11 +141,6 @@ process.load("Alignment.OfflineValidation.TrackerOfflineValidation_cfi")
 ## process.load('HLTrigger.special.hltPhysicsDeclared_cfi')
 ## process.hltPhysicsDeclared.L1GtReadoutRecordTag = 'gtDigis'
 
-# Trigger filter
-process.load('L1TriggerConfig.L1GtConfigProducers.L1GtTriggerMaskTechTrigConfig_cff')
-process.load('HLTrigger/HLTfilters/hltLevel1GTSeed_cfi')
-process.hltLevel1GTSeed.L1TechTriggerSeeding = cms.bool(True)
-process.hltLevel1GTSeed.L1SeedsLogicalExpression = cms.string('(40 OR 41) AND ( NOT 36) AND ( NOT 37) AND ( NOT 38) AND ( NOT 39) AND 0 AND ( ( 42 AND 43) OR ( NOT 42 AND ( NOT 43) ) )')
 
 #-------------------------
 #  Ntuplizer code
@@ -210,7 +207,10 @@ process.source = cms.Source("PoolSource",
                             #firstRun = cms.untracked.uint32(64108),
                             #interval = cms.uint32(1),
     fileNames = cms.untracked.vstring(
-'file:/home/jkarancs/GEN-SIM-RECO/MinBias_TuneD6T_7TeV-pythia6__Fall11-PU_S6_START44_V9B-v1__GEN-SIM-RECO/F69916DE-D440-E111-82AB-0026189438F6.root'
+'/store/data/Run2012C/MinimumBias/RECO/PromptReco-v2/000/201/278/A0EEE587-55ED-E111-B860-003048F118DE.root'
+# Silvia's MC sample - 10k events
+#'/store/user/taroni/Pixel/PUComparisonE/STEP2_normalized.root'
+
 # High Background Fill to test 42X
 #'/store/data/Run2011B/MinimumBias/RECO/PromptReco-v1/000/178/421/54F5B35E-1EF8-E011-A5BD-BCAEC5329720.root'
 #'/store/data/Commissioning12/MinimumBias/RECO/PromptReco-v1/000/188/997/B8C350C8-E376-E111-91BE-001D09F27067.root'
@@ -232,7 +232,6 @@ process.maxEvents = cms.untracked.PSet(
 
 process.p = cms.Path(
     # Trigger selection:
-    #process.hltLevel1GTSeed*
     #process.hltPhysicsDeclared*
     #process.hltfilter*
     # Reco:
