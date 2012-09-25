@@ -86,6 +86,8 @@ class TimingStudy : public edm::EDAnalyzer
   edm::InputTag triggerTag_;
 
   bool isNewLS_;
+  std::map<unsigned long int, double> runls_instlumi_;
+  std::map<unsigned long int, double> runls_pileup_;
 
  public:
 
@@ -106,6 +108,8 @@ class TimingStudy : public edm::EDAnalyzer
     float l1_rate;
     float intlumi;
     float instlumi;
+    float instlumi_ext;
+    float pileup;
     float vtxndof;
     float vtxchi2;
     float vtxD0;
@@ -149,6 +153,8 @@ class TimingStudy : public edm::EDAnalyzer
       l1_rate=NOVAL_F;
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
+      instlumi_ext=NOVAL_F;
+      pileup=NOVAL_F;
       vtxndof=vtxD0=vtxZ=NOVAL_F;
       vtxX=vtxY=vtxchi2=NOVAL_F;
       vtxntrk=NOVAL_I;
@@ -171,10 +177,11 @@ class TimingStudy : public edm::EDAnalyzer
       for (size_t i=0; i<16; i++) federrs[i][0]=federrs[i][1]=NOVAL_I;
 
       list="fill/I:run:ls:orb:bx:evt:nvtx:trig:nclu[4]:npix[4]:beamint[2]/i:"
-	"l1_rate/F:intlumi:instlumi:vtxndof:vtxchi2:vtxD0:vtxX:vtxY:vtxZ:"
-	"vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:tecal_err:field:"
-	"wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:ntrackFPixvalid[2]:"
-	"ntrackBPixvalid[3]:trackSep/F:federrs_size/I:federrs[federrs_size][2]";
+	"l1_rate/F:intlumi:instlumi:instlumi_ext:pileup:vtxndof:vtxchi2:vtxD0:"
+	"vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:"
+	"tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:"
+	"ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:federrs_size/I:"
+	"federrs[federrs_size][2]";
     }
   } evt_;
 
@@ -189,6 +196,8 @@ class TimingStudy : public edm::EDAnalyzer
     unsigned int beamint[2];
     float intlumi;
     float instlumi;
+    float instlumi_ext;
+    float pileup;
     int l1_size;
     int l1_prescale[1000]; // prescale for the L1 trigger with idx
 
@@ -203,11 +212,13 @@ class TimingStudy : public edm::EDAnalyzer
       beamint[0]=beamint[1]=abs(NOVAL_I);
       intlumi=NOVAL_F;
       instlumi=NOVAL_F;
+      instlumi_ext=NOVAL_F;
+      pileup=NOVAL_F;
       l1_size=0;
       for (size_t i=0; i<1000; i++) l1_prescale[i]=NOVAL_I;
       
-      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:l1_size/I:"
-	"l1_prescale[l1_size]";
+      list="fill/I:run:ls:time/i:beamint[2]:intlumi/F:instlumi:instlumi_ext:"
+	"pileup:l1_size/I:l1_prescale[l1_size]";
     }
 
   } lumi_;

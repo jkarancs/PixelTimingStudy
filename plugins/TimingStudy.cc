@@ -464,7 +464,32 @@ void TimingStudy::beginJob()
       std::cout << "FED Error type (" << (*it).first << ") : " << (*it).second << std::endl;
   }
 
-
+  // Read InstLumi (delivered) and Pileup from text file generated with lumiCalc2.py
+  int run = 0;
+  int ls = 0;
+  unsigned long int runls = 0;
+  double instlumi = 0.0;
+  double pileup = 0.0;
+  FILE * input = fopen ("run_ls_instlumi_pileup_2012.txt","r");
+  if (input) std::cout<<"Reading run_ls_instlumi_pileup_2012.txt"<<std::endl;
+  else {
+    std::cout<<"run_ls_instlumi_pileup_2012.txt not included,"<<std::endl;
+    std::cout<<"instlumi_ext and pileup variables not filled."<<std::endl;
+  }
+  int a = (input!=0);
+  while (a==1) {
+    a = fscanf (input, "%d", &run);
+    a = fscanf (input, "%d", &ls);
+    a = fscanf (input, "%lf", &instlumi);
+    a = fscanf (input, "%lf", &pileup);
+    if (a==1) {
+      runls = run * 100000 + ls;
+      runls_instlumi_[runls] = instlumi;
+      runls_pileup_[runls] = pileup;
+    }
+  }
+  if (input) fclose (input);
+  
   edm::LogInfo("TimingStudy") << "Begin Job Finished" << std::endl;
 
 }
@@ -544,6 +569,15 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   lumi_.time=iLumi.beginTime().unixTime();
   lumi_.intlumi=lumi->intgRecLumi();
   lumi_.instlumi=lumi->avgInsDelLumi();
+  
+  // Loading externally provided variables 
+  // InstLumi in units of ub-1s-1
+  // Implying run == 1 for MC
+  unsigned long int runls = lumi_.run*100000 + lumi_.ls;
+  lumi_.instlumi_ext = (lumi_.run==1) ? NOVAL_F :
+    (runls_instlumi_.count(runls) ? runls_instlumi_[runls] * 1000 / 23.3104 : NOVAL_F);
+  lumi_.pileup = (lumi_.run==1) ? NOVAL_F : (runls_pileup_.count(runls) ? runls_pileup_[runls] : NOVAL_F);
+  
   lumi_.beamint[0]=cond->totalIntensityBeam1;
   lumi_.beamint[1]=cond->totalIntensityBeam2;
   std::cout<< "New lumi block: Run "<<lumi_.run<<" LS = "<<lumi_.ls;
@@ -664,6 +698,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
 
       if(pu0!=puInfo->end()) {
+	evt_.pileup = pu0->getTrueNumInteractions();
 	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
@@ -672,6 +707,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   }
 
+  // Loading externally provided variables 
+  // InstLumi in units of ub-1s-1
+  // Implying run == 1 for MC
+  unsigned long int runls = evt_.run*100000 + evt_.ls;
+  evt_.instlumi_ext = (evt_.run==1) ? NOVAL_F :
+    (runls_instlumi_.count(runls) ? runls_instlumi_[runls] * 1000 / 23.3104 : NOVAL_F);
+  evt_.pileup = (evt_.run==1) ? evt_.pileup : (runls_pileup_.count(runls) ? runls_pileup_[runls] : NOVAL_F);
 
   evt_.good=NOVAL_I;
 
