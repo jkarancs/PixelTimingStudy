@@ -669,7 +669,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
 
   edm::Handle<Level1TriggerScalersCollection> l1trig;
-
+  iEvent.getByLabel("scalersRawToDigi", l1trig);
   if (l1trig.isValid() && l1trig->size()!=0) {
     evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   } else {
@@ -972,7 +972,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       evt_.vtxchi2=it->chi2();
       bestVtx=it;
     }
-    if (fabs(it->z())<=20. && fabs(it->position().rho())<=2. && it->ndof()>4) evt_.nvtx++;
+    if (fabs(it->z())<=25. && fabs(it->position().rho())<=2. && it->ndof()>4) evt_.nvtx++;
   }
   
   if (JKDEBUG) {
