@@ -31,7 +31,7 @@ process.load("Configuration.StandardSequences.Geometry_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "GR_R_42_V25::All"
 #process.GlobalTag.globaltag = "GR_R_44_V15::All"
-process.GlobalTag.globaltag = "GR_R_52_V7::All"
+process.GlobalTag.globaltag = "GR_R_53_V9F::All"
 
 
 #-------------------------
@@ -233,6 +233,7 @@ process.source = cms.Source("PoolSource",
                             #interval = cms.uint32(1),
                             #firstLuminosityBlock = cms.untracked.uint32(44),
     fileNames = cms.untracked.vstring(
+'/store/data/Run2012B/MinimumBias/RAW/v1/000/193/786/B6532FB4-F999-E111-A81A-E0CB4E4408E7.root'
 # High Background Fill to test 42X
 #'/store/data/Run2011B/MinimumBias/RAW/v1/000/178/421/9E3586B3-5BF5-E011-8F0B-BCAEC518FF6E.root'
 #'file:/home/jkarancs/RAW/MinimumBias_Run2011B-v1_RAW/CMSSW_4_2_7/0CBB28E2-CCDD-E011-8F23-003048D2C020.root'
@@ -249,7 +250,7 @@ process.source = cms.Source("PoolSource",
 #-------------------------------------------------
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1))
+    input = cms.untracked.int32(10))
 
 #-------------------------------------------------
 # Path
@@ -266,6 +267,7 @@ process.p = cms.Path(
     #process.hltPhysicsDeclared*
     #process.hltfilter*
     # Reco:
+    process.scalersRawToDigi*
     process.gtEvmDigis*
     process.siPixelDigis*process.siStripDigis*
     #//process.RawToDigi*process.reconstructionCosmics*
