@@ -542,12 +542,26 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   iLumi.getByLabel("lumiProducer", lumi);
   if (!lumi.isValid()) {
     if (run_.fill!=0) {
-      std::cout<<"** ERROR: no LuminosityBlock info is available\n";
+      std::cout<<"** WARNING: no LumiSummary info is available, likely running on ReReco\n";
     } else {
-      std::cout<<"** WARNING: no LuminosityBlock info is available, likely running on MC\n";
-      lumi_.init();
+      std::cout<<"** WARNING: no LumiSummary info is available, likely running on MC\n";
     }
-    return;
+    lumi_.init();
+  } else {
+    lumi_.init(); // temporal values deleted, now we fill it for real
+    lumi_.intlumi=lumi->intgRecLumi();
+    lumi_.instlumi=lumi->avgInsDelLumi();
+    std::cout<<"L1 trigger prescales\n";
+    lumi_.l1_size = lumi->nTriggerLine();
+    for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
+      lumi_.l1_prescale[iL1] = lumi->l1info(iL1).prescale;
+      if (DEBUG) std::cout<<"\tPS: "<<lumi->l1info(iL1).prescale<<std::endl;
+      /* Note: input/ratecounts are no longer stored
+	 The trigger name info can only be accessed from vectors
+	 in a new object: LumiSummaryRunHeader
+	 RECO data: Cannot test until new RECO data ready
+	 RAW  data: This info is created in endRun only, match recursively? */
+    }
   }
 
   // get ConditionsInLumiBlock
@@ -562,13 +576,10 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   //   assert(lumi_.run == int(iLumi.run()));
   //   assert(lumi_.ls == int(iLumi.luminosityBlock()));
 
-  lumi_.init(); // temporal values deleted, now we fill it for real
   lumi_.fill=run_.fill;
   lumi_.run=iLumi.run();
   lumi_.ls=iLumi.luminosityBlock();
   lumi_.time=iLumi.beginTime().unixTime();
-  lumi_.intlumi=lumi->intgRecLumi();
-  lumi_.instlumi=lumi->avgInsDelLumi();
   
   // Loading externally provided variables 
   // InstLumi in units of ub-1s-1
@@ -583,18 +594,6 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   std::cout<< "New lumi block: Run "<<lumi_.run<<" LS = "<<lumi_.ls;
   std::cout << " inst lumi "<<lumi_.instlumi<<" int lumi "<<lumi_.intlumi<<std::endl;
   std::cout << " beam 1 int "<<lumi_.beamint[0]<<" beam 2 int "<<lumi_.beamint[1]<<std::endl;
-
-  std::cout<<"L1 trigger prescales\n";
-  lumi_.l1_size = lumi->nTriggerLine();
-  for (size_t iL1=0; iL1<lumi->nTriggerLine(); iL1++) {
-    lumi_.l1_prescale[iL1] = lumi->l1info(iL1).prescale;
-    if (DEBUG) std::cout<<"\tPS: "<<lumi->l1info(iL1).prescale<<std::endl;
-    /* Note: input/ratecounts are no longer stored
-       The trigger name info can only be accessed from vectors
-       in a new object: LumiSummaryRunHeader
-       RECO data: Cannot test until new RECO data ready
-       RAW  data: This info is created in endRun only, match recursively? */
-  }
 
   lumiTree_->Fill();
 
