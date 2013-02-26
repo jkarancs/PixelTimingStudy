@@ -281,6 +281,9 @@ class TimingStudy : public edm::EDAnalyzer
       validfpix[0]=validfpix[1]=NOVAL_I;
       validbpix[0]=validbpix[1]=validbpix[2]=NOVAL_I;
       strip=NOVAL_I;
+      nstripmissing=NOVAL_I;
+      nstriplost=NOVAL_I;
+      nstriplayer=NOVAL_I;
       quality=NOVAL_I;
       d0=NOVAL_F;
       dz=NOVAL_F;
