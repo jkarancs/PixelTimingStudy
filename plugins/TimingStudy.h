@@ -250,6 +250,9 @@ class TimingStudy : public edm::EDAnalyzer
     int validfpix[2]; // valid recHits in Diks1,2 
     int validbpix[3]; // valid recHits in Layer 1,2,3
     int strip; // total valid hits
+    int nstripmissing;
+    int nstriplost;
+    int nstriplayer;
     int quality;
     float d0;
     float dz;
@@ -298,10 +301,12 @@ class TimingStudy : public edm::EDAnalyzer
       bpix[0]=bpix[1]=bpix[2]=NOVAL_I;
       highPurity=NOVAL_I;
 #ifdef COMPLETE
-      list="validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt:ndof:chi2:eta:phi:theta:p:"
-	"algo/I:fromVtx:i:pix:pixhit[2]:validpixhit[2]:fpix[2]:bpix[3]:highPurity";
+      list="validfpix[2]/I:validbpix[3]:strip:nstripmissing:nstriplost:nstriplayer:"
+	"quality:d0/F:dz:pt:ndof:chi2:eta:phi:theta:p:algo/I:fromVtx:i:pix:pixhit[2]:"
+	"validpixhit[2]:fpix[2]:bpix[3]:highPurity";
 #else
-      list="validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt:ndof:chi2:eta:phi";
+      list="validfpix[2]/I:validbpix[3]:strip:nstripmissing:nstriplost:nstriplayer:"
+	"quality:d0/F:dz:pt:ndof:chi2:eta:phi";
 #endif
     }
 

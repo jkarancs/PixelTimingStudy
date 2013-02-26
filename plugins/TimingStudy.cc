@@ -314,7 +314,7 @@ void TimingStudy::beginJob()
   
   // track
   // Non-splitted branch
-  trajTree_->Branch("track", &trajmeas.trk, "validfpix[2]/I:validbpix[3]:strip:quality:d0/F:dz:pt");
+  trajTree_->Branch("track", &trajmeas.trk, "validfpix[2]/I:validbpix[3]:strip:nstripmissing:nstriplost:nstriplayer:quality:d0/F:dz:pt");
   // Paired branches
   trajTree_->Branch("track_ndofchi2",        &trajmeas.trk.ndof,        "ndof/F:chi2");
   // Split-mode branches
@@ -1188,6 +1188,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.highPurity= (track.quality(reco::TrackBase::highPurity)) ? 1 : 0;
       track_.quality=track.qualityMask();
       track_.algo=track.algo();
+      track_.nstripmissing=track.hitPattern().stripLayersWithoutMeasurement();
+      track_.nstriplost=track.hitPattern().numberOfLostStripHits();
+      track_.nstriplayer=track.hitPattern().stripLayersWithMeasurement();
 
       //
       // New on 02.18.2010
