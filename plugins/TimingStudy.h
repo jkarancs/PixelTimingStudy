@@ -484,6 +484,11 @@ class TimingStudy : public edm::EDAnalyzer
     float ly;
     int clust_near;
     int hit_near;
+    int pass_effcuts;
+    int nclu_mod;
+    int nclu_roc;
+    int npix_mod;
+    int npix_roc;
     // Paired branch (keep order)
     float alpha;
     float beta;
@@ -526,6 +531,11 @@ class TimingStudy : public edm::EDAnalyzer
       ly=NOVAL_F;
       clust_near=NOVAL_I;
       hit_near=NOVAL_I;
+      pass_effcuts=NOVAL_I;
+      nclu_mod=NOVAL_I;
+      nclu_roc=NOVAL_I;
+      npix_mod=NOVAL_I;
+      npix_roc=NOVAL_I;
       alpha=NOVAL_F;
       beta=NOVAL_F;
       dx_cl[0]=dx_cl[1]=NOVAL_F;
@@ -557,14 +567,15 @@ class TimingStudy : public edm::EDAnalyzer
       d_cl[0]=d_cl[1]=NOVAL_F;
 
 #ifdef COMPLETE
-      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:alpha/F:beta:"
-	"dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:norm_charge:lz:glx:gly:glz:lxmatch:"
-	"lymatch:i/I:onedge:inactive:badhit:telescope:telescope_valid:"
-	"dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:lxymatch:res_hit:"
-	"sig_hit:d_cl[2]";
+      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_efcuts:nclu_mod:"
+	"nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:"
+	"norm_charge:lz:glx:gly:glz:lxmatch:lymatch:i/I:onedge:inactive:badhit:"
+	"telescope:telescope_valid:dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:"
+	"lxymatch:res_hit:sig_hit:d_cl[2]";
 #else
-      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:alpha/F:beta:"
-	"dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:norm_charge";
+      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_efcuts:nclu_mod:"
+	"nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:"
+	"norm_charge";
 #endif
     }
 
@@ -635,6 +646,10 @@ class TimingStudy : public edm::EDAnalyzer
   }
 
   ModuleData getModuleData(uint32_t rawId, const std::map<uint32_t, int>& federrors, std::string scheme="offline");
+
+  int get_RocID_from_cluster_coords(const float&, const float&, const ModuleData&);
+
+  int get_RocID_from_local_coords(const float&, const float&, const ModuleData&);
 
   void correctHitTypeAssignment(TrajMeasurement& meas, 
 				TransientTrackingRecHit::ConstRecHitPointer& recHit);

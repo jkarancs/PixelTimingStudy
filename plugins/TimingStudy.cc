@@ -258,9 +258,10 @@ void TimingStudy::beginJob()
   
   // traj
   // Non-splitted branch
-  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:clust_near/I:hit_near");
-  // Paired branches
+  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_effcuts");
   #if SPLIT > 0
+  // Paired branches
+  trajTree_->Branch("traj_occup",            &trajmeas.nclu_mod,        "nclu_mod/I:nclu_roc:npix_mod:npix_roc");
   trajTree_->Branch("traj_alphabeta",        &trajmeas.alpha,           "alpha/F:beta");
   trajTree_->Branch("traj_dxy_cl",           &trajmeas.dx_cl,           "dx_cl[2]/F:dy_cl[2]");
   trajTree_->Branch("traj_dxy_hit",          &trajmeas.dx_hit,          "dx_hit/F:dy_hit");
@@ -1054,7 +1055,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   if (JKDEBUG) w.Start();
 
+  // For counting number of cluster/pixels
   for (size_t i=0; i<4; i++) evt_.nclu[i]=evt_.npix[i]=0;
+  std::map<unsigned int, int> nclu_mod;
+  std::map<unsigned int, int> npix_mod;
+  std::map<unsigned long int, int> nclu_roc;
+  std::map<unsigned long int, int> npix_roc;
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
@@ -1107,10 +1113,23 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  clust.pix[i][0]=((itCluster->pixels())[i]).x;
 	  clust.pix[i][1]=((itCluster->pixels())[i]).y;
 	}
+	// Layer Occupancy
 	if (module_on.det!=NOVAL_I) {
 	  evt_.nclu[(1-module_on.det)*module_on.layer]++;
 	  evt_.npix[(1-module_on.det)*module_on.layer]+=itCluster->size();
 	}
+	// Module Occupancy
+	if (!nclu_mod.count(module_on.rawid)) nclu_mod[module_on.rawid] = 0;
+	if (!npix_mod.count(module_on.rawid)) npix_mod[module_on.rawid] = 0;
+	nclu_mod[module_on.rawid]++;
+	npix_mod[module_on.rawid]+=itCluster->size();
+	// Roc Occupancy
+	int RocID = get_RocID_from_cluster_coords(clust.x, clust.y, module_on);
+	unsigned long int modroc = module_on.rawid * 100 + RocID;
+	if (!nclu_roc.count(modroc)) nclu_roc[modroc] = 0;
+	if (!npix_roc.count(modroc)) npix_roc[modroc] = 0;
+	nclu_roc[modroc]++;
+	npix_roc[modroc]+=itCluster->size();
 	
 	clust.mod=module;
 	clust.mod_on=module_on;
@@ -1958,6 +1977,157 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       trajmeas_[itrk][i].clust_near = (trajmeas_[itrk][i].d_cl[0]!=NOVAL_F&&trajmeas_[itrk][i].d_cl[0]<0.05);
       trajmeas_[itrk][i].hit_near = (minD<0.5);
 
+      // Module/ROC Occupancies
+      trajmeas_[itrk][i].nclu_mod = (nclu_mod.count(trajmeas_[itrk][i].mod_on.rawid)) ?
+	nclu_mod[trajmeas_[itrk][i].mod_on.rawid] : 0;
+      trajmeas_[itrk][i].npix_mod = (npix_mod.count(trajmeas_[itrk][i].mod_on.rawid)) ?
+	npix_mod[trajmeas_[itrk][i].mod_on.rawid] : 0;
+
+      int RocID = get_RocID_from_local_coords(trajmeas_[itrk][i].lx, trajmeas_[itrk][i].ly, trajmeas_[itrk][i].mod_on);
+      if (RocID!=NOVAL_I) {
+	unsigned long int modroc = trajmeas_[itrk][i].mod_on.rawid * 100 + RocID;
+	trajmeas_[itrk][i].nclu_roc = (nclu_roc.count(modroc)) ? nclu_roc[modroc] : 0;
+	trajmeas_[itrk][i].npix_roc = (npix_roc.count(modroc)) ? npix_roc[modroc] : 0;
+      } else {
+	trajmeas_[itrk][i].nclu_roc = NOVAL_I;
+	trajmeas_[itrk][i].npix_roc = NOVAL_I;
+      }
+      
+      //=========================================================================================
+      //                                    Efficiency Cuts
+      //=========================================================================================
+      //__________________________________________________________________________________________
+      //                                    Event Selections
+      
+      // Number of Primary Verices >= 1 (where VtxZ<20 cm, VtxD0 < 2 cm, VtxNdof > 4)
+      bool nvtx = evt_.nvtx>=1;
+      
+      // No FED Error in the Event
+      // Previous cut: trajmeas_[itrk][i].mod_on.federr==0
+      bool federr = evt_.federrs_size==0;
+      
+      //__________________________________________________________________________________________
+      //                                    Track Selections
+      
+      // Track quality bit: HighPurity track
+      bool hp = (trajmeas_[itrk][i].trk.quality&4)!=0;
+      
+      // Hit originates from track with Pt > 1.0 GeV
+      // Previous pt cuts:
+      // BPix - 1.0 GeV, FPix 1.2 GeV
+      // 0.6 GeV
+      bool pt = trajmeas_[itrk][i].trk.pt>1.0;
+      
+      // Number of hits in the Silicon Strip Tracker > 10
+      bool nstrip = trajmeas_[itrk][i].trk.strip>10;
+      
+      // Track Impact parameters (track to vertex D0/Z distance)
+      bool d0 = trajmeas_[itrk][i].mod_on.det==0 ?
+        (trajmeas_[itrk][i].mod_on.layer==1 ? fabs(trajmeas_[itrk][i].trk.d0)<0.01 // L1
+         : fabs(trajmeas_[itrk][i].trk.d0)<0.02 ) // L2,3
+        : trajmeas_[itrk][i].mod_on.det==1 && fabs(trajmeas_[itrk][i].trk.d0)<0.05; // FPix
+      
+      bool dz = (trajmeas_[itrk][i].mod_on.det==0 && fabs(trajmeas_[itrk][i].trk.dz)<0.1) 
+        ||(trajmeas_[itrk][i].mod_on.det==1 && fabs(trajmeas_[itrk][i].trk.dz)<0.5);
+      
+      // Require 2 Valid hit on 2 other layer(s) and/or disk(s)
+      bool pixhit = trajmeas_[itrk][i].mod_on.det==0 ?
+        ( // BPix
+         trajmeas_[itrk][i].mod_on.layer==1 ?
+         (trajmeas_[itrk][i].trk.validbpix[1]>0 && trajmeas_[itrk][i].trk.validbpix[2]>0) // L2 + L3
+         || (trajmeas_[itrk][i].trk.validbpix[1]>0 && trajmeas_[itrk][i].trk.validfpix[0]>0) // L2 + D1
+         || (trajmeas_[itrk][i].trk.validfpix[0]>0 && trajmeas_[itrk][i].trk.validfpix[1]>0) // D1 + D2
+         : trajmeas_[itrk][i].mod_on.layer==2 ?
+         (trajmeas_[itrk][i].trk.validbpix[0]>0 && trajmeas_[itrk][i].trk.validbpix[2]>0) // L1 + L3
+         || (trajmeas_[itrk][i].trk.validbpix[0]>0 && trajmeas_[itrk][i].trk.validfpix[0]>0) // L1 + D1
+         : trajmeas_[itrk][i].mod_on.layer==3 &&
+         trajmeas_[itrk][i].trk.validbpix[0]>0 && trajmeas_[itrk][i].trk.validbpix[1]>0 ) // L1 + L2
+        : trajmeas_[itrk][i].mod_on.det==1 &&
+        ( // FPix
+         abs(trajmeas_[itrk][i].mod_on.disk)==1 ?
+         (trajmeas_[itrk][i].trk.validbpix[0]>0 && trajmeas_[itrk][i].trk.validfpix[1]>0) // L1 + D2
+         || (trajmeas_[itrk][i].trk.validbpix[1]>0 && trajmeas_[itrk][i].trk.validfpix[1]>0) // or L2 + D2
+         : abs(trajmeas_[itrk][i].mod_on.disk)==2 &&
+         trajmeas_[itrk][i].trk.validbpix[0]>0 && trajmeas_[itrk][i].trk.validfpix[0]>0 ); // L1 + D1
+      
+      //__________________________________________________________________________________________
+      //                          Module/ROC Fiducial Region Selections:
+      //                       Cut on the local coordinates of a hit LX/LY
+      //             Exclude Module/ROC edges and regions where nearby modules overlap
+      
+      // Module Edge Cut - LX
+      bool edge_lx = trajmeas_[itrk][i].mod_on.det==0 ? 
+        ( // BPix
+         trajmeas_[itrk][i].mod_on.half==0 ? fabs(trajmeas_[itrk][i].lx)<0.65
+         : trajmeas_[itrk][i].mod_on.half==1 && trajmeas_[itrk][i].lx>-0.3 && trajmeas_[itrk][i].lx<0.25 )
+        : trajmeas_[itrk][i].mod_on.det==1 &&
+        ( // FPix
+         trajmeas_[itrk][i].mod_on.panel==1 ?
+         ( // Panel 1
+          trajmeas_[itrk][i].mod_on.module== 1 ? trajmeas_[itrk][i].lx>-0.15 && trajmeas_[itrk][i].lx<0.3
+          : trajmeas_[itrk][i].mod_on.module==2 ? (abs(trajmeas_[itrk][i].mod_on.disk)==1  ? trajmeas_[itrk][i].lx>-0.55 && trajmeas_[itrk][i].lx<0.6 :
+          			 abs(trajmeas_[itrk][i].mod_on.disk)==2 && trajmeas_[itrk][i].lx>-0.6 && trajmeas_[itrk][i].lx<0.3)
+          : trajmeas_[itrk][i].mod_on.module==3 ? (abs(trajmeas_[itrk][i].mod_on.disk)==1  ? trajmeas_[itrk][i].lx> 0.3 && trajmeas_[itrk][i].lx<0.6 :
+          			 abs(trajmeas_[itrk][i].mod_on.disk)==2 && trajmeas_[itrk][i].lx>-0.6 && trajmeas_[itrk][i].lx<0.5)
+          : trajmeas_[itrk][i].mod_on.module==4 && trajmeas_[itrk][i].lx>-0.3 && trajmeas_[itrk][i].lx<0.15 )
+         : trajmeas_[itrk][i].mod_on.panel==2 &&
+         ( // Panel 2
+          trajmeas_[itrk][i].mod_on.module==1 ? trajmeas_[itrk][i].lx>-0.55 && trajmeas_[itrk][i].lx<0.6
+          : trajmeas_[itrk][i].mod_on.module==2 ? (abs(trajmeas_[itrk][i].mod_on.disk)==1  ? fabs(trajmeas_[itrk][i].lx)<0.55 :
+          			 abs(trajmeas_[itrk][i].mod_on.disk)==2 && trajmeas_[itrk][i].lx>-0.6 && trajmeas_[itrk][i].lx<0.55)
+          : trajmeas_[itrk][i].mod_on.module==3 && fabs(trajmeas_[itrk][i].lx)<0.55) );
+      
+      // ROC Edge cut - LX
+      bool rocedge_lx = !((trajmeas_[itrk][i].mod_on.half==0||(trajmeas_[itrk][i].mod_on.det==1&&!(trajmeas_[itrk][i].mod_on.panel==1&&(trajmeas_[itrk][i].mod_on.module==1||trajmeas_[itrk][i].mod_on.module==4))))
+          		&& fabs(trajmeas_[itrk][i].lx)<0.06);
+      
+      bool lx_fid = edge_lx && rocedge_lx;
+      
+      
+      // Module Edge Cut - LY
+      bool edge_ly = trajmeas_[itrk][i].mod_on.det==0 ? fabs(trajmeas_[itrk][i].ly)<3.1 // BPix
+        : trajmeas_[itrk][i].mod_on.det==1 &&
+        ( // FPix
+         trajmeas_[itrk][i].mod_on.panel==1 ?
+         ( // Panel 1
+          trajmeas_[itrk][i].mod_on.module==1 ? fabs(trajmeas_[itrk][i].ly)<0.7
+          : trajmeas_[itrk][i].mod_on.module==2 ? fabs(trajmeas_[itrk][i].ly)<1.1 
+          && !(trajmeas_[itrk][i].mod_on.disk==-1 && trajmeas_[itrk][i].lx>0.25 && trajmeas_[itrk][i].ly> 0.75)
+          && !(trajmeas_[itrk][i].mod_on.disk== 1 && trajmeas_[itrk][i].lx>0.25 && trajmeas_[itrk][i].ly<-0.75)
+          : trajmeas_[itrk][i].mod_on.module==3 ? fabs(trajmeas_[itrk][i].ly)<1.5
+          && !(trajmeas_[itrk][i].mod_on.disk==-1 && trajmeas_[itrk][i].ly > 1.1)
+          && !(trajmeas_[itrk][i].mod_on.disk== 1 && trajmeas_[itrk][i].ly <-1.0)
+          && !(trajmeas_[itrk][i].mod_on.disk==-2 && trajmeas_[itrk][i].lx>0.15 && trajmeas_[itrk][i].ly> 1.1)
+          && !(trajmeas_[itrk][i].mod_on.disk== 2 && trajmeas_[itrk][i].lx>0.15 && trajmeas_[itrk][i].ly<-1.1)
+          : trajmeas_[itrk][i].mod_on.module==4 && fabs(trajmeas_[itrk][i].ly)<1.9
+          && !(trajmeas_[itrk][i].mod_on.disk==-2 && trajmeas_[itrk][i].ly> 1.5)
+          && !(trajmeas_[itrk][i].mod_on.disk== 2 && trajmeas_[itrk][i].ly<-1.5) )
+         : trajmeas_[itrk][i].mod_on.panel==2 &&
+         ( // Panel 2
+          trajmeas_[itrk][i].mod_on.module==1 ? fabs(trajmeas_[itrk][i].ly)<0.7
+          : trajmeas_[itrk][i].mod_on.module==2 ? fabs(trajmeas_[itrk][i].ly)<1.1
+          : trajmeas_[itrk][i].mod_on.module==3 && fabs(trajmeas_[itrk][i].ly)<1.6
+          && !(trajmeas_[itrk][i].mod_on.disk>0 && trajmeas_[itrk][i].ly>1.5)
+          && !(trajmeas_[itrk][i].mod_on.disk<0 && trajmeas_[itrk][i].ly<-1.5) ) );
+      
+      // ROC Edge cut - LY
+      float ly_mod = fabs(trajmeas_[itrk][i].ly) + (trajmeas_[itrk][i].mod_on.det==1&&(trajmeas_[itrk][i].mod_on.panel+trajmeas_[itrk][i].mod_on.module)%2==1)*0.405;
+      float d_rocedge = fabs(fabs(fmod(ly_mod,float(0.81))-0.405)-0.405);
+      bool rocedge_ly = d_rocedge > 0.06;
+      
+      bool ly_fid = edge_ly && rocedge_ly;
+      
+      //__________________________________________________________________________________________
+      //                            Efficiency Related Selections
+      
+      // Valid or Missing hit (not Inactive, Invalid or Bad)
+      bool valmis = trajmeas_[itrk][i].validhit==1||trajmeas_[itrk][i].missing==1;
+      
+      // Nearest other hit is far away (D_hit > 0.5 cm)
+      bool hitsep = trajmeas_[itrk][i].hit_near==0;
+ 
+      trajmeas_[itrk][i].pass_effcuts = nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && lx_fid && ly_fid && valmis && hitsep;
+
       #ifndef SPLIT
       trajTree_->SetBranchAddress("event", &evt_);
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
@@ -1977,8 +2147,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // traj
       // Non-splitted branch
       trajTree_->SetBranchAddress("traj",                  &trajmeas_[itrk][i]);
-      // Paired branches
       #if SPLIT > 0
+      // Paired branches
+      trajTree_->SetBranchAddress("traj_occup",            &trajmeas_[itrk][i].nclu_mod);
       trajTree_->SetBranchAddress("traj_alphabeta",        &trajmeas_[itrk][i].alpha);
       trajTree_->SetBranchAddress("traj_dxy_cl",           &trajmeas_[itrk][i].dx_cl);
       trajTree_->SetBranchAddress("traj_dxy_hit",          &trajmeas_[itrk][i].dx_hit);
@@ -2320,6 +2491,64 @@ TimingStudy::ModuleData
 
   return offline;
 }
+
+
+int TimingStudy::get_RocID_from_cluster_coords(const float& x, const float& y, const TimingStudy::ModuleData& mod_on) {
+  if (x!=NOVAL_F&&y!=NOVAL_F) {
+    if (mod_on.det==0) {
+      int ny = (int)(y / 52.0);
+      int roc = (mod_on.half) ? ((mod_on.module<0)*8+ny) : ((mod_on.module>0) ? ((x>80.0) ? ny : 15-ny) : ((x>80.0) ? 8+ny : 7-ny));
+      return roc;
+    } else if (mod_on.det==1) {
+      int nrocly = mod_on.module + mod_on.panel;
+      int rocy = (int)(y/52.0);
+      int roc = ((mod_on.panel==2 && x<80.0)
+		 || (mod_on.panel==1 && (mod_on.module==1||mod_on.module==4))
+		 || (mod_on.panel==1 && (mod_on.module==2||mod_on.module==3) && x>80.0 )) ? rocy
+	: 2*nrocly -1 - rocy;
+      return roc;
+    } else return NOVAL_I;
+  } else return NOVAL_I;
+}
+
+int TimingStudy::get_RocID_from_local_coords(const float& lx, const float& ly, const TimingStudy::ModuleData& mod_on) {
+  if (lx!=NOVAL_F&&ly!=NOVAL_F) {
+    if (mod_on.det==0) {
+      if (fabs(ly)<3.24&&((mod_on.half==0&&fabs(lx)<0.8164)||(mod_on.half==1&&fabs(lx)<0.4082))) {
+	int ny = (int)(ly / 0.81 + 4);
+	int roc = (mod_on.half) ? ((mod_on.module<0)*8+ny) : ((mod_on.module>0) ? ((lx>0.0) ? ny : 15-ny) : ((lx>0.0) ? 8+ny : 7-ny));
+	return roc;
+      } else return NOVAL_I;
+    } else if (mod_on.det==1) {
+      int nrocly = mod_on.module + mod_on.panel;
+      if (fabs(ly)<(nrocly*0.405) && ( ( !(mod_on.panel==1&&(mod_on.module==1||mod_on.module==4)) && fabs(lx)<0.8164 ) || (fabs(lx)<0.4082) )) {
+	int rocy = (int)((ly+(nrocly%2)*0.405)/0.81+nrocly/2);
+	int roc = ((mod_on.panel==2 && lx<0.0)
+		   || (mod_on.panel==1 && (mod_on.module==1||mod_on.module==4))
+		   || (mod_on.panel==1 && (mod_on.module==2||mod_on.module==3) && lx>0.0 )) ? rocy
+	  : 2*nrocly -1 - rocy;
+	return roc;
+      } else return NOVAL_I;
+    } else return NOVAL_I;
+  } else return NOVAL_I;
+}
+
+// int TimingStudy::get_RocID_from_local_coords(const float &lx, const float &ly, const TimingStudy::ModuleData& mod_on) {
+//   if (mod_on.det==0) {
+//     if (!(fabs(ly)<3.24&&((mod_on.half==0&&fabs(lx)<0.8164)||(mod_on.half==1&&fabs(lx)<0.4082)))) return NOVAL_I;
+//   } else {
+//     int nrocly = mod_on.module + mod_on.panel;
+//     if (!(fabs(ly)<(nrocly*0.405) && ( ( !(mod_on.panel==1&&(mod_on.module==1||mod_on.module==4)) && fabs(lx)<0.8164 ) || (fabs(lx)<0.4082) ))) return NOVAL_I;
+//   }	
+//   float y = (ly/0.81 + (mod_on.det ? (mod_on.module+mod_on.panel)/2.0 : 4.0)) * 52;
+//   //float y = 208.052 + 65.9161*(ly-int(ly/0.8066)*0.0266)); // BPix only - ROC gap/long pixel correction
+//   
+//   float x = mod_on.det ? (panel==1&&(module==1||module==4) ? 40.77+94.5*lx : 79.55+((lx>0)*1.5)+96.78*lx) :
+//     (mod_on.half ? 41.06+99.21*lx : 79.8+((lx>0)*1.52)+99.4*lx);
+//   
+//   return get_RocID_from_cluster_coords(x. y. mod_on);
+// }
+
 
 
 // alternative way to get if a cluster is at the edge:
