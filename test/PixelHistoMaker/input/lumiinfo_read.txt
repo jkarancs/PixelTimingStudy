@@ -1,29 +1,48 @@
 // twiki: https://twiki.cern.ch/twiki/bin/view/CMS/LumiCalc
 // Everything excecutes as is - no need to modify
-cd ~/LumiCalc/CMSSW_5_2_4/src/RecoLuminosity/LumiDB
+//
+// cvs co -r V04-02-03 RecoLuminosity/LumiDB
+// scram b
+// cmsenv
+
+cd ~/LumiCalc/CMSSW_5_3_3_patch2/src/RecoLuminosity/LumiDB
 setup_cms
-setenv SCRAM_ARCH slc5_amd64_gcc462
 cmsenv
 
-// Get 2010 DCS - get lumi info - reformat
+// Previous method - incomplete
 wget --no-check-certificate https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions10/7TeV/DCSOnly/DCSTRONLY_132440-149442
 mv DCSTRONLY_132440-149442 json_2010
-scripts/lumiCalc2.py -c frontier://LumiCalc/CMS_LUMI_PROD -i json_2010 --nowarning delivered | grep -v WARNING | tail -n+4 | head -n-6 | sed "s;:; ;" | sed "s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $7*$8 }' >! 10.txt
+scripts/lumiCalc2.py -i json_2010 --nowarning delivered | grep -v WARNING | tail -n+13 | head -n-6 | sed "s;:; ;" | sed "s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $9*$10 }' >! 10.txt
 
-// Get latest 2011 DCS - get lumi info - reformat
 wget --no-check-certificate https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions11/7TeV/DCSOnly/json_DCSONLY.txt
 mv json_DCSONLY.txt json_2011
-scripts/lumiCalc2.py -c frontier://LumiCalc/CMS_LUMI_PROD -i json_2011 --nowarning delivered | grep -v WARNING | tail -n+4 | head -n-6 | sed "s;:; ;" | sed "s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $7*$8 }' >! 11.txt
+scripts/lumiCalc2.py -i json_2011 --nowarning delivered | grep -v WARNING | tail -n+13 | head -n-6 | sed "s;:; ;" | sed "s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $9*$10 }' >! 11.txt
 
-// Get latest 2012 DCS - get lumi info - reformat
 wget --no-check-certificate https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions12/8TeV/DCSOnly/json_DCSONLY.txt
 mv json_DCSONLY.txt json_2012
-scripts/lumiCalc2.py -c frontier://LumiCalc/CMS_LUMI_PROD -i json_2012 --nowarning delivered | grep -v WARNING | tail -n+4 | head -n-6 | sed "s;:; ;" | sed "s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $7*$8 }' >! 12.txt
+scripts/lumiCalc2.py -i json_2012 --nowarning delivered | grep -v WARNING | tail -n+13 | head -n-6 | sed "s;:; ;" | sed "s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $9*$10 }' >! 12.txt
+
+wget --no-check-certificate https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions13/pPb/DCSOnly/json_DCSONLY.txt
+mv json_DCSONLY.txt json_2013
+scripts/lumiCalc2.py -i json_2013 --nowarning delivered | grep -v WARNING | tail -n+13 | head -n-6 | sed "s;:; ;" | sed "s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $9*$10 }' >! 13.txt
 
 cat 10.txt 11.txt 12.txt >! 10_11_12.txt
-cp 10_11_12.txt ~/Make_histogram/input/total_intlumi_ub.txt
+cp 10_11_12.txt ~/PixelHistoMaker/input/total_intlumi_ub.txt
+
+cat 10.txt 11.txt 12.txt 13.txt >! 10_11_12_13.txt
+
+// NEW - USE THIS from now on:
+
+scripts/lumiCalc2.py --begin "01/01/10 00:00:00" --end "05/09/13 12:00:00" --nowarning -b stable overview | grep -v WARNING | grep -v n/a | tail -n+13 | head -n-6 | sed "s;:; ;;s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $7*$8 }' > ! all.txt
+cp all.txt ~/PixelHistoMaker/input/total_intlumi_ub.txt
 
 root read_lumi.C
+
+scripts/pixelLumiCalc.py -i json_2012 lumibyls | grep "STABLE BEAMS" | awk '{ print $2" "$4" "$(NF-5)" "$(NF-1) }' | sed "s;:; ;g" | awk '{ print $1" "$3" "$5" "$6 }' >! run_ls_instlumi_pileup_2012.txt
+#scripts/lumiCalc2.py -c frontier://LumiCalc/CMS_LUMI_PROD -i json_2012_HF lumibyls | grep "STABLE BEAMS" | awk '{ print $2" "$4" "$(NF-5)" "$(NF-1) }' | sed "s;:; ;g" | awk '{ print $1" "$3" "$5" "$6 }' >> run_ls_instlumi_pileup_2012.txt
+
+cp run_ls_instlumi_pileup_2012.txt ~/PixelHistoMaker/input/
+
 
 // default file: 12.txt
 // check for consistency on this page:
