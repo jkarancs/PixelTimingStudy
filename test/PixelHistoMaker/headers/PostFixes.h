@@ -44,6 +44,18 @@ class PostFixes {
   std::vector<std::string> occup;
   std::vector<std::string> spec;
   std::vector<std::string> Spec;
+  std::vector<std::string> angle;
+  std::vector<std::string> Angle;
+  std::vector<std::string> year;
+  std::vector<std::string> Year;
+  std::vector<std::string> vturnon;
+  std::vector<std::string> nstrip;
+  std::vector<std::string> valmis;
+  std::vector<std::string> Valmis;
+  
+  std::vector<std::string> dynamic;
+  std::vector<std::string> ineff;
+  std::vector<std::string> Ineff;
   
   std::vector<std::string> Detshl;
   std::vector<std::string> detshl;
@@ -74,6 +86,7 @@ class PostFixes {
   std::vector<std::string> Range;
 
   std::vector<std::string> hv_l1;
+  std::vector<std::string> hv_l2;
   std::vector<std::string> hv_l3;
   std::vector<std::string> hv_d1;
   std::vector<std::string> hv_l1full;
@@ -89,6 +102,7 @@ class PostFixes {
   std::vector<std::string> hv_full_fpix;
 
   std::vector<std::string> Hv_l1;
+  std::vector<std::string> Hv_l2;
   std::vector<std::string> Hv_l3;
   std::vector<std::string> Hv_d1;
   std::vector<std::string> Hv_l1full;
@@ -124,7 +138,7 @@ class PostFixes {
     federr_type.push_back("_dummyword");
     federr_type.push_back("_fifofull");
     federr_type.push_back("_timeout");
-    federr_type.push_back("_overflow");
+    federr_type.push_back("_tbmtrailer");
     federr_type.push_back("_eventnumber");
     federr_type.push_back("_slinkheader");
     federr_type.push_back("_slinktrailer");
@@ -134,6 +148,7 @@ class PostFixes {
     federr_type.push_back("_dcol");
     federr_type.push_back("_readotorder");
     federr_type.push_back("_crcerror");
+    federr_type.push_back("_overflow");
     federr_type.push_back("_errevt");
     federr_type.push_back("_noerrevt");
 
@@ -145,7 +160,7 @@ class PostFixes {
     Federr_type.push_back("Dummy word");
     Federr_type.push_back("FIFO full");
     Federr_type.push_back("Timeout");
-    Federr_type.push_back("Overflow");
+    Federr_type.push_back("TBM trailer");
     Federr_type.push_back("Event number");
     Federr_type.push_back("Slink header");
     Federr_type.push_back("Slink trailer");
@@ -155,6 +170,7 @@ class PostFixes {
     Federr_type.push_back("Dcol or pixel value");
     Federr_type.push_back("Readout order");
     Federr_type.push_back("CRC error");
+    Federr_type.push_back("Overflow");
 
     il.push_back("_il");
     il.push_back("_nls");
@@ -236,14 +252,20 @@ class PostFixes {
     det.push_back("_dm1");
     det.push_back("_dp1");
     det.push_back("_dp2");
-    det.push_back("_d1_in");
-    det.push_back("_d1_mid");
-    det.push_back("_d1_out");
-    det.push_back("_d2_in");
-    det.push_back("_d2_mid");
-    det.push_back("_d2_out");
     det.push_back("_d1");
     det.push_back("_d2");
+    det.push_back("_d1_in");
+    det.push_back("_d1_out");
+    det.push_back("_d2_in");
+    det.push_back("_d2_out");
+    det.push_back("_dm2_in");
+    det.push_back("_dm2_out");
+    det.push_back("_dm1_in");
+    det.push_back("_dm1_out");
+    det.push_back("_dp1_in");
+    det.push_back("_dp1_out");
+    det.push_back("_dp2_in");
+    det.push_back("_dp2_out");
 
     Det.push_back("Pixel Detector");
     Det.push_back("Barrel Pixel");
@@ -255,6 +277,20 @@ class PostFixes {
     Det.push_back("Disk -1");
     Det.push_back("Disk +1");
     Det.push_back("Disk +2");
+    Det.push_back("Disk 1");
+    Det.push_back("Disk 2");
+    Det.push_back("Disk 1 Inner");
+    Det.push_back("Disk 1 Outer");
+    Det.push_back("Disk 2 Inner");
+    Det.push_back("Disk 2 Outer");
+    Det.push_back("Disk -2 Inner");
+    Det.push_back("Disk -2 Outer");
+    Det.push_back("Disk -1 Inner");
+    Det.push_back("Disk -1 Outer");
+    Det.push_back("Disk +1 Inner");
+    Det.push_back("Disk +1 Outer");
+    Det.push_back("Disk +2 Inner");
+    Det.push_back("Disk +2 Outer");
 
     det5.push_back("_l1");
     det5.push_back("_l2");
@@ -736,16 +772,72 @@ class PostFixes {
     Spec.push_back("After +12 BX Latency Change ");
     Spec.push_back("Default settings");
 
+    angle.push_back("_alpha");
+    angle.push_back("_beta");
+    angle.push_back("_incidence");
+    angle.push_back("_theta");
+    angle.push_back("_phi");
+    angle.push_back("_theta_phi");
+
+    Angle.push_back("Alpha [#circ]");
+    Angle.push_back("Beta [#circ]");
+    Angle.push_back("Angle of Incidence [#circ]");
+    Angle.push_back("Trajectory #theta");
+    Angle.push_back("Trajectory #phi");
+
     Avg.push_back("Ratio");
     Avg.push_back("BX Average /[100 LS]");
     Avg.push_back("Average /[1 LS]");
     Avg.push_back("Number of Events");
 
-    Totlumi.push_back("0 fb^{-1}");
-    Totlumi.push_back("1.4 fb^{-1}");
-    Totlumi.push_back("2.7 fb^{-1}");
-    Totlumi.push_back("5.6 fb^{-1}");
+    Totlumi.push_back("0-1 fb^{-1}");
+    Totlumi.push_back("5-6 fb^{-1}");
+    Totlumi.push_back("10-11 fb^{-1}");
+    Totlumi.push_back("15-16 fb^{-1}");
+    Totlumi.push_back("22-23 fb^{-1}");
 
+    year.push_back("");
+    year.push_back("_year2010");
+    year.push_back("_year2011");
+    year.push_back("_year2012");
+
+    Year.push_back("");
+    Year.push_back("2010");
+    Year.push_back("2011");
+    Year.push_back("2012");
+    
+    vturnon.push_back("");
+    vturnon.push_back("_mpv");
+    vturnon.push_back("_cce");
+
+    nstrip.push_back("_old");
+    nstrip.push_back("_nlost0");
+    nstrip.push_back("_nlayover5");
+    nstrip.push_back("_nlayover7");
+    nstrip.push_back("_nlayover9");
+    nstrip.push_back("_nlayover7_nlost0");
+
+    valmis.push_back("");
+    valmis.push_back("_val");
+    valmis.push_back("_mis");
+
+    Valmis.push_back("All hits");
+    Valmis.push_back("Valid Hits");
+    Valmis.push_back("Missing Hits");
+
+    dynamic.push_back("_ladder");
+    dynamic.push_back("_module");
+    dynamic.push_back("_l1rate");
+    dynamic.push_back("_instlumi");
+    
+    ineff.push_back("_Data");
+    ineff.push_back("_MC");
+    ineff.push_back("_MC_corr");
+
+    Ineff.push_back("Data");
+    Ineff.push_back("MC");
+    Ineff.push_back("MC Corr (Lad, Mod, Inst)");
+    
     hv.push_back("_eff");
     hv.push_back("_dist");
     hv.push_back("_mpv");

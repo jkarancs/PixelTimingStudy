@@ -1,5 +1,7 @@
 #include "TPaveStats.h"
 #include "TStyle.h"
+#include "TGraphAsymmErrors.h"
+#include "TLatex.h"
 
 class Histograms {
   
@@ -7,17 +9,9 @@ class Histograms {
   
   Histograms() {}
   Histograms(std::string histoname, int npostfix, int dimensions,
-             int eff = 0, int err = 0, int clusize = 0, int def = 0, int cumul = 0) {
-    histoname_ = histoname;
-    npostfix_ = npostfix;
-    dimensions_ = dimensions;
-  
-    eff_ = eff;
-    err_ = err;
-    clusize_ = clusize;
-    def_ = def;
-    cumul_ = cumul;
-    
+             int eff = 0, int err = 0, int clusize = 0, int def = 0, int cumul = 0) 
+    : histoname_(histoname), npostfix_(npostfix), dimensions_(dimensions), eff_(eff), err_(err), clusize_(clusize), def_(def), cumul_(cumul)
+  {
     build_();
   }
   ~Histograms() {}
@@ -363,6 +357,9 @@ class Histograms {
       h->SetLineColor(col);
       h->SetLineWidth(2);
     }
+    TList *l = h->GetListOfFunctions();
+    for (Int_t i=0; i<l->GetSize(); ++i) 
+      h->GetFunction(l->At(i)->GetName())->SetLineColor(col);
   }
   void set_marker_(TH1D* h, Int_t mar, std::string &opt) {
     if (char_exist_in_string_(opt,'P')) h->SetMarkerStyle(mar);
@@ -719,6 +716,7 @@ class Histograms {
   
   // Load
   void load(TFile &f) {
+    std::cout<<"Loading histo: "<<histoname_<<std::endl;
     if (npostfix_==1) {
       if (dimensions_==1) {
 	for (size_t i=0; i<h1d_1p_.size(); i++) {
@@ -1011,6 +1009,12 @@ class Histograms {
     h1d_1p_[p1]->SetBinContent(binx, h1d_1p_[p1]->GetBinContent(binx)+w);
   }
 
+  void det_fill_1d(const ModuleData &m, double x) {
+    h1d_1p_[0]->Fill(x);
+    h1d_1p_[1+m.det]->Fill(x);
+    h1d_1p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)]->Fill(x);
+  }
+
   // 2D
   void increasebin_2d(int p1, int binx, int biny) {
     h2d_1p_[p1]->SetBinContent(binx, biny, h2d_1p_[p1]->GetBinContent(binx,biny)+1);
@@ -1065,8 +1069,26 @@ class Histograms {
     h1d_2p_[0][p2]->Fill(x);
     h1d_2p_[1+m.det][p2]->Fill(x);
     h1d_2p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2]->Fill(x);
-    int n = m.panel+m.module;
-    if (m.det&&n>2) h1d_2p_[4+abs(m.disk)*3+n][p2]->Fill(x);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_2p_[9+abs(m.disk)][p2]->Fill(x);
+      h1d_2p_[10+abs(m.disk)*2+IO][p2]->Fill(x);
+      h1d_2p_[18+(m.disk+(m.disk<0))*2+IO][p2]->Fill(x);
+    }
+  }
+
+  void det2_fillw_1d(const ModuleData &m, int p2, double x, double w) {
+    h1d_2p_[0][p2]->Fill(x,w);
+    h1d_2p_[1+m.det][p2]->Fill(x,w);
+    h1d_2p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2]->Fill(x,w);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_2p_[9+abs(m.disk)][p2]->Fill(x,w);
+      h1d_2p_[10+abs(m.disk)*2+IO][p2]->Fill(x,w);
+      h1d_2p_[18+(m.disk+(m.disk<0))*2+IO][p2]->Fill(x,w);
+    }
   }
 
   // 2D
@@ -1123,12 +1145,50 @@ class Histograms {
     h1d_3p_[p1][p2][p3]->SetBinContent(binx, h1d_3p_[p1][p2][p3]->GetBinContent(binx)+1);
   }
 
+  void det_fill_1d(const ModuleData &m, int p2, int p3, double x) {
+    h1d_3p_[0][p2][p3]->Fill(x);
+    h1d_3p_[1+m.det][p2][p3]->Fill(x);
+    h1d_3p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2][p3]->Fill(x);
+  }
+
   void det_fill_1d(int p1, const ModuleData &m, int p3, double x) {
     h1d_3p_[p1][0][p3]->Fill(x);
     h1d_3p_[p1][1+m.det][p3]->Fill(x);
     h1d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x);
   }
 
+  void det_fillw_1d(int p1, const ModuleData &m, int p3, double x, double w) {
+    h1d_3p_[p1][0][p3]->Fill(x, w);
+    h1d_3p_[p1][1+m.det][p3]->Fill(x, w);
+    h1d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x, w);
+  }
+  
+  void det2_fill_1d(int p1, const ModuleData &m, int p3, double x) {
+    h1d_3p_[p1][0][p3]->Fill(x);
+    h1d_3p_[p1][1+m.det][p3]->Fill(x);
+    h1d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_3p_[p1][9+abs(m.disk)][p3]->Fill(x);
+      h1d_3p_[p1][10+abs(m.disk)*2+IO][p3]->Fill(x);
+      h1d_3p_[p1][18+(m.disk+(m.disk<0))*2+IO][p3]->Fill(x);
+    }
+  }
+  
+  void det2_fillw_1d(int p1, const ModuleData &m, int p3, double x, double w) {
+    h1d_3p_[p1][0][p3]->Fill(x,w);
+    h1d_3p_[p1][1+m.det][p3]->Fill(x,w);
+    h1d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x,w);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_3p_[p1][9+abs(m.disk)][p3]->Fill(x,w);
+      h1d_3p_[p1][10+abs(m.disk)*2+IO][p3]->Fill(x,w);
+      h1d_3p_[p1][18+(m.disk+(m.disk<0))*2+IO][p3]->Fill(x,w);
+    }
+  }
+  
   // 2D
   void increasebin_2d(int p1, int p2, int p3, int binx, int biny) {
     h2d_3p_[p1][p2][p3]->SetBinContent(binx, biny, h2d_3p_[p1][p2][p3]->GetBinContent(binx,biny)+1);
@@ -1140,6 +1200,12 @@ class Histograms {
     h2d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x,y);
   }
 
+  void det_fillw_2d(int p1, const ModuleData &m, int p3, double x, double y, double w) {
+    h2d_3p_[p1][0][p3]->Fill(x, y, w);
+    h2d_3p_[p1][1+m.det][p3]->Fill(x, y, w);
+    h2d_3p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3]->Fill(x, y, w);
+  }
+
   // 4 postfix
   // 1D
   void det_fill_1d(int p1, int p2, const ModuleData &m, int p4, double x) {
@@ -1148,13 +1214,44 @@ class Histograms {
     h1d_4p_[p1][p2][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p4]->Fill(x);
   }
 
+  void det_fillw_1d(int p1, int p2, const ModuleData &m, int p4, double x, double w) {
+    h1d_4p_[p1][p2][0][p4]->Fill(x,w);
+    h1d_4p_[p1][p2][1+m.det][p4]->Fill(x,w);
+    h1d_4p_[p1][p2][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p4]->Fill(x,w);
+  }
+
   void det_fill_1d(const ModuleData &m, int p2, int p3, int p4, double x) {
     h1d_4p_[0][p2][p3][p4]->Fill(x);
     h1d_4p_[1+m.det][p2][p3][p4]->Fill(x);
     h1d_4p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2][p3][p4]->Fill(x);
   }
-
-
+  
+  void det2_fill_1d(int p1, int p2, const ModuleData &m, int p4, double x) {
+    h1d_4p_[p1][p2][0][p4]->Fill(x);
+    h1d_4p_[p1][p2][1+m.det][p4]->Fill(x);
+    h1d_4p_[p1][p2][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p4]->Fill(x);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_4p_[p1][p2][9+abs(m.disk)][p4]->Fill(x);
+      h1d_4p_[p1][p2][10+abs(m.disk)*2+IO][p4]->Fill(x);
+      h1d_4p_[p1][p2][18+(m.disk+(m.disk<0))*2+IO][p4]->Fill(x);
+    }
+  }
+  
+  void det2_fillw_1d(int p1, int p2, const ModuleData &m, int p4, double x, double w) {
+    h1d_4p_[p1][p2][0][p4]->Fill(x,w);
+    h1d_4p_[p1][p2][1+m.det][p4]->Fill(x,w);
+    h1d_4p_[p1][p2][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p4]->Fill(x,w);
+    // FPix plots
+    if (m.det) {
+      int IO = m.panel+m.module > 3;
+      h1d_4p_[p1][p2][9+abs(m.disk)][p4]->Fill(x,w);
+      h1d_4p_[p1][p2][10+abs(m.disk)*2+IO][p4]->Fill(x,w);
+      h1d_4p_[p1][p2][18+(m.disk+(m.disk<0))*2+IO][p4]->Fill(x,w);
+    }
+  }
+  
   // Fill with mpv and others
   void det_effmpv_fill(bool effcut, bool nccdcut, const TrajMeasurement &t, double x) {
     for (int i=0; i<3; i++) {
@@ -1268,6 +1365,13 @@ class Histograms {
 	  h1d_3p_[0]             [p1][t.missing]->Fill(x);
 	  h1d_3p_[1+t.mod_on.det][p1][t.missing]->Fill(x);
 	  h1d_3p_[lay]           [p1][t.missing]->Fill(x);
+	  // FPix plots
+	  if (t.mod_on.det) {
+	    int IO = t.mod_on.panel+t.mod_on.module > 3;
+	    h1d_3p_[9+abs(t.mod_on.disk)][p1][t.missing]->Fill(x);
+	    h1d_3p_[10+abs(t.mod_on.disk)*2+IO][p1][t.missing]->Fill(x);
+	    h1d_3p_[18+(t.mod_on.disk+(t.mod_on.disk<0))*2+IO][p1][t.missing]->Fill(x);
+	  }
 	}
       }
       if (t.clu.size>0) {
@@ -1365,7 +1469,49 @@ class Histograms {
     }
   }
 
-  TLegend* multidraw_(std::vector<TH1D*>& hvec, std::vector<int>& vec, std::string& opt, 
+  std::vector<double> bincoordx_;
+  std::vector<const char*> binlabels_;
+  
+  TGraphAsymmErrors* asym_(TH1D* eff, TH1D* den) {
+    TGraphAsymmErrors* tgae = new TGraphAsymmErrors(eff);
+    // Calculate the asymmetric wilson score interval
+    double z = 1; // 1 Sigma confidence
+    for (Int_t bin=1; bin<=eff->GetNbinsX(); ++bin) {
+      double p = eff->GetBinContent(bin);
+      double n = den->GetBinContent(bin);
+      double cen = (p+(z*z/(2*n))) / (1.0 + (z*z/n));
+      double halfwidth = z*sqrt( p*(1.0-p)/n + (z*z/(4*n*n)) ) / (1.0 + (z*z/n));
+      tgae->SetPointEYhigh(bin-1,halfwidth-p+cen);
+      tgae->SetPointEYlow (bin-1,halfwidth+p-cen);
+    }
+    // Set same ranges/settings etc
+    double xlow = eff->GetXaxis()->GetBinLowEdge(eff->GetXaxis()->GetFirst());
+    double xup  = eff->GetXaxis()->GetBinUpEdge(eff->GetXaxis()->GetLast());
+    double ylow = eff->GetMinimum();
+    double yup  = eff->GetMaximum();
+    tgae->GetXaxis()->SetRangeUser(xlow,xup);
+    tgae->GetYaxis()->SetRangeUser(ylow,yup);
+    tgae->SetTitle(eff->GetTitle());
+    tgae->GetXaxis()->SetTitle(eff->GetXaxis()->GetTitle());
+    tgae->GetYaxis()->SetTitle(eff->GetYaxis()->GetTitle());
+    tgae->GetXaxis()->SetTitleSize(eff->GetXaxis()->GetTitleSize());
+    tgae->GetYaxis()->SetTitleSize(eff->GetYaxis()->GetTitleSize());
+    tgae->GetXaxis()->SetTitleOffset(eff->GetXaxis()->GetTitleOffset());
+    tgae->GetYaxis()->SetTitleOffset(eff->GetYaxis()->GetTitleOffset());
+    tgae->GetXaxis()->SetTitleFont(eff->GetXaxis()->GetTitleFont());
+    tgae->GetYaxis()->SetTitleFont(eff->GetYaxis()->GetTitleFont());
+    tgae->GetYaxis()->SetDecimals(1);
+    // If Bin Labels exist remove current X axis labels and draw similar bin labels but with TLatex
+    for (Int_t bin=1; bin<=eff->GetNbinsX(); ++bin) {
+      if (std::string(eff->GetXaxis()->GetBinLabel(bin)).size()) {
+	bincoordx_.push_back(eff->GetXaxis()->GetBinCenter(bin));
+	binlabels_.push_back(eff->GetXaxis()->GetBinLabel(bin));
+      }
+    }
+    return tgae;
+  }
+
+  TLegend* multidraw_(std::vector<TH1D*>& hvec, std::vector<TH1D*>& denvec, std::vector<int>& vec, std::string& opt, 
 		      std::vector<std::string> &p, std::string& colz,
 		      std::string& title, float x1, float x2, float y1, float y2) {
     // Normalize by the number of entries and set range according to the highest histogram
@@ -1379,6 +1525,11 @@ class Histograms {
 	if (m>max) max = m;
       }
       hvec[0]->GetYaxis()->SetRangeUser(0,max*1.1);
+    }
+    bool asym = false;
+    if (opt.find("AsymmErr")!=std::string::npos) {
+      opt.erase(opt.find("AsymmErr"),7);
+      asym = true;
     }
     // Draw Stat boxes
     Int_t stat = 0;
@@ -1399,9 +1550,30 @@ class Histograms {
       set_color_(h,c,opt);
       set_marker_(h,m,opt);
       if (stat) h->SetStats(1);
-      if (i==0) h->Draw(opt.c_str());
-      else h->Draw(same.c_str());
-      if (stat) set_stat_(h,c,i);
+      if (asym) {
+	bincoordx_.clear();
+	binlabels_.clear();
+	TGraphAsymmErrors* tgae = asym_(hvec[i],denvec[i]);
+	std::string drawopt = opt;
+	if (!i) drawopt.append("A");
+	tgae->Draw(drawopt.c_str());
+	gPad->Update();
+	// Draw BinLabels if they exist
+	if (binlabels_.size()>0) tgae->GetXaxis()->SetLabelColor(0);
+	double labelsize = h->GetXaxis()->GetLabelSize();
+	double offset = (gPad->GetY2()-gPad->GetY1()) * h->GetXaxis()->GetLabelOffset();
+	if (!i) for (size_t i=0; i<binlabels_.size(); ++i) {
+	  TLatex *lat = new TLatex(bincoordx_[i], h->GetMinimum()-offset, binlabels_[i]);
+	  lat->SetTextAlign(32);
+	  lat->SetTextAngle(90);
+	  lat->SetTextFont(h->GetXaxis()->GetLabelFont());
+	  lat->SetTextSize(labelsize);
+	  lat->Draw();
+	}
+      } else {
+	h->Draw(i ? same.c_str() : opt.c_str());
+	if (stat) set_stat_(h,c,i);
+      }
       leg->AddEntry(h, p[vec[i]].c_str(), legmark_(opt));
     }
     leg->SetFillColor(0);
@@ -1418,8 +1590,9 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
+    std::vector<TH1D*> denvec;
     for (size_t j=0; j<vec.size(); j++) hvec.push_back(h1d_2p_[i][vec[j]]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
 
   TLegend* multidraw_with_legend(std::string val, int j, std::string opt,
@@ -1427,8 +1600,12 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
-    for (size_t i=0; i<vec.size(); i++) hvec.push_back(h1d_2p_[vec[i]][j]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    std::vector<TH1D*> denvec;
+    for (size_t i=0; i<vec.size(); i++) {
+      hvec.push_back(h1d_2p_[vec[i]][j]);
+      if (h1d_2p_[vec[i]].size()>1) denvec.push_back(h1d_2p_[vec[i]][1]);
+    }
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
 
 
@@ -1438,8 +1615,12 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
-    for (size_t i=0; i<vec.size(); i++) hvec.push_back(h1d_3p_[vec[i]][j][k]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    std::vector<TH1D*> denvec;
+    for (size_t i=0; i<vec.size(); i++) {
+      hvec.push_back(h1d_3p_[vec[i]][j][k]);
+      if (h1d_3p_[vec[i]][j].size()>1) denvec.push_back(h1d_3p_[vec[i]][j][1]);
+    }
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
 
   TLegend* multidraw_with_legend(int i, std::string val, int k, std::string opt,
@@ -1447,8 +1628,12 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
-    for (size_t j=0; j<vec.size(); j++) hvec.push_back(h1d_3p_[i][vec[j]][k]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    std::vector<TH1D*> denvec;
+    for (size_t j=0; j<vec.size(); j++) {
+      hvec.push_back(h1d_3p_[i][vec[j]][k]);
+      if (h1d_3p_[i][vec[j]].size()>1) denvec.push_back(h1d_3p_[i][vec[j]][1]);
+    }
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
 
   TLegend* multidraw_with_legend(int i, int j, std::string val, std::string opt,
@@ -1456,8 +1641,9 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
+    std::vector<TH1D*> denvec;
     for (size_t k=0; k<vec.size(); k++) hvec.push_back(h1d_3p_[i][j][vec[j]]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
   
   // 4 Postfix
@@ -1466,8 +1652,25 @@ class Histograms {
 				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
     std::vector<int> vec = string_to_vector_(val);
     std::vector<TH1D*> hvec;
-    for (size_t j=0; j<vec.size(); j++) hvec.push_back(h1d_4p_[i][vec[j]][k][l]);
-    return multidraw_(hvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+    std::vector<TH1D*> denvec;
+    for (size_t j=0; j<vec.size(); j++) {
+      hvec.push_back(h1d_4p_[i][vec[j]][k][l]);
+      if (h1d_4p_[i][vec[j]][k].size()>1) denvec.push_back(h1d_4p_[i][vec[j]][k][1]);
+    }
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
+  }
+
+  TLegend* multidraw_with_legend(int i, int j, std::string val, int l, std::string opt,
+				 std::vector<std::string> &p, std::string colz, 
+				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
+    std::vector<int> vec = string_to_vector_(val);
+    std::vector<TH1D*> hvec;
+    std::vector<TH1D*> denvec;
+    for (size_t k=0; k<vec.size(); k++) {
+      hvec.push_back(h1d_4p_[i][vec[j]][k][l]);
+      if (h1d_4p_[i][vec[j]][k].size()>1) denvec.push_back(h1d_4p_[i][vec[j]][k][1]);
+    }
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
   
   
@@ -1896,18 +2099,18 @@ class Histograms {
   int clusize() { return clusize_; }
   int cumul() { return cumul_; }
 
-  std::vector<TH1D*> h1d_1p() { return h1d_1p_; }
-  std::vector<TH2D*> h2d_1p() { return h2d_1p_; }
-  std::vector<TH3D*> h3d_1p() { return h3d_1p_; }
-  std::vector<std::vector<TH1D*> > h1d_2p() { return h1d_2p_; }
-  std::vector<std::vector<TH2D*> > h2d_2p() { return h2d_2p_; }
-  std::vector<std::vector<TH3D*> > h3d_2p() { return h3d_2p_; }
-  std::vector<std::vector<std::vector<TH1D*> > > h1d_3p() { return h1d_3p_; }
-  std::vector<std::vector<std::vector<TH2D*> > > h2d_3p() { return h2d_3p_; }
-  std::vector<std::vector<std::vector<TH3D*> > > h3d_3p() { return h3d_3p_; }
-  std::vector<std::vector<std::vector<std::vector<TH1D*> > > > h1d_4p() { return h1d_4p_; }
-  std::vector<std::vector<std::vector<std::vector<TH2D*> > > > h2d_4p() { return h2d_4p_; }
-  std::vector<std::vector<std::vector<std::vector<TH3D*> > > > h3d_4p() { return h3d_4p_; }
+  std::vector<TH1D*>& h1d_1p() { return h1d_1p_; }
+  std::vector<TH2D*>& h2d_1p() { return h2d_1p_; }
+  std::vector<TH3D*>& h3d_1p() { return h3d_1p_; }
+  std::vector<std::vector<TH1D*> >& h1d_2p() { return h1d_2p_; }
+  std::vector<std::vector<TH2D*> >& h2d_2p() { return h2d_2p_; }
+  std::vector<std::vector<TH3D*> >& h3d_2p() { return h3d_2p_; }
+  std::vector<std::vector<std::vector<TH1D*> > >& h1d_3p() { return h1d_3p_; }
+  std::vector<std::vector<std::vector<TH2D*> > >& h2d_3p() { return h2d_3p_; }
+  std::vector<std::vector<std::vector<TH3D*> > >& h3d_3p() { return h3d_3p_; }
+  std::vector<std::vector<std::vector<std::vector<TH1D*> > > >& h1d_4p() { return h1d_4p_; }
+  std::vector<std::vector<std::vector<std::vector<TH2D*> > > >& h2d_4p() { return h2d_4p_; }
+  std::vector<std::vector<std::vector<std::vector<TH3D*> > > >& h3d_4p() { return h3d_4p_; }
 
   TH1D* h1d(int i) { return h1d_1p_[i]; }
   TH2D* h2d(int i) { return h2d_1p_[i]; }

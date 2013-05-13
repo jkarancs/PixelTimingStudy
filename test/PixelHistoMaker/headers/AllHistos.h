@@ -6,127 +6,134 @@ class AllHistos {
   ~AllHistos() {}
 
   // Not Efficiency Plots
-  Histograms *totlumi_ratio;
-  Histograms *nclu_corr;
-  Histograms *npix_corr;
-  Histograms *bx_ls;
-  Histograms *ls_fill;
-  Histograms *instlumi_corr;
+  Histograms* totlumi_ratio;
+  Histograms* nclu_corr;
+  Histograms* npix_corr;
+  Histograms* bx_ls;
+  Histograms* ls_fill;
+  Histograms* instlumi_corr;
 
-  Histograms *ncd;
-  Histograms *ncd_corr;
-  Histograms *pcd;
-  Histograms *pcd_corr;
-  Histograms *pcd_heta;
-  Histograms *pcd_corr_heta;
-  Histograms *clu_size;
-  Histograms *clu_sizeX;
-  Histograms *clu_sizeY;
-  Histograms *clu_size_heta;
-  Histograms *clu_sizeX_heta;
-  Histograms *clu_sizeY_heta;
-  Histograms *alpha;
-  Histograms *beta;
+  Histograms* ncd;
+  Histograms* ncd_corr;
+  Histograms* pcd;
+  Histograms* pcd_corr;
+  Histograms* pcd_heta;
+  Histograms* pcd_corr_heta;
+  Histograms* clu_size;
+  Histograms* clu_sizeX;
+  Histograms* clu_sizeY;
+  Histograms* clu_size_heta;
+  Histograms* clu_sizeX_heta;
+  Histograms* clu_sizeY_heta;
+  Histograms* alpha;
+  Histograms* beta;
 
   // Efficiency
-  Histograms *federr;
-  Histograms *federr_evt;
-  Histograms *time_federr;
+  Histograms* federr;
+  Histograms* federr_evt;
+  Histograms* time_federr;
 
-  Histograms *run;
-  Histograms *totlumi;
-  Histograms *trigger;
-  Histograms *lxly;
+  Histograms* run;
+  Histograms* totlumi;
+  Histograms* trigger;
+  Histograms* lxly;
   // N-1
-  Histograms *pt;
-  Histograms *nstrip;
-  Histograms *dz;
-  Histograms *d0;
-  Histograms *dz_d0;
-  Histograms *normchi2;
-  Histograms *fid_lxly;
-  Histograms *fid_lx;
-  Histograms *fid_ly;
-  Histograms *vtxd0;
-  Histograms *vtxz;
-  Histograms *hitclu;
-  Histograms *cluclu;
-  Histograms *hithit;
-  Histograms *clcl_hcl;
-  Histograms *hh_hcl;
-  Histograms *neweff;
-  Histograms *neweff2;;
+  Histograms* pt;
+  Histograms* nstrip;
+  Histograms* dz;
+  Histograms* d0;
+  Histograms* dz_d0;
+  Histograms* normchi2;
+  Histograms* fid_lxly;
+  Histograms* fid_lx;
+  Histograms* fid_ly;
+  Histograms* vtxd0;
+  Histograms* vtxz;
+  Histograms* hitclu;
+  Histograms* cluclu;
+  Histograms* hithit;
+  Histograms* clcl_hcl;
+  Histograms* hh_hcl;
+  Histograms* neweff;
+  Histograms* neweff2;;
+  Histograms* angle;
+  Histograms* angle2d;
+  Histograms* nstrip_new;
 
-  Histograms *instlumi_raw;
-  Histograms *roceff_time;
-  Histograms *roceff_fill;
-  Histograms *fill_stat;
-  Histograms *roceff_dist;
-  Histograms *badroc;
-  Histograms *nbadroc;
+  Histograms* instlumi_raw;
+  Histograms* roceff_time;
+  Histograms* roceff_fill;
+  Histograms* fill_stat;
+  Histograms* roceff_dist;
+  Histograms* badroc;
+  Histograms* nbadroc;
   
   
-  Histograms *nvtx;
-  Histograms *ls;
-  Histograms *occup;
-  Histograms *occup_mod;
-  Histograms *occup_roc;
-  Histograms *occup_dcol;
-  Histograms *det;
-  Histograms *mod;
-  Histograms *roc;
-  Histograms *time;
-  Histograms *time2;
-  Histograms *bx;
-  Histograms *instlumi;
-  
-  Histograms *il_l1rate;
-  
+  Histograms* nvtx;
+  Histograms* pileup;
+  Histograms* ls;
+  Histograms* occup;
+  Histograms* occup_mod;
+  Histograms* occup_roc;
+  Histograms* occup_dcol;
+  Histograms* det;
+  Histograms* mod;
+  Histograms* roc;
+  Histograms* time;
+  Histograms* time2;
+  Histograms* bx;
+  Histograms* instlumi;
+  Histograms* il_l1rate;
+  Histograms* l1rate;  
+
+  Histograms* dynamic_ineff;
+  Histograms* rocmap;
+  TH2D* l1rate_vs_instlumi;
   
   // Scans
-  Histograms *delay11;
-  Histograms *delay11_rog;
-  Histograms *delay11_mod;
-  Histograms *delay11_roc;
-  Histograms *delay12;
-  Histograms *delay12_rog;
-  Histograms *delay12_mod;
-  Histograms *delay12_roc;
-  Histograms *delay3;
-  Histograms *delay3_rog;
-  Histograms *delay3_mod;
-  Histograms *delay3_roc;
-  Histograms *delay4;
-  Histograms *delay4_rog;
-  Histograms *delay4_mod;
-  Histograms *delay4_roc;
-  Histograms *trkloss;
-  Histograms *hv;
-  Histograms *hv_l1;
-  Histograms *hv_l3;
-  Histograms *hv_d1;
-  Histograms *hv_l1full;
-  Histograms *hv_l2full;
-  Histograms *hv_l3full;
-  Histograms *hv_d1full;
-  Histograms *hv_d2full;
+  Histograms* delay11;
+  Histograms* delay11_rog;
+  Histograms* delay11_mod;
+  Histograms* delay11_roc;
+  Histograms* delay12;
+  Histograms* delay12_rog;
+  Histograms* delay12_mod;
+  Histograms* delay12_roc;
+  Histograms* delay3;
+  Histograms* delay3_rog;
+  Histograms* delay3_mod;
+  Histograms* delay3_roc;
+  Histograms* delay4;
+  Histograms* delay4_rog;
+  Histograms* delay4_mod;
+  Histograms* delay4_roc;
+  Histograms* trkloss;
+  Histograms* hv_l1;
+  Histograms* hv_l2;
+  Histograms* hv_l3;
+  Histograms* hv_d1;
+  Histograms* hv_l1full;
+  Histograms* hv_l2full;
+  Histograms* hv_l3full;
+  Histograms* hv_d1full;
+  Histograms* hv_d2full;
   std::vector<TGraph*> hv_totlumi;
-  Histograms *vturnon_totlumi;
-  Histograms *vturnon_fpix;
-  Histograms *vturnon_bpix;
+  Histograms* vturnon_totlumi;
+  Histograms* vturnon_fpix;
+  Histograms* vturnon_bpix;
   
-
+  
   //__________________________________________________________________________________________
   //                                   Starting Sequences
   //__________________________________________________________________________________________
-
-
+  
+  
   // eventTree 1st loop
   void fill_evt(TreeReader &tr, Variables &var) {
     // if ((tr.evt().trig>>0)&1) // ZeroBias
     evthistos_fill_(var, tr.evt());
   }
-
+  
   // eventTree 2nd loop
   void postfill_evt(TreeReader &tr, Variables &var) {
     // if ((tr.evt().trig>>0)&1) // ZeroBias
@@ -134,7 +141,7 @@ class AllHistos {
     federr_evt_postfill_(var, tr.evt());
 #endif
   }
-
+  
   // trajTree loop
   void fill_traj(TreeReader &tr, Variables &var) {
     tr.recover_missing_cluster();
@@ -142,21 +149,20 @@ class AllHistos {
     non_efficiency_fill_(var, tr.traj(), tr.traj_evt());
 #endif
     efficiency_fill_(var, tr.traj(), tr.traj_evt());
-#if SCANPLOTS ==1
+#if SCANPLOTS !=0
     scans_traj_fill_(var, tr.traj(), tr.traj_evt());
 #endif
   }
-
+  
 #ifdef COMPLETE
   void fill_clust(const EventData &cluevt, const Cluster &clust, Variables &var) {
   }
 #endif
-
-
+  
  private:
-
+  
   int debug_;
-
+  
   //__________________________________________________________________________________________
   //                          Filling functions for eventTree loop
   //__________________________________________________________________________________________
@@ -166,13 +172,18 @@ class AllHistos {
 #if FEDERRPLOTS == 1
     federr_evt_fill_(v, e);
 #endif
+#if VERSION2 >= 31
+    nvtx->h1d(0,2)->Fill(e.nvtx, e.instlumi_ext);
+    nvtx->h1d(0,3)->Fill(e.nvtx);
+    l1rate_vs_instlumi->Fill(e.instlumi_ext, e.l1_rate);
+#endif
   }
-
+  
   //__________________________________________________________________________________________
   //                          Filling functions for trajTree loop
   //__________________________________________________________________________________________
-
-
+  
+  
   void non_efficiency_fill_(Variables &v, const TrajMeasurement &t, const EventData &e) {
     //________________________________________________________________________________________
     //                                  Not Efficiency Plots:
@@ -251,7 +262,7 @@ class AllHistos {
 #if FEDERRPLOTS == 1
     federr_traj_fill_(v, t, e);
 #endif
-
+    
     if (FILLS) {
       run->det_hist_def_fill(0,           v.effcut_all, t, v.traj_run_binx, v.traj_gaincorr);
       run->det_hist_def_fill(v.traj_mod2, v.effcut_all, t, v.traj_run_binx, v.traj_gaincorr);
@@ -259,35 +270,35 @@ class AllHistos {
     // Efficiency and MPV of NCCD vs total integrated luminosity
     // totlumi.det_effmpv_fill(v.effcut_all, t, v.lumi_totlumi, v.traj_gaincorr);
     bool c1 = v.effcut_all; // Efficiency Cut
-    bool c2 = t.trk.pt>0.6&&v.goodroc; // Normalized Cluster Charge Distribution Cut
-    totlumi->det_fillw_1d(t.mod_on, 4, v.lumi_totlumi/1000.0, t.clu.size);
-    totlumi->det_fill_1d (t.mod_on, 5, v.lumi_totlumi/1000.0);
+    bool c2 = t.trk.pt>1.0&&v.goodroc; // Normalized Cluster Charge Distribution Cut
+    totlumi->det_fillw_1d(t.mod_on, 4, v.lumi_totlumi_2012, t.clu.size);
+    totlumi->det_fill_1d (t.mod_on, 5, v.lumi_totlumi_2012);
     // t.trk.strip>10 is also default (except for these: )
     // Don't use vtx cut as it only works for primary vertex (high pileup)
     if (t.trk.pt>1.0&&e.nvtx>1&&e.vtxndof>4&&fabs(e.vtxZ)<6.0&&fabs(e.vtxD0)<0.3&&(e.trig&1)) {
-      totlumi->det_effmpv_fill(c1, c2, t, v.lumi_totlumi/1000.0);
+      totlumi->det_effmpv_fill(c1, c2, t, v.lumi_totlumi_2012);
       if (fabs(t.trk.eta)<0.1) { // constant angle - low eta
-        totlumi->det_fillw_1d(t.mod_on, 6, v.lumi_totlumi/1000.0, t.clu.size);
-        totlumi->det_fill_1d (t.mod_on, 7, v.lumi_totlumi/1000.0);
+        totlumi->det_fillw_1d(t.mod_on, 6, v.lumi_totlumi_2012, t.clu.size);
+        totlumi->det_fill_1d (t.mod_on, 7, v.lumi_totlumi_2012);
       } else if (fabs(t.trk.eta)>1.5&&fabs(t.trk.eta)<1.6) { // high eta
-        totlumi->det_fillw_1d(t.mod_on, 8, v.lumi_totlumi/1000.0, t.clu.size);
-        totlumi->det_fill_1d (t.mod_on, 9, v.lumi_totlumi/1000.0);
+        totlumi->det_fillw_1d(t.mod_on, 8, v.lumi_totlumi_2012, t.clu.size);
+        totlumi->det_fill_1d (t.mod_on, 9, v.lumi_totlumi_2012);
       }
     }
-    trigger->det_fill_1d(0, t.mod_on, t.missing, -2);
-    if (e.trig==0) trigger->det_fill_1d(0, t.mod_on, t.missing, 0);
-    if (v.effcut_trig) { 
-      trigger->det_fill_1d(0, t.mod_on, t.missing, -1);
-      for (int i=0; i<32; i++) if (((e.trig>>i)&1)) trigger->det_fill_1d(0, t.mod_on, t.missing, i+1);
-    }
-    if (v.traj_p1_fill!=NOVAL_I) {
-      trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, -2);
-      if (e.trig==0) trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, 0);
-      if (v.effcut_trig) {
-        for (int i=0; i<32; i++) if (((e.trig>>i)&1)) trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, i+1);
-        trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, -1);
-      }
-    }
+    //trigger->det_fill_1d(0, t.mod_on, t.missing, -2);
+    //if (e.trig==0) trigger->det_fill_1d(0, t.mod_on, t.missing, 0);
+    //if (v.effcut_trig) { 
+    //  trigger->det_fill_1d(0, t.mod_on, t.missing, -1);
+    //  for (int i=0; i<32; i++) if (((e.trig>>i)&1)) trigger->det_fill_1d(0, t.mod_on, t.missing, i+1);
+    //}
+    //if (v.traj_p1_fill!=NOVAL_I) {
+    //  trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, -2);
+    //  if (e.trig==0) trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, 0);
+    //  if (v.effcut_trig) {
+    //    for (int i=0; i<32; i++) if (((e.trig>>i)&1)) trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, i+1);
+    //    trigger->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, -1);
+    //  }
+    //}
     //if (v.effcut_lxly_fid.cut&&v.p1_badcol!=NOVAL_I) lxly->h1d(v.p1_badcol, t.missing)->Fill(t.ly, t.lx);
     if (v.traj_roc_binx!=NOVAL_I&&v.traj_roc_biny!=NOVAL_I) {
       if (v.inac==1) { // Inactive ROCs
@@ -302,44 +313,150 @@ class AllHistos {
       }
     }
 
+    //                            Dynamic Efficiency Loss Plots
+    //                                 (By Jozsef Krizsan)
+    
+    if (v.effcut_all) {
+      if (v.zb) {
+	if (v.traj_instlumi>2000) {
+	  if (e.run!=1) { // Data
+	    if (!t.mod_on.det) {
+	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
+	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	    }
+	    rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	    if (t.mod_on.det==1)
+	      rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
+	  } else { // MC
+	    if (!t.mod_on.det) {
+	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder);
+	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.ladder);
+	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.module);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_instlumi);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_l1rate);
+	    }
+	    rocmap->   increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	    if (t.mod_on.det==1)
+	      rocmap-> increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
+	    rocmap->   increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny);
+	    if (t.mod_on.det==1)
+	      rocmap-> increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny+1);
+	  }
+	}
+      }
+    }
+
     //________________________________________________________________________________________
     //                                Efficiency N-1 Cut Plots:
-    //    pt, nstrip, d0/dz, (normchi2,) fid_lx/ly, vtxd0/z, hithit
-
-    if (v.effcut_pt)      pt      ->det2_fill_1d(t.mod_on, t.missing, t.trk.pt);
-    if (v.effcut_nstrip)  nstrip  ->det2_fill_1d(t.mod_on, t.missing, t.trk.strip);
-    if (v.effcut_dz)      dz      ->det2_fill_1d(t.mod_on, t.missing, fabs(t.trk.dz));
-    if (v.effcut_d0)      d0      ->det2_fill_1d(t.mod_on, t.missing, fabs(t.trk.d0));
-    if (v.effcut_d0_dz)   dz_d0   -> det_fill_2d(t.mod_on, t.missing, fabs(t.trk.dz),fabs(t.trk.d0));
-    if (v.effcut_all)     normchi2->det2_fill_1d(t.mod_on, t.missing, (t.trk.chi2/t.trk.ndof));
+    //    pt, nstrip, d0/dz, (normchi2,) fid_lx/ly, vtxd0/z, hithit, hitclu, angle
+    
     if (v.effcut_lxly_fid) fid_lxly->h2d(v.p1_fid, v.p2_fid, t.missing)->Fill(t.ly, t.lx);
     if (v.effcut_lx_fid)   fid_lx  ->h1d(v.p1_fid, v.p2_fid, t.missing)->Fill(t.lx);
     if (v.effcut_ly_fid)   fid_ly  ->h1d(v.p1_fid, v.p2_fid, t.missing)->Fill(t.ly);
-    if (v.effcut_nvtx) {
-      vtxd0->h1d(0, t.missing)->Fill(e.vtxD0);
-      vtxd0->h1d(t.mod_on.det+1, t.missing)->Fill(e.vtxD0);
-      vtxz ->h1d(0, t.missing)->Fill(e.vtxZ);
-      vtxz ->h1d(t.mod_on.det+1, t.missing)->Fill(e.vtxZ);
+    
+    if (!(abs(t.mod_on.disk)==1&&(t.mod_on.panel+t.mod_on.module)<4)) { // Exclude inner part of Disk 1
+      if (v.effcut_pt)      pt      ->det2_fill_1d(t.mod_on, t.missing, t.trk.pt);
+      if (v.effcut_nstrip)  nstrip  ->det2_fill_1d(t.mod_on, t.missing, t.trk.strip);
+      if (v.effcut_dz)      dz      ->det2_fill_1d(t.mod_on, t.missing, fabs(t.trk.dz));
+      if (v.effcut_d0)      d0      ->det2_fill_1d(t.mod_on, t.missing, fabs(t.trk.d0));
+      if (v.effcut_d0_dz)   dz_d0   -> det_fill_2d(t.mod_on, t.missing, fabs(t.trk.dz),fabs(t.trk.d0));
+      if (v.effcut_nvtx) {
+        vtxd0->h1d(0, t.missing)->Fill(e.vtxD0);
+        vtxd0->h1d(t.mod_on.det+1, t.missing)->Fill(e.vtxD0);
+        vtxz ->h1d(0, t.missing)->Fill(e.vtxZ);
+        vtxz ->h1d(t.mod_on.det+1, t.missing)->Fill(e.vtxZ);
+      }
+      if (v.traj_dr_hit!=NOVAL_F) {
+	if (v.effcut_hitsep) {
+	  hithit->det_fill_1d(t.mod_on, 0,               0, v.traj_dr_hit);
+	  hithit->det_fill_1d(t.mod_on, 1+t.clu.size==0, 0, v.traj_dr_hit);
+	}
+	hithit->det_fill_1d(t.mod_on, 0,               1, v.traj_dr_hit);
+	hithit->det_fill_1d(t.mod_on, 1+t.clu.size==0, 1, v.traj_dr_hit);
+      }
+      if (v.traj_dr_clu!=NOVAL_F) {
+	if (v.effcut_all) {
+	  hitclu->det_fill_1d(t.mod_on, 0,               0, v.traj_dr_clu);
+	  hitclu->det_fill_1d(t.mod_on, 1+t.clu.size==0, 0, v.traj_dr_clu);
+	}
+	hitclu->det_fill_1d(t.mod_on, 0,               1, v.traj_dr_clu);
+	hitclu->det_fill_1d(t.mod_on, 1+t.clu.size==0, 1, v.traj_dr_clu);
+      }
+      if (v.traj_dr_cluclu!=NOVAL_F&&t.clu.size!=0) {
+	if (v.effcut_all) {
+	  cluclu->det_fill_1d(t.mod_on, 0,               0, v.traj_dr_cluclu);
+	  cluclu->det_fill_1d(t.mod_on, 1+t.clu.size==0, 0, v.traj_dr_cluclu);
+	}
+	cluclu->det_fill_1d(t.mod_on, 0,               1, v.traj_dr_cluclu);
+	cluclu->det_fill_1d(t.mod_on, 1+t.clu.size==0, 1, v.traj_dr_cluclu);
+      }
+      if (v.effcut_all) {
+        normchi2->det2_fill_1d(t.mod_on, t.missing, (t.trk.chi2/t.trk.ndof));
+	angle->det_fill_1d(0, t.mod_on, t.missing, v.angle_alpha);
+        angle->det_fill_1d(1, t.mod_on, t.missing, v.angle_beta);
+        angle->det_fill_1d(2, t.mod_on, t.missing, v.angle_incidence);
+	angle->det_fill_1d(3, t.mod_on, t.missing, v.traj_theta);
+	angle->det_fill_1d(4, t.mod_on, t.missing, v.traj_phi);
+	angle2d->det_fill_2d(0, t.mod_on, t.missing, v.traj_theta, v.traj_phi);
+        if (t.clu.size>0) { // Valid hits
+          angle->det_fill_1d(0, t.mod_on, 2, v.angle_alpha);
+          angle->det_fill_1d(1, t.mod_on, 2, v.angle_beta);
+          angle->det_fill_1d(2, t.mod_on, 2, v.angle_incidence);
+	  angle->det_fill_1d(3, t.mod_on, 2, v.traj_theta);
+	  angle->det_fill_1d(4, t.mod_on, 2, v.traj_phi);
+	  angle2d->det_fill_2d(0, t.mod_on, 2, v.traj_theta, v.traj_phi);
+          angle->det_fillw_1d(0, t.mod_on, 3, v.angle_alpha,            t.norm_charge);
+          angle->det_fillw_1d(1, t.mod_on, 3, v.angle_beta,             t.norm_charge);
+          angle->det_fillw_1d(2, t.mod_on, 3, v.angle_incidence,        t.norm_charge);
+	  angle->det_fillw_1d(3, t.mod_on, 2, v.traj_theta,             t.norm_charge);
+	  angle->det_fillw_1d(4, t.mod_on, 2, v.traj_phi,               t.norm_charge);
+	  angle2d->det_fillw_2d(0, t.mod_on, 2, v.traj_theta, v.traj_phi, t.norm_charge);
+        }
+      }
     }
-    if (v.effcut_hitsep&&v.traj_dr_hit!=NOVAL_F) hithit->det_fill_1d(t.mod_on, t.missing, v.traj_dr_hit);
+    // New strip detector valuables
+#if VERSION2 >=32
+    if (v.effcut_nstrip) {
+      nstrip_new->det_fill_1d (0, t.mod_on, t.missing, t.trk.strip);
+      if (t.trk.nstriplost==0) nstrip_new->det_fill_1d (1, t.mod_on, t.missing, t.trk.strip);
+      if (t.trk.nstriplayer>5) nstrip_new->det_fill_1d (2, t.mod_on, t.missing, t.trk.strip);
+      if (t.trk.nstriplayer>7) nstrip_new->det_fill_1d (3, t.mod_on, t.missing, t.trk.strip);
+      if (t.trk.nstriplayer>9) nstrip_new->det_fill_1d (4, t.mod_on, t.missing, t.trk.strip);
+      if (t.trk.nstriplayer>7&&t.trk.nstriplost==0) nstrip_new->det_fill_1d (5, t.mod_on, t.missing, t.trk.strip);
+    }
+#endif
+
 
     //________________________________________________________________________________________
     //                            Plots with FED errors, and SEUs:
     //                   instlumi_raw, roceff_time, roceff_fill, fill_stat
     if (v.effcut_raw) {
-      instlumi_raw  ->det_fill_1d(0,              t.mod_on, t.missing, v.lumi_instlumi);
+      //if (v.good_instlumi) {
+      instlumi_raw  ->det2_fill_1d(0,              0,        t.mod_on, t.missing, v.lumi_instlumi);
+      instlumi_raw  ->det2_fill_1d(0,              v.year,   t.mod_on, t.missing, v.lumi_instlumi);
+      instlumi_raw ->det2_fillw_1d(0,              v.year,   t.mod_on,         2, v.lumi_instlumi, e.l1_rate);
+      instlumi_raw  ->det2_fill_1d(0,              v.year,   t.mod_on,         3, v.lumi_instlumi);
       if (v.traj_p1_fill!=NOVAL_I)
-	instlumi_raw->det_fill_1d(v.traj_p1_fill, t.mod_on, t.missing, v.lumi_instlumi);
+      	instlumi_raw->det2_fill_1d(v.traj_p1_fill, 0,        t.mod_on, t.missing, v.lumi_instlumi);
       // Badroc list plots
-#if BADROC == 1
+#if BADROC != 0
       roceff_time  ->h3d(0, v.p1_rocid, t.missing)->Fill(v.lumi_time, v.p2_rocid, v.p3_rocid);
-      if (v.traj_p1_fill!=NOVAL_I)
-	roceff_time->h3d(v.traj_p1_fill, v.p1_rocid, t.missing)->Fill(v.lumi_time, v.p2_rocid, v.p3_rocid);
-      roceff_fill->h3d(v.p1_rocid, t.missing)->Fill(v.lumi_fill, v.p2_rocid, v.p3_rocid);
-      fill_stat->h1d(t.missing)->Fill(v.lumi_fill);
+      if (v.traj_p1_fill_badroc!=NOVAL_I)
+	roceff_time->h3d(v.traj_p1_fill_badroc, v.p1_rocid, t.missing)->Fill(v.lumi_time, v.p2_rocid, v.p3_rocid);
+#if BADROC == 2
+      if (v.traj_p1_fill_badroc!=NOVAL_I) {
+	roceff_fill->h3d(v.p1_rocid, t.missing)->Fill(v.traj_p1_fill_badroc, v.p2_rocid, v.p3_rocid);
+	fill_stat->h1d(t.missing)->Fill(v.traj_p1_fill);
+      }
+#endif
 #endif
     }
-
+    
     //________________________________________________________________________________________
     //                            Plots without FED errors, SEUs:
     //                                    ls, occup, nvtx
@@ -363,32 +480,51 @@ class AllHistos {
       occup_mod->det_fill_1d(1, t.mod_on, t.missing, v.nclu_mod());
       occup_roc->det_fill_1d(1, t.mod_on, t.missing, v.nclu_roc());
       occup_dcol->det_fill_1d(1, t.mod_on, t.missing, v.nclu_dcol());
+#elif VERSION2 >= 34 && SPLIT > 0
+      // npix
+      occup->h1d(0, 0, t.missing)->Fill(e.npix[0]+e.npix[1]+e.npix[2]+e.npix[3]);
+      if (t.mod_on.det==0) occup->h1d(0, 1, t.missing)->Fill(e.npix[1]+e.npix[2]+e.npix[3]);
+      occup->h1d(0, 2+(t.mod_on.det==0)*t.mod_on.layer, t.missing)->Fill(e.npix[(t.mod_on.det==0)*t.mod_on.layer]);
+      occup_mod->det_fill_1d(0, t.mod_on, t.missing, t.npix_mod);
+      occup_roc->det_fill_1d(0, t.mod_on, t.missing, t.npix_roc);
+      // nclu
+      occup->h1d(1, 0, t.missing)->Fill(e.nclu[0]+e.nclu[1]+e.nclu[2]+e.nclu[3]);
+      if (t.mod_on.det==0) occup->h1d(1, 1, t.missing)->Fill(e.nclu[1]+e.nclu[2]+e.nclu[3]);
+      occup->h1d(1, 2+(t.mod_on.det==0)*t.mod_on.layer, t.missing)->Fill(e.nclu[(t.mod_on.det==0)*t.mod_on.layer]);
+      occup_mod->det_fill_1d(1, t.mod_on, t.missing, t.nclu_mod);
+      occup_roc->det_fill_1d(1, t.mod_on, t.missing, t.nclu_roc);
 #endif
       nvtx->det_fill_1d(t.mod_on, t.missing, e.nvtx);
       // Fill-by-Fill plots
-      det->              h1d(0,                t.missing)->Fill(v.traj_lay_x);
+      if (!(abs(t.mod_on.disk)==1&&(t.mod_on.panel+t.mod_on.module)<4))
+	det->              h1d(0,                t.missing)->Fill(v.traj_lay_x);
       mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y);
       roc->   increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
       if (t.mod_on.det==1)
 	roc-> increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1); // fpix
-      time->     det_fill_1d(0, t.mod_on,      t.missing, v.lumi_time);
-      bx->       det_fill_1d(0, t.mod_on,      t.missing, e.bx);
-      instlumi-> det_fill_1d(0, t.mod_on,      t.missing, v.lumi_instlumi);
+      time->    det2_fill_1d(0, t.mod_on,      t.missing, v.lumi_time);
+      if (v.main_filling_scheme) {
+	bx->      det2_fill_1d(0, t.mod_on,      t.missing, e.bx);
+	instlumi->det2_fill_1d(0, t.mod_on,      t.missing, v.lumi_instlumi);
+	l1rate  ->det2_fill_1d(0, t.mod_on,      t.missing, e.l1_rate/1000.0);
 #if VERSION2 >=27
-      il_l1rate->det_fill_2d(0, t.mod_on,      t.missing, v.lumi_instlumi, e.l1_rate);
+	il_l1rate->det_fill_2d(0, t.mod_on,      t.missing, v.lumi_instlumi, e.l1_rate/1000.0);
 #endif
+      }
       if (v.traj_p1_fill!=NOVAL_I) {
-	det->              h1d(v.traj_p1_fill,                t.missing)->Fill(v.traj_lay_x);
+	if (!(abs(t.mod_on.disk)==1&&(t.mod_on.panel+t.mod_on.module)<4))
+	  det->              h1d(v.traj_p1_fill,                t.missing)->Fill(v.traj_lay_x);
 	mod->              h2d(v.traj_p1_fill, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y);
 	roc->   increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
 	if (t.mod_on.det==1)
 	  roc-> increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1); // fpix
-	time->     det_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_time);
-	bx->       det_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, e.bx);
-	instlumi-> det_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi);
+	time->    det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_time);
+	bx->      det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, e.bx);
+	instlumi->det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi);
 #if VERSION2 >=27
-	il_l1rate->det_fill_2d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi, e.l1_rate);
+	il_l1rate->det_fill_2d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi, e.l1_rate/1000.0);
 #endif
+	l1rate->  det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, e.l1_rate/1000.0);
       }
     }
   }
@@ -397,7 +533,7 @@ class AllHistos {
     //________________________________________________________________________________________
     //                                      Delay Scan Plots:
     // delay11, delay11_rog, delay11_mod, delay11_roc, delay11, delay11_rog, delay11_mod, delay11_roc
-    // 2011 - March
+#if SCANPLOTS == 2
     if (v.delay!=NOVAL_I) {
       if (e.run<190411) { // 2011 March - Timing Scan
 	if (v.effcut_scans) { // Efficiency
@@ -505,30 +641,26 @@ class AllHistos {
     //________________________________________________________________________________________
     //                              High Voltage Bias Scan Plots:
     //                                          hv
-
-    // if (v.hv_p1!=NOVAL_I) {
-    //   if (v.hv_bias!=NOVAL_I&&v.hv_p2!=NOVAL_I) {
-    //     bool c1 = v.effcut_scans; // Efficiency Cut
-    //     bool c2 = t.trk.pt>0.6; // Normalized Cluster Charge Distribution Cut
-    //     bool c3 = t.trk.pt>0.6&&fabs(t.trk.eta)<0.1; // Pixel Charge Distribution Cut
-    //     hv->hist_effmpv_fill(v.hv_p1, v.hv_p2, 0, c1, c2, c3, t, v.hv_bias);
-    //     // Full layer scans
-    //     if ((v.hv_p1>=4&&v.hv_p1<=6)||(v.hv_p1==7&&v.hv_p2==1)) {
-    //       hv->hist_effmpv_fill(v.hv_p1, v.hv_p2, v.p1_mod+1, c1, c2, c3, t, v.hv_bias);
-    //       hv->hist_effmpv_fill(v.hv_p1, v.hv_p2, v.p2_lad+9, c1, c2, c3, t, v.hv_bias);
-    //       hv->hist_effmpv_fill(v.hv_p1, v.traj_shl+1+(v.hv_p1==7), v.p2_secdisk, c1, c2, c3, t, v.hv_bias);
-    //     }
-    //   }
-    // }
     
-    // New HV plots
-
+    // HV Scans
+#elif SCANPLOTS == 1
     if (v.hv_bias!=NOVAL_I) {
       int hvg_p2 = (t.mod_on.det==0) ? v.traj_shl*8+v.traj_sec : v.traj_shl*8 + v.hv_group*2 - 1 + v.hv_IO;
       int eta_p2 = (t.mod_on.det==0) ? 33+v.p1_mod : 32 + t.mod_on.module*2 - 2 + t.mod_on.panel;
       int phi_p2 = (t.mod_on.det==0) ? 39+2*abs(t.mod_on.ladder)+(t.mod_on.ladder>0) : 52 + t.mod_on.blade - (t.mod_on.blade>0);
+      /*
+      if (v.traj_newevt&&e.orb%100==0) {
+	std::cout<<"bias: "<<v.hv_bias<<" orb: "<<e.orb/1000000.0<<std::endl;
+	if (!v.effcut_scans)
+	  std::cout<<v.nvtx<<" "<<v.federr<<" "<<v.hp<<" "<<v.pt<<" "<<v.nstrip<<" "<<v.d0<<" "<<v.dz<<" "<<v.pixhit<<" "<<v.goodmod<<" "<<v.lx_fid<<" "<<v.ly_fid<<" "<<v.valmis<<" "<<v.hitsep<<std::endl;
+	else if (v.hv_l1_p1!=NOVAL_I||v.hv_l2_p1!=NOVAL_I||v.hv_l3_p1!=NOVAL_I||v.hv_d1_p1!=NOVAL_I) {
+	  std::cout<<"ok"<<std::endl;
+	}
+      }
+      */
       if (v.effcut_scans) { // Efficiency
-        if (v.hv_l1_p1!=NOVAL_I) hv_l1->h1d(v.hv_l1_p1, t.missing)->Fill(v.hv_bias);
+	if (v.hv_l1_p1!=NOVAL_I) hv_l1->h1d(v.hv_l1_p1, t.missing)->Fill(v.hv_bias);
+        if (v.hv_l2_p1!=NOVAL_I) hv_l2->h1d(v.hv_l2_p1, t.missing)->Fill(v.hv_bias);
         if (v.hv_l3_p1!=NOVAL_I) hv_l3->h1d(v.hv_l3_p1, t.missing)->Fill(v.hv_bias);
         if (v.hv_d1_p1!=NOVAL_I) hv_d1->h1d(v.hv_d1_p1, t.missing)->Fill(v.hv_bias);
         if (v.hv_l1full_p1!=NOVAL_I) {
@@ -559,9 +691,10 @@ class AllHistos {
         }
       }
       if (t.trk.pt>0.6&&t.clu.size>0) { // Norm Clu Charge MPV
-        if (v.hv_l1_p1!=NOVAL_I) hv_l1->h2d(v.hv_l1_p1, 0)->Fill(v.hv_bias, t.norm_charge);
-        if (v.hv_l3_p1!=NOVAL_I) hv_l3->h2d(v.hv_l3_p1, 0)->Fill(v.hv_bias, t.norm_charge);
-        if (v.hv_d1_p1!=NOVAL_I) hv_d1->h2d(v.hv_d1_p1, 0)->Fill(v.hv_bias, t.norm_charge);
+	if (v.hv_l1_p1!=NOVAL_I) hv_l1->h2d(v.hv_l1_p1, 0)->Fill(v.hv_bias, t.norm_charge);
+	if (v.hv_l2_p1!=NOVAL_I) hv_l2->h2d(v.hv_l2_p1, 0)->Fill(v.hv_bias, t.norm_charge);
+	if (v.hv_l3_p1!=NOVAL_I) hv_l3->h2d(v.hv_l3_p1, 0)->Fill(v.hv_bias, t.norm_charge);
+	if (v.hv_d1_p1!=NOVAL_I) hv_d1->h2d(v.hv_d1_p1, 0)->Fill(v.hv_bias, t.norm_charge);
         if (v.hv_l1full_p1!=NOVAL_I) {
           hv_l1full ->h2d(v.hv_l1full_p1, 0,      0)->Fill(v.hv_bias, t.norm_charge);
           hv_l1full ->h2d(v.hv_l1full_p1, hvg_p2, 0)->Fill(v.hv_bias, t.norm_charge);
@@ -590,8 +723,7 @@ class AllHistos {
         }
       }
     }
-    
-
+#endif
   }
 
   //__________________________________________________________________________________________
@@ -617,7 +749,7 @@ class AllHistos {
 	time_federr  ->det_fill_1d(0,              2,                      t.mod_on, t.missing, v.lumi_time);
 	time_federr  ->det_fill_1d(0,              t.mod_on.federr-22,     t.mod_on, t.missing, v.lumi_time);
       }
-      time_federr  ->det_fill_1d(0,                18+(e.federrs_size==0), t.mod_on, t.missing, v.lumi_time);
+      time_federr  ->det_fill_1d(0,                19+(e.federrs_size==0), t.mod_on, t.missing, v.lumi_time);
       // fill postfix
       if (v.traj_p1_fill!=NOVAL_I) {
 	time_federr  ->det_fill_1d(v.traj_p1_fill, 0,                      t.mod_on, t.missing, v.lumi_time);
@@ -627,7 +759,7 @@ class AllHistos {
 	  time_federr->det_fill_1d(v.traj_p1_fill, 2,                      t.mod_on, t.missing, v.lumi_time);
 	  time_federr->det_fill_1d(v.traj_p1_fill, t.mod_on.federr-22,     t.mod_on, t.missing, v.lumi_time);
 	}
-	time_federr  ->det_fill_1d(v.traj_p1_fill, 18+(e.federrs_size==0), t.mod_on, t.missing, v.lumi_time);
+	time_federr  ->det_fill_1d(v.traj_p1_fill, 19+(e.federrs_size==0), t.mod_on, t.missing, v.lumi_time);
       }
     }
     // Module Fed error rate
@@ -661,7 +793,7 @@ class AllHistos {
     //  4:
     // Number of hits in event with Fed error of type x:
     // Denumerator of 3
-    for (int i=0; i<18; i++) if (v.traj_evt_federr_type[i]==1) {
+    for (int i=0; i<19; i++) if (v.traj_evt_federr_type[i]==1) {
       time_federr  ->det_fill_1d(0,              i,                  t.mod_on, 4, v.lumi_time);
       if (v.traj_p1_fill!=NOVAL_I)
         time_federr->det_fill_1d(v.traj_p1_fill, i,                  t.mod_on, 4, v.lumi_time);
@@ -681,7 +813,7 @@ class AllHistos {
     // Numerator:   Sum(federr_mult) (h[p1][n][0][5], where n=2,3, ... 16,17)
     // Denumerator: Nevents          (h[p1][0][0][5])
     // Numerator
-    for (int i=0; i<18; i++) if (v.evt_federr_mult[i]!=0) {
+    for (int i=0; i<19; i++) if (v.evt_federr_mult[i]!=0) {
       time_federr->h1d(0,i,0,5)->Fill(v.lumi_time,v.evt_federr_mult[i]);
       if (v.evt_p1_fill!=NOVAL_I)
 	time_federr->h1d(v.evt_p1_fill,i,0,5)->Fill(v.lumi_time,v.evt_federr_mult[i]);
@@ -691,7 +823,7 @@ class AllHistos {
     // Numerator:   Sum(federr_mult) (h[p1][n][0][5], where n=2,3, ... 16,17)
     // Denumerator: Nevents_with_FE  (h[p1][n][0][6], where n=2,3, ... 16,17)
     // Denumerator:
-    for (int i=0; i<18; i++) if (v.evt_federr_mult[i]!=0) {
+    for (int i=0; i<19; i++) if (v.evt_federr_mult[i]!=0) {
       time_federr->h1d(0,i,0,6)->Fill(v.lumi_time);
       if (v.evt_p1_fill!=NOVAL_I)
 	time_federr->h1d(v.evt_p1_fill,i,0,6)->Fill(v.lumi_time);
@@ -705,7 +837,7 @@ class AllHistos {
     // Numerator:   federrs_size   (h[p1][n][0][5], where n=2,3, ... 16,17)
     // Denumerator: Nevent_with_FE (h[p1][n][0][6], where n=2,3, ... 16,17)
     Int_t binx = time_federr->h1d(0,0,0,0)->FindBin(v.lumi_time);
-    for (int i=0; i<18; i++) if (v.evt_federr_mult[i]!=0) {
+    for (int i=0; i<19; i++) if (v.evt_federr_mult[i]!=0) {
       double SumMult = time_federr->h1d(0,i,0,5)->GetBinContent(binx);
       double N = time_federr->h1d(0,i,0,6)->GetBinContent(binx);
       double Diff = (v.evt_federr_mult[i] - SumMult / N);
@@ -719,15 +851,15 @@ class AllHistos {
     for (int p1=0; p1<=v.lumi_nfill; p1++) {
       for (int p3=0; p3<10; p3++) {
 	// copy: num of 3 -> num of 2
-	for (int n=0; n<18; n++) time_federr->h1d(p1,n,p3,3)->Add(time_federr->h1d(p1,n,p3,2));
+	for (int n=0; n<19; n++) time_federr->h1d(p1,n,p3,3)->Add(time_federr->h1d(p1,n,p3,2));
 	// divide num of 2 by den of 2
-	for (int n=1; n<18; n++) time_federr->h1d(p1,n,p3,2)->Divide(time_federr->h1d(p1,0,p3,2));
+	for (int n=1; n<19; n++) time_federr->h1d(p1,n,p3,2)->Divide(time_federr->h1d(p1,0,p3,2));
 	// divide num of 3 by den of 4
-	for (int n=2; n<18; n++) time_federr->h1d(p1,n,p3,3)->Divide(time_federr->h1d(p1,n,p3,4));
+	for (int n=2; n<19; n++) time_federr->h1d(p1,n,p3,3)->Divide(time_federr->h1d(p1,n,p3,4));
       }
       // first 6: divide h[p1][n][0][5] by h[p1][n][0][6]
       // then  5: divide h[p1][n][0][5] by h[p1][0][0][5]
-      for (int n=2; n<18; n++) {
+      for (int n=2; n<19; n++) {
 	time_federr->h1d(p1,n,0,6)->Divide(time_federr->h1d(p1,n,0,5),time_federr->h1d(p1,n,0,6));
 	time_federr->h1d(p1,n,0,5)->Divide(time_federr->h1d(p1,0,0,5));
 	// Set Errors of Multiplicity plot to Standard Deviation of Multiplicities - sqrt(var)
@@ -811,24 +943,6 @@ class AllHistos {
       return tw;
     } else return 0;
   }
-  void setpoint_(double p1, double p2, int g, int i, int scanno, int layno, Variables &v) {
-    std::vector<double> totlum_pb;
-    totlum_pb.push_back(v.totallumi[132599]/1000000.0);
-    totlum_pb.push_back(v.totallumi[149182]/1000000.0);
-    totlum_pb.push_back(v.totallumi[160497]/1000000.0);
-    totlum_pb.push_back(v.totallumi[165098]/1000000.0);
-    totlum_pb.push_back(v.totallumi[170000]/1000000.0);
-    totlum_pb.push_back(v.totallumi[171897]/1000000.0);
-    totlum_pb.push_back(v.totallumi[172488]/1000000.0);
-    totlum_pb.push_back(v.totallumi[175834]/1000000.0);
-    totlum_pb.push_back(v.totallumi[178367]/1000000.0);
-    totlum_pb.push_back(v.totallumi[180093]/1000000.0);
-    totlum_pb.push_back(v.totallumi[180250]/1000000.0);
-    totlum_pb.push_back(v.totallumi[190595]/1000000.0);
-    hv_totlumi[g]->SetPoint(i,totlum_pb[scanno],v95_(p1,p2,hv->h1d(scanno,layno,0,0)));
-    hv_totlumi[g+1]->SetPoint(i,totlum_pb[scanno],v50_(p1,p2,hv->h1d(scanno,layno,0,0)));
-    hv_totlumi[g+2]->SetPoint(i,totlum_pb[scanno],tw_(p1,p2,hv->h1d(scanno,layno,0,0)));    
-  }
 
   void linear_yzfit_slope_(TH3D *h, TH1D *slopex, int from_origo=0) {
     if (h->GetEntries()) {
@@ -897,10 +1011,12 @@ class AllHistos {
       }
     }
     for (int fill=0; fill<=v.lumi_nfill; fill++) {
-      for (int det=1; det<10; det++) {
-	if (fill==0) totlumi_ratio->h1d(det)->Divide(totlumi_ratio->h1d(0));
-	// time
-	time    ->h1d(fill, det, 2)->Divide(time    ->h1d(fill, 0, 2));
+      for (int det=1; det<24; det++) {
+	if (det<10) {
+	  if (fill==0) totlumi_ratio->h1d(det)->Divide(totlumi_ratio->h1d(0));
+	  // time
+	  time    ->h1d(fill, det, 2)->Divide(time    ->h1d(fill, 0, 2));
+	}
 	instlumi->h1d(fill, det, 2)->Divide(instlumi->h1d(fill, 0, 2));
       }
       for (int i=0; i<4; i++)
@@ -1115,12 +1231,13 @@ class AllHistos {
       double y2 = h->GetBinContent(bin2);
       float p2 = x1+ (x2-x1)*(mid-y1)/(y2-y1);
       // Fit
+      if (std::string(h->GetName()).find("hv_l1_HV16_eff")==0) first_point = 7.5;
       TF1* f = new TF1("turnon", "[0]+[1]/(1+exp(([2]-x)/[3]))", first_point, 150);
       f->SetParameter(0,p0);
       f->SetParameter(1,p1);
       f->SetParameter(2,p2);
       f->SetParameter(3,3.1);
-      f->SetParLimits(0,0,1);
+      f->SetParLimits(0,0,0.6);
       f->SetParLimits(1,0,1);
       //f->SetParLimits(2,0,1);
       f->SetParLimits(3,0.25,10);
@@ -1145,8 +1262,15 @@ class AllHistos {
   }
 
   void calc_hv_scans_(Variables &v, PostFixes &p) {
+    calc_mpv_for_hv_scans(p); // Recalc MPV
+
     TCanvas c("c");
+    //-------------------------------
+    //   Vturnon vs totlumi plots  //
+    //-------------------------------
+    // Turnon fits
     for (size_t i=0; i<p.hv_l1.size(); i++) fit_turnon_improved_(hv_l1->h1d(i,0),hv_l1->h1d(i,1));
+    for (size_t i=0; i<p.hv_l2.size(); i++) fit_turnon_improved_(hv_l2->h1d(i,0),hv_l2->h1d(i,1));
     for (size_t i=0; i<p.hv_l3.size(); i++) fit_turnon_improved_(hv_l3->h1d(i,0),hv_l3->h1d(i,1));
     for (size_t i=0; i<p.hv_d1.size(); i++) fit_turnon_improved_(hv_d1->h1d(i,0),hv_d1->h1d(i,1));
     for (size_t i=0; i<p.hv_l1full.size(); i++) for (int j=0; j<61; j++) fit_turnon_improved_(hv_l1full->h1d(i,j,0),hv_l1full->h1d(i,j,1));
@@ -1154,13 +1278,80 @@ class AllHistos {
     for (size_t i=0; i<p.hv_l3full.size(); i++) for (int j=0; j<85; j++) fit_turnon_improved_(hv_l3full->h1d(i,j,0),hv_l3full->h1d(i,j,1));
     for (size_t i=0; i<p.hv_d1full.size(); i++) for (int j=0; j<64; j++) fit_turnon_improved_(hv_d1full->h1d(i,j,0),hv_d1full->h1d(i,j,1));
     for (size_t i=0; i<p.hv_d2full.size(); i++) for (int j=0; j<64; j++) fit_turnon_improved_(hv_d2full->h1d(i,j,0),hv_d2full->h1d(i,j,1));
-    for (size_t i=0; i<p.hv_l1.size(); i++)     vturnon_totlumi->h1d(0)->Fill(v.totlumi_scan[0][i],vturnon_(hv_l1->h1d(i,0)));
-    for (size_t i=0; i<p.hv_l2full.size(); i++) vturnon_totlumi->h1d(1)->Fill(v.totlumi_scan[1][i],vturnon_(hv_l2full->h1d(i,0,0)));
-    for (size_t i=0; i<p.hv_l3.size(); i++)     vturnon_totlumi->h1d(2)->Fill(v.totlumi_scan[2][i],vturnon_(hv_l3->h1d(i,0)));
-    for (size_t i=0; i<p.hv_d1.size(); i++)     vturnon_totlumi->h1d(3)->Fill(v.totlumi_scan[3][i],vturnon_(hv_d1->h1d(i,0)));
-    for (size_t i=0; i<p.hv_d2full.size(); i++) vturnon_totlumi->h1d(4)->Fill(v.totlumi_scan[4][i],vturnon_(hv_d2full->h1d(i,0,0)));
-    for (int i=0; i<5; i++) for (int j=1; j<=vturnon_totlumi->h1d(i)->GetNbinsX(); j++) 
-      if (vturnon_totlumi->h1d(i)->GetBinContent(j)>0) vturnon_totlumi->h1d(i)->SetBinError(j,0.00001);
+    
+    // Vturnon plots
+    bool drawMpvFit = true;
+
+    size_t nscan[5] = { p.hv_l1.size(), p.hv_l2.size(), p.hv_l3.size(), p.hv_d1.size(), p.hv_d2full.size() };
+    Histograms* AllHv[5] = { hv_l1, hv_l2, hv_l3, hv_d1, hv_d2full };
+    for (int det=0; det<5; ++det) for (size_t i=0; i<nscan[det]; ++i) {
+      TH1D* eff = det<4 ? AllHv[det]->h1d(i,0) : AllHv[det]->h1d(i,0,0);
+      TH1D* mpv = det<4 ? AllHv[det]->h1d(i,2) : AllHv[det]->h1d(i,0,2);
+      double vturnon = vturnon_(eff);
+      double maximum = mpv->GetMaximum();
+      mpv->Scale(1.0/maximum);
+      TF1* f = new TF1("mpvturnon", "([0]+[1]*x)/(1+exp(([2]-x)/[3]))", det==4 ? 10 : det==2&&i<3 ? 50 : 20,150);
+      f->SetParLimits(0,0.9,1);
+      f->SetParLimits(1,0.0001,0.01);
+      f->SetParLimits(2,0,70);
+      f->SetParLimits(3,0,50);
+      mpv->Fit("mpvturnon","RMQ0");
+      vturnon_totlumi->h1d(det,0)->Fill(v.totlumi_scan[det][i], vturnon);
+      if (!(det==3&&(i>=0&&i<=4))) {
+	vturnon_totlumi->h1d(det,1)->Fill(v.totlumi_scan[det][i], f->Eval(vturnon)*maximum);
+	vturnon_totlumi->h1d(det,2)->Fill(v.totlumi_scan[det][i], f->Eval(vturnon));
+      }
+      mpv->Scale(maximum);
+      // Redraw the function after rescaling
+      if (drawMpvFit) {
+	f = new TF1("mpvturnon2", "([0]+[1]*x)/(1+exp(([2]-x)/[3]))", det==4 ? 10 : det==2&&i<3 ? 50 : 20,150);
+	f->SetParLimits(0,0.9*maximum,1*maximum);
+	f->SetParLimits(1,0.0001*maximum,0.01*maximum);
+	f->SetParLimits(2,0,70);
+	f->SetParLimits(3,0,50);
+	mpv->Fit("mpvturnon2","RMQ");
+	if (det==3&&i<p.hv_d1full.size()) { // Draw the fit for d1full plot too
+	  mpv = hv_d1full->h1d(i,0,2);
+	  maximum = mpv->GetMaximum();
+	  f = new TF1("mpvturnon2", "([0]+[1]*x)/(1+exp(([2]-x)/[3]))", 20,150);
+	  f->SetParLimits(0,0.9*maximum,1*maximum);
+	  f->SetParLimits(1,0.0001*maximum,0.01*maximum);
+	  f->SetParLimits(2,0,70);
+	  f->SetParLimits(3,0,50);
+	  mpv->Fit("mpvturnon2","RMQ");
+	}
+      }
+      //TCanvas *can = new TCanvas(mpv->GetName());
+      //TF1* g = new TF1("mpvturnon2", "([0]+[1]*x)/(1+exp(([2]-x)/[3]))", det==4 ? 10 : det==2&&i<3 ? 50 : 20,150);
+      //for (int i=0; i<4; ++i) g->SetParameter(i,f->GetParameter(i));
+      //g->SetParLimits(0,0.9*maximum,1*maximum);
+      //g->SetParLimits(1,0.0001*maximum,0.01*maximum);
+      //g->SetParLimits(2,0,70);
+      //g->SetParLimits(3,0,50);
+      //mpv->Fit("mpvturnon2","RMQ0");
+      //mpv->Draw();
+      //g->Draw("same");
+      //can->SaveAs(std::string("fit_plots/"+std::string(mpv->GetName())+".png").c_str());
+    }
+
+    // Delete error bars on Mpv plots
+    for (size_t i=0; i<p.hv_l1.size(); i++) for (int j=1; j<=hv_l1->h1d(i,2)->GetNbinsX(); ++j) hv_l1->h1d(i,2)->SetBinError(j,0);
+    for (size_t i=0; i<p.hv_l2.size(); i++) for (int j=1; j<=hv_l2->h1d(i,2)->GetNbinsX(); ++j) hv_l2->h1d(i,2)->SetBinError(j,0);
+    for (size_t i=0; i<p.hv_l3.size(); i++) for (int j=1; j<=hv_l3->h1d(i,2)->GetNbinsX(); ++j) hv_l3->h1d(i,2)->SetBinError(j,0);
+    for (size_t i=0; i<p.hv_d1.size(); i++) for (int j=1; j<=hv_d1->h1d(i,2)->GetNbinsX(); ++j) hv_d1->h1d(i,2)->SetBinError(j,0);
+    for (size_t i=0; i<p.hv_l1full.size(); i++) for (int j=0; j<61; j++) for (int k=1; k<=hv_l1full->h1d(i,j,2)->GetNbinsX(); ++k) hv_l1full->h1d(i,j,2)->SetBinError(k,0);
+    for (size_t i=0; i<p.hv_l2full.size(); i++) for (int j=0; j<73; j++) for (int k=1; k<=hv_l2full->h1d(i,j,2)->GetNbinsX(); ++k) hv_l2full->h1d(i,j,2)->SetBinError(k,0);
+    for (size_t i=0; i<p.hv_l3full.size(); i++) for (int j=0; j<85; j++) for (int k=1; k<=hv_l3full->h1d(i,j,2)->GetNbinsX(); ++k) hv_l3full->h1d(i,j,2)->SetBinError(k,0);
+    for (size_t i=0; i<p.hv_d1full.size(); i++) for (int j=0; j<64; j++) for (int k=1; k<=hv_d1full->h1d(i,j,2)->GetNbinsX(); ++k) hv_d1full->h1d(i,j,2)->SetBinError(k,0);
+    for (size_t i=0; i<p.hv_d2full.size(); i++) for (int j=0; j<64; j++) for (int k=1; k<=hv_d2full->h1d(i,j,2)->GetNbinsX(); ++k) hv_d2full->h1d(i,j,2)->SetBinError(k,0);
+    
+    // Set error to 0, so no error bars are drawn with P9E1
+    for (int i=0; i<5; i++) for (int j=0; j<3; ++j) for (int k=1; k<=vturnon_totlumi->h1d(i,j)->GetNbinsX(); ++k)
+      if (vturnon_totlumi->h1d(i,j)->GetBinContent(k)>0) vturnon_totlumi->h1d(i,j)->SetBinError(k,0.00001);
+    //-------------------------------
+    //      HV Group Plots         //
+    //-------------------------------
+    
     // FPix Inner/Outer Blade plots
     //fpix
     //0 - all
@@ -1279,17 +1470,19 @@ class AllHistos {
   
 public:
   
-  void load_HV_scans(PostFixes &p) {
-    TFile f_in("/home/jkarancs/Prev_scans_data/HV1-12_newplots_INC_SPL0_nstrip0.root");
+  void load_HV_scans(const char* input, PostFixes &p) {
+    TFile f_in(input);
     for (size_t i=0; i<p.hv_l1.size()-1; i++) hv_l1->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_l2.size()-1; i++) hv_l2->partial_load(f_in, i);
     for (size_t i=0; i<p.hv_l3.size()-1; i++) hv_l3->partial_load(f_in, i);
     for (size_t i=0; i<p.hv_d1.size()-1; i++) hv_d1->partial_load(f_in, i);
-    for (size_t i=0; i<p.hv_l1full.size()-1; i++) hv_l1full->partial_load(f_in, i);
-    for (size_t i=0; i<p.hv_l2full.size()-1; i++) hv_l2full->partial_load(f_in, i);
-    for (size_t i=0; i<p.hv_l3full.size()-1; i++) hv_l3full->partial_load(f_in, i);
-    for (size_t i=0; i<p.hv_d1full.size()-1; i++) hv_d1full->partial_load(f_in, i);
-    for (size_t i=0; i<p.hv_d2full.size()-1; i++) hv_d2full->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_l1full.size(); i++) hv_l1full->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_l2full.size(); i++) hv_l2full->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_l3full.size(); i++) hv_l3full->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_d1full.size(); i++) hv_d1full->partial_load(f_in, i);
+    for (size_t i=0; i<p.hv_d2full.size(); i++) hv_d2full->partial_load(f_in, i);
     hv_l1->revert_eff();
+    hv_l2->revert_eff();
     hv_l3->revert_eff();
     hv_d1->revert_eff();
     hv_l1full->revert_eff();
@@ -1298,6 +1491,21 @@ public:
     hv_d1full->revert_eff();
     hv_d2full->revert_eff();
     f_in.Close();
+  }
+  
+  void calc_mpv_for_hv_scans(PostFixes &p) {
+    // HV Scans
+    std::cout<<"Start Fitting MPV plots"<<std::endl;
+    for (size_t i=0; i<p.hv_l1.size(); i++) get_mpv_(hv_l1->h2d(i,0),hv_l1->h1d(i,2),hv_l1->h1d(i,1));
+    for (size_t i=0; i<p.hv_l2.size(); i++) get_mpv_(hv_l2->h2d(i,0),hv_l2->h1d(i,2),hv_l2->h1d(i,1));
+    for (size_t i=0; i<p.hv_l3.size(); i++) get_mpv_(hv_l3->h2d(i,0),hv_l3->h1d(i,2),hv_l3->h1d(i,1));
+    for (size_t i=0; i<p.hv_d1.size(); i++) get_mpv_(hv_d1->h2d(i,0),hv_d1->h1d(i,2),hv_d1->h1d(i,1));
+    for (size_t i=0; i<p.hv_l1full.size(); i++) for (int j=0; j<61; j++) get_mpv_(hv_l1full->h2d(i,j,0),hv_l1full->h1d(i,j,2),hv_l1full->h1d(i,j,1));
+    for (size_t i=0; i<p.hv_l2full.size(); i++) for (int j=0; j<73; j++) get_mpv_(hv_l2full->h2d(i,j,0),hv_l2full->h1d(i,j,2),hv_l2full->h1d(i,j,1));
+    for (size_t i=0; i<p.hv_l3full.size(); i++) for (int j=0; j<85; j++) get_mpv_(hv_l3full->h2d(i,j,0),hv_l3full->h1d(i,j,2),hv_l3full->h1d(i,j,1));
+    for (size_t i=0; i<p.hv_d1full.size(); i++) for (int j=0; j<64; j++) get_mpv_(hv_d1full->h2d(i,j,0),hv_d1full->h1d(i,j,2),hv_d1full->h1d(i,j,1));
+    for (size_t i=0; i<p.hv_d2full.size(); i++) for (int j=0; j<64; j++) get_mpv_(hv_d2full->h2d(i,j,0),hv_d2full->h1d(i,j,2),hv_d2full->h1d(i,j,1));
+    std::cout<<"MPV fitting ready"<<std::endl;
   }
 
   void load_totlumi() {
@@ -1309,40 +1517,6 @@ public:
 
   void calc_hv_scans(Variables &v, PostFixes &p) { calc_hv_scans_(v,p); }
   
-  void hv_graphs(Variables &v) {
-    // l1
-    create_graph_(8,2);
-    setpoint_(46.0,5.8, 0, 0,  1, 1, v);
-    setpoint_(44.0,5.8, 0, 1,  2, 1, v);
-    setpoint_(42.0,4.0, 0, 2,  3, 0, v);
-    setpoint_(31.0,4.0, 0, 3,  4, 0, v);
-    setpoint_(16.0,5.0, 0, 4,  7, 1, v);
-    setpoint_(16.0,3.0, 0, 5,  8, 0, v);
-    setpoint_(15.0,3.3, 0, 6,  9, 0, v);
-    setpoint_(15.0,3.3, 0, 7, 11, 0, v);
-    // l2
-    create_graph_(2,4);
-    setpoint_(36.0,3.4, 3, 0,  6, 0, v);
-    setpoint_(36.0,3.4, 3, 1, 11, 1, v);
-    // l3
-    create_graph_(5,3);
-    setpoint_(32.0,7.5, 6, 0,  0, 1, v);
-    setpoint_(32.0,7.5, 6, 1,  1, 2, v);
-    setpoint_(32.0,7.5, 6, 2,  2, 2, v);
-    setpoint_(39.0,5.2, 6, 3,  5, 0, v);
-    setpoint_(39.0,5.2, 6, 4, 11, 2, v);
-    // D1
-    create_graph_(5,1);
-    setpoint_(30.0,4.0, 9, 0,  0, 0 ,v);
-    setpoint_(30.0,1.0, 9, 1,  1, 0 ,v);
-    setpoint_(30.0,3.6, 9, 2,  2, 0 ,v);
-    setpoint_(24.0,3.6, 9, 3,  7, 0 ,v);
-    setpoint_(22.0,3.6, 9, 4, 11, 3 ,v);
-    // D2
-    //create_graph_(1,6);
-    //setpoint_(30.0,4.0, 12, 0, 11, 4 ,v);
-  }
-
   void postprocess(Variables &v, PostFixes &p) {
     // BAD ROC selection
 #if BADROC != 0
@@ -1467,17 +1641,19 @@ public:
 	  badroc->h2d(fill-1,lay)->GetXaxis()->SetRange(1,last_bin);
 	  nbadroc->h1d(fill-1,2+lay)->GetXaxis()->SetRange(1,last_bin);
 	}
-        for (int det=0; det<10; det++) {
+	if (FILLS==2) {
+	  for (int det=0; det<10; det++) {
 #ifdef COMPLETE
-          for (int i=0; i<3; i++) time->h1d(fill,det,i)->GetXaxis()->SetRange(1,last_bin*2);
+	    for (int i=0; i<3; i++) time->h1d(fill,det,i)->GetXaxis()->SetRange(1,last_bin*2);
 #else
-          for (int i=0; i<2; i++) time->h1d(fill,det,i)->GetXaxis()->SetRange(1,last_bin*2);
+	    for (int i=0; i<2; i++) time->h1d(fill,det,i)->GetXaxis()->SetRange(1,last_bin*2);
 #endif
 #if FEDERRPLOTS == 1
-	  for (int type=0; type<20; type++) for (int p=0; p<7; p++) if (!((p>=5&&det>0)||(p>=2&&type>=18)))
-	    time_federr->h1d(fill,type,det,p)->GetXaxis()->SetRange(1,last_bin*2);
+	    for (int type=0; type<21; type++) for (int p=0; p<7; p++) if (!((p>=5&&det>0)||(p>=2&&type>=19)))
+	      time_federr->h1d(fill,type,det,p)->GetXaxis()->SetRange(1,last_bin*2);
 #endif
-        }
+	  }
+	}
       }
       if (debug) std::cout<<"5"<<std::endl;
       // Checking for existing list and if it does not exist 
@@ -1545,7 +1721,7 @@ public:
     std::cout<<"---------------------------------------------------------"<<std::endl;
     std::cout<<"Starting to Create Persistent BAD ROC LIST"<<std::endl;
     std::cout<<"Total statistics is: "<<remaining_stat<<std::endl;
-    for (int fill=9999; fill>0; fill--) {
+    for (int fill=1; fill<=v.lumi_nfill; fill++) {
       if (fill_high==0) fill_high = fill;
       double fillstat = fill_stat->h1d(1)->GetBinContent(fill);
       if (fillstat>0) {
@@ -1636,58 +1812,70 @@ public:
       totlumi->h1d(i,6)->Divide(totlumi->h1d(i,7));
       totlumi->h1d(i,8)->Divide(totlumi->h1d(i,9));
     }
-#if SCANPLOTS ==1
+#if SCANPLOTS == 1
+    calc_mpv_for_hv_scans(p);
+#elif SCANPLOTS == 2
+    // Timing Scans
     std::cout<<"Start Fitting MPV plots"<<std::endl;
-    //bool fit_debug=0;
+    bool fit_debug=0;
     // TFile* f=0;
     // if (fit_debug) f = TFile::Open("Fit_samples.root","recreate");
-    // Timing Scans
-    //load_delay_scans_();
-    // for (int i=0; i<10; i++) {
-    //   get_landau_mpv_(delay11->h2d(i,0),delay11->h1d(i,4),delay11->h1d(i,1), fit_debug);
-    //   get_landau_mpv_(delay12->h2d(i,0),delay12->h1d(i,4),delay12->h1d(i,1), fit_debug);
-    //   get_landau_mpv_(delay3->h2d(i,0),delay3->h1d(i,4),delay3->h1d(i,1), fit_debug);
-    //   get_landau_mpv_(delay4->h2d(i,0),delay4->h1d(i,4),delay4->h1d(i,1), fit_debug);
-    // }
-    // for (int i=0; i<4; i++) for (int j=0; j<10; j++) for (int k=0; (j<8) ? k<2 : k<4; k++) {
-    //   get_landau_mpv_(delay11_rog->h2d(i,j,k,0),delay11_rog->h1d(i,j,k,4),delay11_rog->h1d(i,j,k,1), fit_debug);
-    //   get_landau_mpv_(delay12_rog->h2d(i,j,k,0),delay12_rog->h1d(i,j,k,4),delay12_rog->h1d(i,j,k,1), fit_debug);
-    //   get_landau_mpv_(delay3_rog->h2d(i,j,k,0),delay3_rog->h1d(i,j,k,4),delay3_rog->h1d(i,j,k,1), fit_debug);
-    //   get_landau_mpv_(delay4_rog->h2d(i,j,k,0),delay4_rog->h1d(i,j,k,4),delay4_rog->h1d(i,j,k,1), fit_debug);
-    // }
-    // for (int i=0; i<8; i++) for (int j=0; (i<4) ? j<48 : j<24; j++) {
-    //   for (int k=0; (i<4) ? k<4 : k<7; k++) {
-    //     get_landau_mpv_(delay11_mod->h2d(i,j,k,0),delay11_mod->h1d(i,j,k,4),delay11_mod->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay12_mod->h2d(i,j,k,0),delay12_mod->h1d(i,j,k,4),delay12_mod->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay3_mod->h2d(i,j,k,0),delay3_mod->h1d(i,j,k,4),delay3_mod->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay4_mod->h2d(i,j,k,0),delay4_mod->h1d(i,j,k,4),delay4_mod->h1d(i,j,k,1), fit_debug);
-    //   }
-    //   for (int k=0; (i<4) ? k<64 : k<45; k++) {
-    //     get_landau_mpv_(delay11_roc->h2d(i,j,k,0),delay11_roc->h1d(i,j,k,4),delay11_roc->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay12_roc->h2d(i,j,k,0),delay12_roc->h1d(i,j,k,4),delay12_roc->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay3_roc->h2d(i,j,k,0),delay3_roc->h1d(i,j,k,4),delay3_roc->h1d(i,j,k,1), fit_debug);
-    //     get_landau_mpv_(delay4_roc->h2d(i,j,k,0),delay4_roc->h1d(i,j,k,4),delay4_roc->h1d(i,j,k,1), fit_debug);
-    //   }
-    // }
-    // if (fit_debug) f->Close();
-    // HV Scans
-    // for (size_t i=0; i<p.hv_l1.size(); i++) get_mpv_(hv_l1->h2d(i,0),hv_l1->h1d(i,2),hv_l1->h1d(i,1));
-    // for (size_t i=0; i<p.hv_l3.size(); i++) get_mpv_(hv_l3->h2d(i,0),hv_l3->h1d(i,2),hv_l3->h1d(i,1));
-    // for (size_t i=0; i<p.hv_d1.size(); i++) get_mpv_(hv_d1->h2d(i,0),hv_d1->h1d(i,2),hv_d1->h1d(i,1));
-    // for (size_t i=0; i<p.hv_l1full.size(); i++) for (int j=0; j<61; j++) get_mpv_(hv_l1full->h2d(i,j,0),hv_l1full->h1d(i,j,2),hv_l1full->h1d(i,j,1));
-    // for (size_t i=0; i<p.hv_l2full.size(); i++) for (int j=0; j<73; j++) get_mpv_(hv_l2full->h2d(i,j,0),hv_l2full->h1d(i,j,2),hv_l2full->h1d(i,j,1));
-    // for (size_t i=0; i<p.hv_l3full.size(); i++) for (int j=0; j<85; j++) get_mpv_(hv_l3full->h2d(i,j,0),hv_l3full->h1d(i,j,2),hv_l3full->h1d(i,j,1));
-    // for (size_t i=0; i<p.hv_d1full.size(); i++) for (int j=0; j<64; j++) get_mpv_(hv_d1full->h2d(i,j,0),hv_d1full->h1d(i,j,2),hv_d1full->h1d(i,j,1));
-    // for (size_t i=0; i<p.hv_d2full.size(); i++) for (int j=0; j<64; j++) get_mpv_(hv_d2full->h2d(i,j,0),hv_d2full->h1d(i,j,2),hv_d2full->h1d(i,j,1));
-    // calc_hv_scans_(v,p);
+    load_delay_scans_();
+    for (int i=0; i<10; i++) {
+      get_landau_mpv_(delay11->h2d(i,0),delay11->h1d(i,4),delay11->h1d(i,1), fit_debug);
+      get_landau_mpv_(delay12->h2d(i,0),delay12->h1d(i,4),delay12->h1d(i,1), fit_debug);
+      get_landau_mpv_(delay3->h2d(i,0),delay3->h1d(i,4),delay3->h1d(i,1), fit_debug);
+      get_landau_mpv_(delay4->h2d(i,0),delay4->h1d(i,4),delay4->h1d(i,1), fit_debug);
+    }
+    for (int i=0; i<4; i++) for (int j=0; j<10; j++) for (int k=0; (j<8) ? k<2 : k<4; k++) {
+      get_landau_mpv_(delay11_rog->h2d(i,j,k,0),delay11_rog->h1d(i,j,k,4),delay11_rog->h1d(i,j,k,1), fit_debug);
+      get_landau_mpv_(delay12_rog->h2d(i,j,k,0),delay12_rog->h1d(i,j,k,4),delay12_rog->h1d(i,j,k,1), fit_debug);
+      get_landau_mpv_(delay3_rog->h2d(i,j,k,0),delay3_rog->h1d(i,j,k,4),delay3_rog->h1d(i,j,k,1), fit_debug);
+      get_landau_mpv_(delay4_rog->h2d(i,j,k,0),delay4_rog->h1d(i,j,k,4),delay4_rog->h1d(i,j,k,1), fit_debug);
+    }
+    for (int i=0; i<8; i++) for (int j=0; (i<4) ? j<48 : j<24; j++) {
+      for (int k=0; (i<4) ? k<4 : k<7; k++) {
+        get_landau_mpv_(delay11_mod->h2d(i,j,k,0),delay11_mod->h1d(i,j,k,4),delay11_mod->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay12_mod->h2d(i,j,k,0),delay12_mod->h1d(i,j,k,4),delay12_mod->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay3_mod->h2d(i,j,k,0),delay3_mod->h1d(i,j,k,4),delay3_mod->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay4_mod->h2d(i,j,k,0),delay4_mod->h1d(i,j,k,4),delay4_mod->h1d(i,j,k,1), fit_debug);
+      }
+      for (int k=0; (i<4) ? k<64 : k<45; k++) {
+        get_landau_mpv_(delay11_roc->h2d(i,j,k,0),delay11_roc->h1d(i,j,k,4),delay11_roc->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay12_roc->h2d(i,j,k,0),delay12_roc->h1d(i,j,k,4),delay12_roc->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay3_roc->h2d(i,j,k,0),delay3_roc->h1d(i,j,k,4),delay3_roc->h1d(i,j,k,1), fit_debug);
+        get_landau_mpv_(delay4_roc->h2d(i,j,k,0),delay4_roc->h1d(i,j,k,4),delay4_roc->h1d(i,j,k,1), fit_debug);
+      }
+    }
+    if (fit_debug) f->Close();
+    // Track loss
+    for (int i=0; i<10; i++) {
+      trkloss->h1d(i,0)->Divide(trkloss->h1d(0,1));
+      trkloss->h1d(i,0)->Divide(delay3->h1d(3,0));
+    }
 #endif
+
+    // Incidence angles - avg norm charge
+    for (int i=0; i<5; i++) for (int j=0; j<10; j++)
+      angle->h1d(i,j,3)->Divide(angle->h1d(i,j,2));
+    for (int j=0; j<10; j++) angle2d->h2d(0,j,3)->Divide(angle2d->h2d(0,j,2));
+    
+    // Average L1 trigger rate
+    for (int i=1; i<=3; i++) for (int j=0; j<24; j++)
+      instlumi_raw->h1d(0,i,j,2)->Divide(instlumi_raw->h1d(0,i,j,3));
   }
 
   void calc_write(Variables &var) {
     // Efficiency
+    ls->finish();
     totlumi->finish();
     nvtx->finish();
 #ifdef COMPLETE
+    occup->finish();
+    occup_mod->finish();
+    occup_roc->finish();
+    occup_dcol->finish();
+#elif VERSION2 >= 34 && SPLIT > 0
     occup->finish();
     occup_mod->finish();
     occup_roc->finish();
@@ -1704,6 +1892,7 @@ public:
     instlumi->finish();
     instlumi_raw->finish();
     il_l1rate->finish();
+    l1rate->finish();
     trigger->finish();
 #if FEDERRPLOTS == 1
     federr->finish();
@@ -1718,6 +1907,10 @@ public:
     badroc->finish();
     nbadroc->finish();
 #endif
+
+    l1rate_vs_instlumi->Write();
+    dynamic_ineff->finish();
+    rocmap->finish();
 
     // N-1
     pt->finish();
@@ -1738,7 +1931,9 @@ public:
     //   hh_hcl->finish();
     //   neweff->finish();
     //   neweff2->finish();
-
+    angle->finish();
+    angle2d->finish();
+    nstrip_new->finish();
 
     // Not Efficiency
 #if NONEFFPLOTS == 1
@@ -1769,6 +1964,16 @@ public:
     
     // Scans
 #if SCANPLOTS == 1
+    hv_l1->finish();
+    hv_l2->finish();
+    hv_l3->finish();
+    hv_d1->finish();
+    hv_l1full->finish();
+    hv_l2full->finish();
+    hv_l3full->finish();
+    hv_d1full->finish();
+    hv_d2full->finish();
+#elif SCANPLOTS == 2
     delay11->finish();
     delay11_rog->finish();
     delay11_mod->finish();
@@ -1785,21 +1990,7 @@ public:
     delay4_rog->finish();
     delay4_mod->finish();
     delay4_roc->finish();
-    // Track loss
-    for (int i=0; i<10; i++) {
-      trkloss->h1d(i,0)->Divide(trkloss->h1d(0,1));
-      trkloss->h1d(i,0)->Divide(delay3->h1d(3,0));
-    }
     trkloss->finish();
-    hv->finish();
-    hv_l1->finish();
-    hv_l3->finish();
-    hv_d1->finish();
-    hv_l1full->finish();
-    hv_l2full->finish();
-    hv_l3full->finish();
-    hv_d1full->finish();
-    hv_d2full->finish();
 #endif
 
     std::cout<<"Final Calculations Ready!"<<std::endl;

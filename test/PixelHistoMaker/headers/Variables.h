@@ -1,3 +1,5 @@
+#include "TRandom3.h"
+
 class Variables {
   
 public:
@@ -12,6 +14,7 @@ public:
   
   // run variables (read from file)
   std::map<int, double> totallumi;
+  std::map<int, double> totallumi_2012;
   std::map<int, double> gaincorr_l1;
   std::map<int, double> gaincorr_l2;
   std::map<int, double> gaincorr_l3;
@@ -21,20 +24,23 @@ public:
   std::vector<std::vector<std::vector<int> > > goodroc_list; // VER2 >= 27
   int p1_filter; // dpeends on the number of file
   int modout; // dpeends on the number of file
-
+  
   // lumi variables
   int    lumi_prescale;
   float  lumi_beamint;
-  float  lumi_instlumi;
   double lumi_totlumi;
+  double lumi_totlumi_2012;
   double lumi_time;
   int p1_totlumi;
   float gaincorr;
-
+  std::map<unsigned long int, double> runls_instlumi;
+  std::map<unsigned long int, double> runls_pileup;
+  double lumi_pileup;
+  double lumi_instlumi;
+  
   // lumi variables
-  int lumi_nrun;
   std::vector<int> lumi_run;
-  std::map<int, int> lumi_run2;
+  std::map<int, int> lumi_run_index;
   std::map<unsigned long int, bool> run_ls;
   bool no_double_ls;
   std::map<int, std::string> lumi_fillname;
@@ -45,7 +51,10 @@ public:
   int lumi_nfill;
   std::map<int, int> filldef;
   int lumi_fill;
-
+  std::map<int, TH1D*> instlumi_ls_map;
+  bool good_instlumi;
+  bool main_filling_scheme;
+  
   // evt variables
   int p1_evt_fillsch10;
   int p1_evt_fillsch11;
@@ -87,6 +96,18 @@ public:
   int traj_roc_binx;
   int traj_roc_biny;
   int traj_run_binx;
+  double angle_alpha;
+  double angle_beta;
+  double angle_incidence;
+  double traj_theta;
+  double traj_phi;
+  double year;
+
+  // For Dynamic Inefficiency
+  double traj_instlumi;
+  double traj_l1rate;  
+  int gen_missing;
+
   int inac;
   int traj_nrun;
   std::vector<int> traj_run;
@@ -95,10 +116,12 @@ public:
   int p1_fill;
   int p1_fill2;
   int traj_p1_fill;
+  int traj_p1_fill_badroc;
   std::vector<int> traj_evt_federr_type;
   int traj_evt_fill;
   int traj_newevt;
-  int traj_occu[10];
+  //int traj_nclu[10];
+  //int traj_npix[10];
 
   // Selections separately
   // Event Selections
@@ -153,13 +176,13 @@ public:
   int delay;
   int p2_secdisk;
   int p3_layrog;
-  int hv_x;
   int hv_p1;
   int hv_p2;
   int hv_bias;
   int hv_group;
   int hv_IO;
   int hv_l1_p1;
+  int hv_l2_p1;
   int hv_l3_p1;
   int hv_d1_p1;
   int hv_l1full_p1;
@@ -169,6 +192,7 @@ public:
   int hv_d2full_p1;
 
   std::stringstream l1_col;
+  std::stringstream l2_col;
   std::stringstream l3_col;
   std::stringstream d1_col;
   std::stringstream l1full_col;
@@ -177,9 +201,12 @@ public:
   std::stringstream d1full_col;
   std::stringstream d2full_col;
   std::vector<std::vector<double> > totlumi_scan;
-
+  std::vector<double> totlum_fb;
+  
   // Neweff
   float traj_dr_hit;
+  float traj_dr_clu;
+  float traj_dr_cluclu;
 
   // clust variables
   int clu_p1_rocid;
@@ -265,6 +292,40 @@ public:
       }
     }
     fclose (input);
+    intlumi = 0.0;
+    total = 0.0;
+    a = 1;
+    input = fopen ("input/total_intlumi_ub_2012.txt","r");
+    while (a==1) {
+      a = fscanf (input, "%d", &run);
+      a = fscanf (input, "%lf", &intlumi);
+      if (a==1) {
+	total += intlumi;
+	totallumi_2012[run] = total;
+      }
+    }
+    fclose (input);
+
+    // Read Instantaneous Luminosity/Pileup info
+    int ls;
+    double instlumi = 0.0;
+    double pileup = 0.0;
+    unsigned long int runls = 0;
+    input = fopen ("input/run_ls_instlumi_pileup_2012.txt","r");
+    a = 1;
+    while (a==1) {
+      a = fscanf (input, "%d", &run);
+      a = fscanf (input, "%d", &ls);
+      a = fscanf (input, "%lf", &instlumi);
+      a = fscanf (input, "%lf", &pileup);
+      if (a==1) {
+      runls = run * 100000 + ls;
+      runls_instlumi[runls] = instlumi;
+      runls_pileup[runls] = pileup;
+      }
+    }
+    fclose (input);
+    
     // Read gain correction factors
     float l1; input = fopen ("input/gaincorr_l1.txt","r"); a = 1;
     while (a==1) { a = fscanf (input, "%d", &run); fscanf (input, "%f", &l1);
@@ -314,227 +375,13 @@ public:
 	}
       }
     }
-    traj_evt_federr_type.resize(18);
+    traj_evt_federr_type.resize(19);
     traj_evt_federr_type[0]=1;
-    evt_federr_type.resize(18);
-    evt_federr_mult.resize(18);
+    evt_federr_type.resize(19);
+    evt_federr_mult.resize(19);
     evt_federr_type[0]=1;
     evt_federr_mult[0]=1;
     lumi_nfill = 0;
-  }
-
-  int voltage_(const EventData &evt, const ModuleData &mod_on) {
-    int voltage = NOVAL_I;
-    // hv scan 2010 April 05 - L3,FPix modules
-    if (evt.run==132599||evt.run==132601||evt.run==132602) {
-      if (evt.run==132599) {
-        if (evt.ls>=1 && evt.ls<75) { voltage = (mod_on.det) ? 300 : 150;
-        } else if (evt.ls>=75 && evt.ls<126) { voltage = (mod_on.det) ? 250 : 140;
-        } else if (evt.ls>=126 && evt.ls<178) { voltage = (mod_on.det) ? 200 : 130;
-        } else if (evt.ls>=178 && evt.ls<233) { voltage = (mod_on.det) ? 150 : 120;
-        } else if (evt.ls>=233 && evt.ls<283) { voltage = (mod_on.det) ? 110 : 110;
-        } else if (evt.ls>=283 && evt.ls<332) { voltage = (mod_on.det) ? 100 : 100;
-        } else if (evt.ls>=332 && evt.ls<385) { voltage = (mod_on.det) ? 90 : 90;
-        } else if (evt.ls>=385 && evt.ls<999) { voltage = (mod_on.det) ? 80 : 80;
-        } else { voltage =NOVAL_I; }
-      } else if (evt.run==132601) {
-        if (evt.ls>=1 && evt.ls<50) { voltage = (mod_on.det) ? 70 : 70;
-        } else if (evt.ls>=50 && evt.ls<105) { voltage = (mod_on.det) ? 60 : 60;
-        } else if (evt.ls>=105 && evt.ls<155) { voltage = (mod_on.det) ? 50 : 50;
-        } else if (evt.ls>=155 && evt.ls<207) { voltage = (mod_on.det) ? 40 : 40;
-        } else if (evt.ls>=207 && evt.ls<258) { voltage = (mod_on.det) ? 30 : 30;
-        } else { voltage =NOVAL_I; }
-      }
-      else voltage = (mod_on.det) ? 300 : 150;
-    }
-    // hv scan 2010 Oct 28 - L1,L2,FPix modules
-    else if (evt.run==149182) {
-      if (evt.ls<16) { voltage = (mod_on.det) ? 200 : 130;
-      } else if (evt.ls>=17 && evt.ls<30) { voltage = (mod_on.det) ? 130 : 110;
-      } else if (evt.ls>=30 && evt.ls<47) { voltage = 100;
-      } else if (evt.ls>=47 && evt.ls<64) { voltage = 90;
-      } else if (evt.ls>=64 && evt.ls<81) { voltage = 80;
-      } else if (evt.ls>=81 && evt.ls<98) { voltage = 70;
-      } else if (evt.ls>=98 && evt.ls<115) { voltage = 60;
-      } else if (evt.ls>=115 && evt.ls<134) { voltage = 50;
-      } else if (evt.ls>=134 && evt.ls<150) { voltage = 40;
-      } else if (evt.ls>=150 && evt.ls<169) { voltage = 30;
-      } else if (evt.ls>169) { voltage = (mod_on.det) ? 300 : 150; }
-    }
-    // hv scan 2011 March 14,16,18 - L1,L2,FPix modules
-    else if (evt.run==160431||evt.run==160578||evt.run==160579||evt.run==160819||evt.run==160827||evt.run==160835) {
-      if (evt.run==160579) {
-	if (evt.orb<10060929) voltage = (mod_on.det) ? 30 : 40;
-	else if (evt.orb>=10060929&&evt.orb<20603100) voltage = (mod_on.det) ? 35 : 50;
-	else if (evt.orb>=20603100&&evt.orb<30368455) voltage = (mod_on.det) ? 40 : 60;
-	else if (evt.orb>=30368455&&evt.orb<36726096) voltage = (mod_on.det) ? 50 : 70;
-	else if (evt.orb>=36726096&&evt.orb<41127055) voltage = (mod_on.det) ? 60 : 80;
-        else if (evt.orb>=41127055) voltage = (mod_on.det) ? 70 : 90;
-      }
-      else if (evt.run==160578) {
-        if (evt.orb>=108617422) voltage = (mod_on.det) ? 20 : 30;
-	else voltage = NOVAL_I;
-      } 
-      else if (evt.run==160819) {
-        if (evt.orb<734481) voltage = NOVAL_I;
-	else if (evt.orb>=734481&&evt.orb<4945473) voltage = (mod_on.det) ? 300 : 150;
-	else if (evt.orb>=4945473&&evt.orb<9184218) voltage = (mod_on.det) ? 50 : 70;
-        else if (evt.orb>=9184218&&evt.orb<13531251) voltage = (mod_on.det) ? 60 : 80;
-        else if (evt.orb>=13531251&&evt.orb<21375662) voltage = (mod_on.det) ? 70 : 90;
-        else if (evt.orb>=21375662&&evt.orb<27850887) voltage = (mod_on.det) ? 80 : 100;
-        else voltage = NOVAL_I;
-      }
-      else if (evt.run==160827) voltage = (mod_on.det) ? 120 : 130;
-      else if (evt.run==160835) {
-        if (evt.orb<22377196) voltage = (mod_on.det) ? 120 : 150;
-        else voltage = (mod_on.det) ? 300 : 150;
-      }
-      else if (evt.run==160431) voltage = (mod_on.det) ? 300 : 150;
-    }
-    // hv scan 2011 may 15 - Bpix_BmO_SEC6_LYR1-2_HV1
-    // Run 165098,165099 - Bpix_BmO_SEC6_LYR1-2_HV1
-    else if (evt.run==165098||evt.run==165099) {
-      if (evt.run==165098) {
-	if (evt.ls<169) voltage = 150;
-	else if (evt.ls<235) voltage = 60;
-	else if (evt.ls<302) voltage = 50;
-	else if (evt.ls<379) voltage = 70;
-	else voltage = 40;
-      } else {
-	if (evt.ls<33) voltage = 40;
-	else voltage = 80;
-      }
-    }
-    // voltage scan 2011 July 14 - L1
-    else if (evt.run==170000) {
-      if (evt.orb>=75305&&evt.orb<6600594) voltage = 150;
-      else if (evt.orb>=6600594&&evt.orb<13798045) voltage = 20;
-      else if (evt.orb>=13798045&&evt.orb<20548946) voltage = 30;
-      else if (evt.orb>=20548946&&evt.orb<27295775) voltage = 40;
-      else if (evt.orb>=27295775&&evt.orb<34043021) voltage = 50;
-      else if (evt.orb>=34043021&&evt.orb<40787479) voltage = 60;
-      else if (evt.orb>=40787479&&evt.orb<47534688) voltage = 70;
-      else if (evt.orb>=47534688&&evt.orb<54281248) voltage = 80;
-      else if (evt.orb>=54281248&&evt.orb<61029618) voltage = 90;
-      else if (evt.orb>=61029618&&evt.orb<67777302) voltage = 100;
-      else if (evt.orb>=67777302) voltage = 110;
-      else voltage = NOVAL_I;
-    } 
-    // voltage scan 2011 July 28 - L3
-    else if (evt.run==171897) {
-      if (evt.orb<6600000) voltage = NOVAL_I;
-      else if (evt.orb>=6600000&&evt.orb<13600000) voltage = 70;
-      else if (evt.orb>=13600000&&evt.orb<20400000) voltage = 60;
-      else if (evt.orb>=20400000&&evt.orb<27200000) voltage = 50;
-      else if (evt.orb>=27200000&&evt.orb<33900000) voltage = 40;
-      else if (evt.orb>=33900000&&evt.orb<40800000) voltage = 30;
-      else if (evt.orb>=40800000&&evt.orb<47500000) voltage = 20;
-      else if (evt.orb>=47500000&&evt.orb<54100000) voltage = 80;
-      else if (evt.orb>=54100000) voltage = 150;
-    } 
-    // voltage scan 2011 Aug 03 - L2
-    else if (evt.run==172488) {
-      if (evt.orb<14400000) voltage = NOVAL_I;
-      else if (evt.orb>=14400000&&evt.orb<17500000) voltage = 80;
-      else if (evt.orb>=17500000&&evt.orb<20900000) voltage = 50;
-      else if (evt.orb>=20900000&&evt.orb<24200000) voltage = 20;
-      else if (evt.orb>=24200000&&evt.orb<27600000) voltage = 70;
-      else if (evt.orb>=27600000&&evt.orb<31100000) voltage = 40;
-      else if (evt.orb>=31100000&&evt.orb<34500000) voltage = 60;
-      else if (evt.orb>=34500000&&evt.orb<39600000) voltage = 30;
-      else if (evt.orb>=39600000) voltage = 150;
-    } 
-    // voltage scan 2011 Sep 07 - L1, FPix module
-    else if (evt.run==175834) {
-      // L1 scan
-      if (evt.orb<38300000) {
-        if (evt.orb<4600000) voltage = 150;
-        else if (evt.orb<8000000) voltage = 100;
-        else if (evt.orb<11400000) voltage = 80;
-        else if (evt.orb<14800000) voltage = 70;
-        else if (evt.orb<18200000) voltage = 60;
-        else if (evt.orb<21600000) voltage = 50;
-        else if (evt.orb<25000000) voltage = 40;
-        else if (evt.orb<28300000) voltage = 30;
-        else if (evt.orb<31600000) voltage = 20;
-        else if (evt.orb<35000000) voltage = 10;
-	else voltage = 0;
-      }
-      // FPix scan
-      else if (evt.orb>70200000&&evt.orb<108800000) {
-	if (evt.orb<75800000) voltage = 150;
-        else if (evt.orb<79200000) voltage = 80;
-        else if (evt.orb<82500000) voltage = 70;
-        else if (evt.orb<86000000) voltage = 60;
-        else if (evt.orb<89300000) voltage = 50;
-        else if (evt.orb<92500000) voltage = 40;
-        else if (evt.orb<98500000) voltage = 30;
-        else if (evt.orb<101900000) voltage = 20;
-        else if (evt.orb<105300000) voltage = 10;
-        else voltage = 0;
-      }
-      else voltage = NOVAL_I;
-    }
-    // voltage scan 2011 Oct 12 - L1 module
-    else if (evt.run==178367) {
-      // L1 scan
-      if (evt.orb<102930200) {
-	if (evt.orb<22121144) voltage = 150;
-	else if (evt.orb<28980545) voltage = 130;
-	else if (evt.orb<35632848) voltage = 110;
-	else if (evt.orb<42301525) voltage = 90;
-	else if (evt.orb<49144222) voltage = 80;
-	else if (evt.orb<55705743) voltage = 70;
-	else if (evt.orb<62453171) voltage = 60;
-	else if (evt.orb<69382373) voltage = 50;
-	else if (evt.orb<75990540) voltage = 40;
-	else if (evt.orb<82987680) voltage = 30;
-	else if (evt.orb<89595172) voltage = 20;
-	else if (evt.orb<96264991) voltage = 10;
-	else voltage = 0;
-      } else voltage = NOVAL_I;
-    }
-    // voltage scan 2011 Oct 27 - L1 module
-    else if (evt.run==180076||evt.run==180093) {
-      if (evt.run==180076) {
-	if (evt.orb<65271702) voltage = 150;
-	else if (evt.orb<69554218) voltage = 100;
-	else if (evt.orb<75434312) voltage = 70;
-	else if (evt.orb<79819278) voltage = 50;
-	else if (evt.orb<85070175) voltage = 40;
-	else if (evt.orb<89517576) voltage = 30;
-	else voltage = 20;
-      } else {
-	if (evt.orb<3257552) voltage = 20;
-	else if (evt.orb<7805011) voltage = 15;
-	else if (evt.orb<11807013) voltage = 10;
-	else if (evt.orb<16433020) voltage = 5;
-	else if (evt.orb<21057541) voltage = 0;
-	else if (evt.orb>22826117) voltage = 150;
-	else voltage = NOVAL_I;
-      }
-    }
-    // voltage scan 2011 Oct 30 - FPix module
-    else if (evt.run==180241||evt.run==180250) {
-      if (evt.run==180241) {
-	if (evt.orb<99822153) voltage = 300;
-	else if (evt.orb<103299446) voltage = 150;
-	else if (evt.orb<106987682) voltage = 100;
-	else voltage = 70;
-      } else if (evt.run==180250&&evt.orb>15726839) {
-	if (evt.orb<19447884) voltage = 70;
-	else if (evt.orb<23554126) voltage = 50;
-	else if (evt.orb<27501036) voltage = 40;
-	else if (evt.orb<31867338) voltage = 30;
-	else if (evt.orb<34939336) voltage = 20;
-	else if (evt.orb<38504259) voltage = 15;
-	else if (evt.orb<42213474) voltage = 10;
-	else if (evt.orb<45793856) voltage = 5;
-	else if (evt.orb<51126926) voltage = 0;
-	else voltage = 150;
-      } else voltage = NOVAL_I;
-    }
-    return voltage;
   }
 
  public:
@@ -594,12 +441,46 @@ public:
     }
   }
   
+  bool is_instlumi_good_(int run, int ls) {
+    std::vector<double> vec;
+    double mean=0;
+    double rms=0;
+    double val = instlumi_ls_map[run]->GetBinContent(ls);
+    for (int i=1; i<=10; i++) {
+      double cont=0;
+      int bin = i<6? ls+i-6 : ls+i-5;
+      if (bin>0) cont = instlumi_ls_map[run]->GetBinContent(bin);
+      if (cont>0) {
+        vec.push_back(cont);
+        mean += cont;
+      }
+    }
+    if (vec.size()) {
+      mean /= vec.size();
+      for (size_t i=0; i<vec.size(); i++) rms += (vec[i]-mean) * (vec[i]-mean);
+      rms = sqrt(rms/vec.size());
+    }
+    return vec.size() ? (vec.size()>1 ? (fabs(val-mean)/rms < 2.0) : 1) && (fabs(val/mean - 1)<0.04) : 1;
+  }
+
   // Modifiers
   void load_lumi_var(const LumiData &lumi) {
+    // Look for lumisections with bad instlumi values
+    good_instlumi = is_instlumi_good_(lumi.run, lumi.ls);
+    // Cut on the main 2012 filling schemes only:
+    // 50ns_1380b_1377_0_1274_144bpi12inj
+    // 50ns_1380b_1380_0_1274_144bpi12inj
+    // 50ns_1374_1368_0_1262_144bpi12inj
+    // 50ns_1374_1368_0_1262_144bpi12inj_V2
+    main_filling_scheme = (lumi.run>=193878&&lumi.run<=196531)||(lumi.run>=198229&&lumi.run<=198523)||(lumi.run>=198941&&lumi.run<=199021)||(lumi.run>=199318&&lumi.run<=200381)||(lumi.run>=200473&&lumi.run<=200798)||(lumi.run>=200990&&lumi.run<=201476)||(lumi.run>=201554&&lumi.run<=202504)||(lumi.run>=202970&&lumi.run<=203002)||(lumi.run>=203830&&lumi.run<=204601)||(lumi.run>=205111&&lumi.run<=207518)||(lumi.run>=207897&&lumi.run<=208487)||(lumi.run>=208538&&lumi.run<=208686);
+    
 #if VERSION2 < 29
     lumi_prescale = lumi.prescale[0]; // index not yet understood
 #endif
-    lumi_instlumi = lumi.instlumi; // (/ub)
+    unsigned long int runls = lumi.run*100000+lumi.ls;
+    //lumi_instlumi = (lumi.run<190389) ? lumi.instlumi : (runls_instlumi.count(runls) ? runls_instlumi[runls] * 1000 / 23.3104 : NOVAL_F); // (/ub)
+    lumi_instlumi = (lumi.run<190389) ? lumi.instlumi : (runls_instlumi.count(runls) ? (good_instlumi ? runls_instlumi[runls] * 1000 / 23.3104 : NOVAL_F) : NOVAL_F); // (/ub)
+    lumi_pileup   = (lumi.run<190389) ? NOVAL_F : (runls_pileup.count(runls) ? runls_pileup[runls] : NOVAL_F);
 #if VERSION2 >= 23
     lumi_beamint = (lumi.beamint[0] + lumi.beamint[1]) / 2.0;
 #else
@@ -614,19 +495,27 @@ public:
     lumi_time = (((lumi.run>=176201&&lumi.run<=176207) ? (lumi.run>176201)*666 + (lumi.run>176202)*301 + (lumi.run>176206)*109
 		  : (lumi.run>=176304&&lumi.run<=176309) ? (lumi.run>176304)*619.2 + (lumi.run>176308)*308 : 0) + lumi.ls)* 23.3112 / 3600.0;
 #endif
-    // Calculate total luminosity (/pb)
+    // Calculate total luminosity (/fb)
     // Commented part doesn't work atm (intlumi values are random - can be negative)
     // can be replaced with ~23s * instlumi, then accumulate up to current ls
     int r = lumi.run;
-    if ((totallumi.count(r))) lumi_totlumi = totallumi[r]/1000000.0;
-    else if (r>132440) { while(!(totallumi.count(r))) r--; lumi_totlumi = totallumi[r]/1000000.0; }
+    if ((totallumi.count(r))) lumi_totlumi = totallumi[r]/1000000000.0;
+    else if (r>132440) { while(!(totallumi.count(r))) r--; lumi_totlumi = totallumi[r]/1000000000.0; }
     else if (r==NOVAL_I) { if (!debug_) std::cout<<"lumi.run = NOVAL_I"<<r<<std::endl; debug_++; lumi_totlumi = NOVAL_F; }
-    else { std::cout<<"Warning: Early run before 132440 Run = "<<r<<std::endl; lumi_totlumi = NOVAL_F; }
-    p1_totlumi = (lumi_totlumi<100) ? 0 
-      : (lumi_totlumi>1300&&lumi_totlumi<=1500) ? 1
-      : (lumi_totlumi>2600&&lumi_totlumi<=2800) ? 2
-      : (lumi_totlumi>5500&&lumi_totlumi<=6177) ? 3
-      : (lumi_totlumi>6177&&lumi_totlumi<=10000) ? 4
+    else if (r!=1) { std::cout<<"Warning: Early run before 132440 Run = "<<r<<std::endl; lumi_totlumi = NOVAL_F; }
+    
+    // 2012 only (/fb)
+    r = lumi.run;
+    if ((totallumi_2012.count(r))) lumi_totlumi_2012 = totallumi_2012[r]/1000000000.0;
+    else if (r>132440) { while(!(totallumi_2012.count(r))) r--; lumi_totlumi = totallumi_2012[r]/1000000000.0; }
+    else if (r==NOVAL_I) { if (!debug_) std::cout<<"lumi.run = NOVAL_I"<<r<<std::endl; debug_++; lumi_totlumi = NOVAL_F; }
+    else if (r!=1) { std::cout<<"Warning: Early run before 132440 Run = "<<r<<std::endl; lumi_totlumi = NOVAL_F; }
+    
+    p1_totlumi = (lumi_totlumi<1) ? 0 
+      : (lumi_totlumi>5&&lumi_totlumi<=6) ? 1
+      : (lumi_totlumi>10&&lumi_totlumi<=11) ? 2
+      : (lumi_totlumi>15&&lumi_totlumi<=16) ? 3
+      : (lumi_totlumi>22&&lumi_totlumi<=23) ? 4
       : -1;
     // int r = lumi.run-1;
     // if ((totallumi.count(r))) lumi_totlumi = (totallumi[r] + lumi.intlumi/10.0)/1000000.0;
@@ -642,7 +531,7 @@ public:
     // 	}
     //   }
     // }
-
+   
     // Gain Correction Factor
     r = lumi.run;
     if ((gaincorr_l1.count(r))) gc_l1 = gaincorr_l1[r];
@@ -666,7 +555,6 @@ public:
     if (lumi_fill==-1) std::cout<<"run not defined as any fill: "<<lumi.run<<std::endl;
 
     // Look for double LumiSection
-    unsigned long int runls = lumi.run * 100000 + lumi.ls;
     if (run_ls.count(runls)==0) no_double_ls = true;
     else no_double_ls = false;
     run_ls[runls]=false;
@@ -674,7 +562,7 @@ public:
 
   void load_evt_var(const EventData &e) {
     // Run
-    evt_run_binx = lumi_run2.count(e.run) ? lumi_run2[e.run] : NOVAL_I;
+    evt_run_binx = lumi_run_index.count(e.run) ? lumi_run_index[e.run] : NOVAL_I;
     // Calculate total luminosity (/pb)
     // Commented part doesn't work atm (intlumi values are random - can be negative)
     // can be replaced with ~23s * instlumi, then accumulate up to current ls
@@ -705,13 +593,13 @@ public:
     evt_fillcheck_ = evt_fill;
 
     // Fed error variable: tells the number of errors of a certain type in the event
-    for (int i=1; i<18; i++) evt_federr_mult[i]=0;
+    for (int i=1; i<19; i++) evt_federr_mult[i]=0;
     evt_federr_mult[1]=(e.federrs_size==0);
     evt_federr_mult[2]=e.federrs_size;
     for (int i=0; i<e.federrs_size; i++)
       evt_federr_mult[e.federrs[i][1]-22] += 1;
     // Fed error variable: tells whether event has certain FED error
-    for (int i=1; i<18; i++) evt_federr_type[i]=0;
+    for (int i=1; i<19; i++) evt_federr_type[i]=0;
     evt_federr_type[1]=(e.federrs_size==0);
     evt_federr_type[2]=(e.federrs_size>0);
     for (int i=0; i<e.federrs_size; i++)
@@ -783,19 +671,21 @@ public:
 
   void load_traj_var(const EventData &e, const TrajMeasurement &t) {
     if (!FILLS) p1_totlumi = 0;
-
-    traj_dr_hit = (t.dx_hit!=NOVAL_F) ? sqrt(t.dx_hit*t.dx_hit+t.dy_hit*t.dy_hit) : NOVAL_F;
+    
+    traj_dr_hit = (t.dx_hit  !=NOVAL_F) ? sqrt(  t.dx_hit *   t.dx_hit +   t.dy_hit *   t.dy_hit) : NOVAL_F;
+    traj_dr_clu = (t.dx_cl[0]!=NOVAL_F) ? sqrt(t.dx_cl[0] * t.dx_cl[0] + t.dy_cl[0] * t.dy_cl[0]) : NOVAL_F;
+    traj_dr_cluclu = (t.dx_cl[0]!=NOVAL_F&&t.dx_cl[1]) ? sqrt((t.dx_cl[0]-t.dx_cl[1]) * (t.dx_cl[0]-t.dx_cl[1]) + (t.dy_cl[0]-t.dy_cl[1]) * (t.dy_cl[0]-t.dy_cl[1])) : NOVAL_F;
     traj_gaincorr = (t.mod_on.det) ? 1.0 : (t.mod_on.layer==1) ? gc_l1 
       : (t.mod_on.layer==2) ? gc_l2 : gc_l3;
     inac = (t.validhit!=1&&t.missing!=1);
-
+    
     //________________________________________________________________________________________
     //                                    Event variables
     
     // Event
     traj_newevt = (e.evt!=traj_evt_evtcheck_);
     // if (traj_newevt) { // Do on every new event
-    //   for (int i=1; i<18; i++) traj_evt_federr_type[i]=0;
+    //   for (int i=1; i<19; i++) traj_evt_federr_type[i]=0;
     //   traj_evt_federr_type[1]=(e.federrs_size==0);
     //   traj_evt_federr_type[2]=(e.federrs_size!=0);
     //   for (int i=0; i<e.federrs_size; i++)
@@ -805,60 +695,147 @@ public:
     // LumiSection
     traj_isnewls = (traj_evt_lscheck_!=e.ls);
     traj_evt_lscheck_ = e.ls;
-
+    
     // Run
     if (e.run!=traj_evt_runcheck_) { 
       traj_nrun++;
       traj_run.push_back(e.run);
       traj_run_binx = 0;
-      if ((lumi_run2.count(e.run))) traj_run_binx = lumi_run2[e.run];
+      if ((lumi_run_index.count(e.run))) traj_run_binx = lumi_run_index[e.run];
     }
     traj_evt_runcheck_ = e.run;
-
+    
     // Fill
     traj_evt_fill = filldef[e.run];
     if (traj_evt_fill!=traj_evt_fillcheck_) { 
       traj_p1_fill = lumi_fill_index[traj_evt_fill];
+      traj_p1_fill_badroc = lumi_fill_index[traj_evt_fill];
     }
-    if (!FILLS) traj_p1_fill = NOVAL_I;
+    if (FILLS!=2) traj_p1_fill = NOVAL_I;
     traj_evt_fillcheck_ = traj_evt_fill;
-
-#if VERSION1 > 29
-    // Occupancy
-    if (traj_newevt) {
-      for (int i=0; i<10; i++) traj_occu[i]=0;
-      traj_occu[0] += e.npix[0] + e.npix[1] + e.npix[2] + e.npix[3];
-      traj_occu[1] += e.npix[1] + e.npix[2] + e.npix[3];
-      traj_occu[2] += e.npix[0];
-      traj_occu[3] += e.npix[1];
-      traj_occu[4] += e.npix[2];
-      traj_occu[5] += e.npix[3];
-    }
+    
+//#if VERSION1 > 29
+//    // Occupancy
+//    if (traj_newevt) {
+//      for (int i=0; i<10; i++) traj_nclu[i]=traj_npix[i]=0;
+//      traj_nclu[0] += e.nclu[0] + e.nclu[1] + e.nclu[2] + e.nclu[3];
+//      traj_nclu[1] += e.nclu[1] + e.nclu[2] + e.nclu[3];
+//      traj_nclu[2] += e.nclu[0];
+//      traj_nclu[3] += e.nclu[1];
+//      traj_nclu[4] += e.nclu[2];
+//      traj_nclu[5] += e.nclu[3];
+//      traj_npix[0] += e.npix[0] + e.npix[1] + e.npix[2] + e.npix[3];
+//      traj_npix[1] += e.npix[1] + e.npix[2] + e.npix[3];
+//      traj_npix[2] += e.npix[0];
+//      traj_npix[3] += e.npix[1];
+//      traj_npix[4] += e.npix[2];
+//      traj_npix[5] += e.npix[3];
+//    }
+//#endif
+    
+#if VERSION1 > 30
+    traj_instlumi = (e.run==1) ? 221.995*e.pileup : e.instlumi_ext;
+    // Generate random l1rate for MC
+    if(e.run==1) { // MC
+      double sigma=0.0;
+      traj_l1rate=NOVAL_F;
+      if (DYNAMIC==1) { // All Data
+	if      (traj_instlumi>2000 && traj_instlumi<=4000) sigma=gRandom->Uniform(-5665, 5665);
+	else if (traj_instlumi>4000 && traj_instlumi<=5000) sigma=gRandom->Uniform(-3946, 3946);
+	else if (traj_instlumi>5000 && traj_instlumi<=6000) sigma=gRandom->Uniform(-4552, 4552 );
+	else if (traj_instlumi>6000 && traj_instlumi<=8000) sigma=gRandom->Uniform(-3891, 3891);
+	if      (traj_instlumi>2000 && traj_instlumi<3000) traj_l1rate= 9.334*traj_instlumi+ 11820   +sigma;
+	else if (traj_instlumi>3000 && traj_instlumi<4000) traj_l1rate=10.98 *traj_instlumi+  5849   +sigma;
+	else if (traj_instlumi>4000 && traj_instlumi<6700) traj_l1rate=14.65 *traj_instlumi- 13870   +sigma;
+	else if (traj_instlumi>6700 && traj_instlumi<7600) traj_l1rate=11.921*traj_instlumi-  1700.51+sigma;
+      } else if (DYNAMIC==2) { // run 201278
+      	if      (traj_instlumi>2000 && traj_instlumi<=4000) sigma=gRandom->Uniform(-6874, 6874);
+	else if (traj_instlumi>4000 && traj_instlumi<=5000) sigma=gRandom->Uniform(-4198, 4198);
+	else if (traj_instlumi>5000 && traj_instlumi<=6000) sigma=gRandom->Uniform(-5399, 5399 );
+	else if (traj_instlumi>6000 && traj_instlumi<=8000) sigma=gRandom->Uniform(-2425, 2425);
+	if      (traj_instlumi>2000 && traj_instlumi<4000) traj_l1rate=12.63*traj_instlumi+ 1148 +sigma;
+	else if (traj_instlumi>4000 && traj_instlumi<5200) traj_l1rate=13.99*traj_instlumi- 11670 +sigma;
+	else if (traj_instlumi>5200 && traj_instlumi<6000) traj_l1rate=17.17*traj_instlumi- 28070 +sigma;
+	// Missing range
+	else if (traj_instlumi>6200 && traj_instlumi<6500) traj_l1rate=13.48*traj_instlumi- 11750 +sigma;
+	// Missing range
+      }
+    } else traj_l1rate=e.l1_rate;
 #endif
+
+    // l1 rate estimate for MC
+    /*
+    double sigma  = -999999;
+    double l1rate = -999999;
+    if      (traj_instlumi>2000 && traj_instlumi<=4000) sigma=gRandom->Uniform(-5665, 5665);
+    else if (traj_instlumi>4000 && traj_instlumi<=5000) sigma=gRandom->Uniform(-3946, 3946);
+    else if (traj_instlumi>5000 && traj_instlumi<=6000) sigma=gRandom->Uniform(-4552, 4552 );
+    else if (traj_instlumi>6000 && traj_instlumi<=8000) sigma=gRandom->Uniform(-3891, 3891);
+    if      (traj_instlumi>2000 && traj_instlumi<4000) l1rate=9.352*traj_instlumi+11670+sigma;
+    else if (traj_instlumi>4000 && traj_instlumi<6700) l1rate=14.65*traj_instlumi-13870+sigma;
+    else if (traj_instlumi>6700 && traj_instlumi<8000) l1rate=7.479*traj_instlumi+28770+sigma;
+    */
+
+    // Generating Inefficient hits
+    
+    double sf_lad=0.0;
+    double sf_mod=0.0;
+    double sf_inst=0.0;
+    // double sf_l1rate=0.0;
+    // double sf_inst_l1rate=0.0;
+    
+    // ladder dependence
+    if      (t.mod_on.layer==1 && t.mod_on.ladder<0) sf_lad=-0.0003324*       t.mod_on.ladder+0.9938;
+    else if (t.mod_on.layer==1 && t.mod_on.ladder>0) sf_lad= 0.0004612*       t.mod_on.ladder+0.9922;
+    else if (t.mod_on.layer==2)                          sf_lad=-2.468*pow(10,-6)*t.mod_on.ladder+0.9991;
+    else if (t.mod_on.layer==3)                          sf_lad=-2.194*pow(10,-6)*t.mod_on.ladder+0.9999;
+
+    // module coordinate dependence
+    if      (t.mod_on.layer==1 && t.mod_on.module<0) sf_mod=-0.0005748*pow(t.mod_on.module,2)-0.004143*t.mod_on.module+0.9943;
+    else if (t.mod_on.layer==1 && t.mod_on.module>0) sf_mod=-0.0005748*pow(t.mod_on.module,2)+0.004143*t.mod_on.module+0.9943;
+    else if (t.mod_on.layer==2 && t.mod_on.module<0) sf_mod=-0.0001345*pow(t.mod_on.module,4)-0.001323*pow(t.mod_on.module,3)-0.004604*pow(t.mod_on.module,2)-0.007587*t.mod_on.module+0.9943;
+    else if (t.mod_on.layer==2 && t.mod_on.module>0) sf_mod=-0.0001345*pow(t.mod_on.module,4)+0.001323*pow(t.mod_on.module,3)-0.004604*pow(t.mod_on.module,2)+0.007587*t.mod_on.module+0.9943;
+    else if (t.mod_on.layer==3 && t.mod_on.module<0) sf_mod= 0.000141 *pow(t.mod_on.module,2)+0.000259*t.mod_on.module+0.9996;
+    else if (t.mod_on.layer==3 && t.mod_on.module>0) sf_mod= 0.000141 *pow(t.mod_on.module,2)-0.000259*t.mod_on.module+0.9996;
+    
+    // instlumi dependence
+    if (DYNAMIC==1) { // for all data
+      if      (t.mod_on.layer==1)  sf_inst=-3.356*pow(10,(-10))*pow(traj_instlumi,2)+1.862*pow(10,-7)*traj_instlumi + 1.004;
+      else if (t.mod_on.layer==2)  sf_inst=-6.969*pow(10,-7)*traj_instlumi + 1.002;
+      else if (t.mod_on.layer==3)  sf_inst=-5.254*pow(10,-7)*traj_instlumi + 1.002;
+      
+    } else if (DYNAMIC==2) { // for 201278
+      if (t.mod_on.layer==1)  sf_inst=-3.25*pow(10,(-10))*pow(traj_instlumi,2)+2.529*pow(10,-8)*traj_instlumi + 1.006;
+      if (t.mod_on.layer==2)  sf_inst=-8.588*pow(10,-7)*traj_instlumi + 1.004;
+      if (t.mod_on.layer==3)  sf_inst=-6.046*pow(10,-7)*traj_instlumi + 1.003;
+    }
+    
+    gen_missing = gRandom->Rndm()>sf_lad*sf_mod*sf_inst;
+    
     
     //________________________________________________________________________________________
     //                                   Geometry variables
-
+    
     // Detector and layer number
     traj_det_x = t.mod_on.det + 1;
     traj_lay_x = (t.mod_on.det==0) ? t.mod_on.layer :  t.mod_on.disk + 5 + (t.mod_on.disk<0);
     p1_fid = traj_lay_x - 1;
-
+    
     // Shell
     traj_shl = (t.mod_on.det==0) ? 2 * (t.mod_on.module<0) + (t.mod_on.ladder<0)
       : 2 * (t.mod_on.disk<0) + (t.mod_on.blade<0);
-
+    
     // Sector
     int lad = abs(t.mod_on.ladder);
     traj_sec = (t.mod_on.det) ? NOVAL_I : (t.mod_on.layer==1) ? lad - 1 + (lad==1) - (lad==10) 
       : (t.mod_on.layer==2) ? (lad+1)/2 : (lad+2+(lad>11)*2)/3;
-
+    
     // Side-Disk-Panel number - similar to module_on.module
     traj_sdpx = ((t.mod_on.disk>0) ? 1 : -1) * (2 * (abs(t.mod_on.disk) - 1) + t.mod_on.panel);
-
+    
     // Ladder
     p2_lad = (t.mod_on.ladder+t.mod_on.layer * 6 + 4 - (t.mod_on.ladder>0));
-
+    
     // Module number
     traj_mod_indexx = ((t.mod_on.det) ? traj_sdpx : t.mod_on.module) + 4;
     traj_mod_indexy = (t.mod_on.det) ? ((t.mod_on.blade>0) ? t.mod_on.blade-1 : t.mod_on.blade + 12)*4 +
@@ -868,8 +845,9 @@ public:
     p1_mod = t.mod_on.module + 4 - (t.mod_on.module>0);
     traj_mod2 = abs(t.mod_on.module);
     p2_fid = (t.mod_on.det==0) ? t.mod_on.half : t.mod_on.module -1 + 4*(t.mod_on.panel-1);
-
+    
     // Specific Modules with Bad Columns
+    /*
     p1_badcol = (t.mod_on.layer==1) ? ((  t.mod_on.ladder== 6 &&t.mod_on.module==1) ? 0
 					      : (t.mod_on.ladder==-2 &&t.mod_on.module==1) ? 1
 					      : (t.mod_on.ladder==-4 &&t.mod_on.module==2) ? 2
@@ -894,11 +872,12 @@ public:
 				      : (t.mod_on.ladder== -5 &&t.mod_on.module==-1) ? 21
 				      : (t.mod_on.ladder== -6 &&t.mod_on.module==-1) ? 22
 				      : (t.mod_on.ladder== -8 &&t.mod_on.module==-1) ? 23 : NOVAL_I) : NOVAL_I;
-
+    */
+    
     // Select which histogram does the module/roc belong to
     traj_mod_p1 = (t.mod_on.det) ? 3 : t.mod_on.layer - 1;
     traj_roc_p1 = (t.mod_on.det) ? ((t.mod_on.blade>0) ? 3 : 4 ) : t.mod_on.layer - 1;
-
+    
     // ROC number
     traj_roc = roc_(t.lx, t.ly, t.mod_on) ;
     // Module/ROC online format: BPix_BmI_SEC7_LYR1_LDR8F_MOD2_ROC0 / FPix_BmI_D1_BLD1_PNL2_PLQ2_ROC0
@@ -910,17 +889,17 @@ public:
     p2_dskbld = (t.mod_on.det==1) ? (abs(t.mod_on.disk)-1)*12 + abs(t.mod_on.blade)-1 : NOVAL_I;
     p3_pnlplqroc = (t.mod_on.det==1) ? ((t.mod_on.panel==1) ? (t.mod_on.module>1)*2 + (t.mod_on.module>2)*6 + (t.mod_on.module>3)*8
 					: 21 + (t.mod_on.module>1)*6 + (t.mod_on.module>2)*8) + traj_roc : NOVAL_I;
-
+    
     p1_rocid = p1_detshl;
     p2_rocid = (t.mod_on.det) ? p2_dskbld : p2_seclyrldr;
     p3_rocid = (t.mod_on.det) ? p3_pnlplqroc : p3_modroc;
-
+    
     p1_modid = p1_rocid;
     p2_modid = p2_rocid;
     p3_modid = (t.mod_on.det==0) ? abs(t.mod_on.module)-1 : t.mod_on.module-1 + (t.mod_on.panel>1)*4;
-
+    
     dcol_id = int(fmod(t.ly+(t.mod_on.det==1&&(t.mod_on.panel+t.mod_on.module)%2==1)*0.405+3.24,0.81)/0.81*26);
-
+    
     // Roc BinX number for ROC map plots (traj branch)
     traj_roc_binx = NOVAL_I;
     if (t.mod_on.det==0) {
@@ -956,10 +935,18 @@ public:
 	  + (t.mod_on.blade-1 + (t.mod_on.blade<0)*13)*12;
       }
     }
-
+    
+    // Incidence angles in degrees, defined 0-90 deg (0 deg: perpendicular to module plane, 90 deg: parallel)
+    traj_phi = atan2(tan(t.beta),tan(t.alpha));
+    traj_theta = atan(sqrt(1.0/(  1.0/(  tan(t.alpha)*tan(t.alpha)) + 1.0/(tan(t.beta)*tan(t.beta))  ) ) );
+    angle_alpha = fabs(90.0 - fabs(t.alpha) / 3.14159265 * 180);
+    angle_beta  = fabs(90.0 - fabs(t.beta)  / 3.14159265 * 180);
+    angle_incidence = 90.0 - traj_theta / 3.14159265 * 180.0; // or angle_theta
+    year = (e.run<=149711) ? 1 : (e.run<=180296) ? 2 : 3;
+    
     //________________________________________________________________________________________
     //                                     Scan variables
-
+#if SCANPLOTS == 2
     // Delay Scan - 2011
     delay = e.run==160413 ? 
       (e.orb   <  11531874 ?  25
@@ -1059,12 +1046,12 @@ public:
     // ROG variables
     p2_secdisk = (t.mod_on.det==0) ? traj_sec - 1 : 7 + abs(t.mod_on.disk) ;
     p3_layrog = (t.mod_on.det==0) ? (t.mod_on.layer==3) : (abs(t.mod_on.blade)-1)/3;
+#endif
+    
     // HV Scans
-    hv_x = voltage_(e, t.mod_on);
-
     hv_IO = (t.mod_on.det==1) ? ((t.mod_on.panel==1) ? t.mod_on.module>2 : t.mod_on.module>1 ) : NOVAL_I; // 0: inner, 1: outer
     hv_group = (t.mod_on.det==1) ? (abs(t.mod_on.blade)+2)/3 : NOVAL_I; // Same as Readout group
-
+    
     hv_p1 = (e.run==132599||e.run==132601||e.run==132602) ? 0 : // 2010 April 05
       (e.run==149182) ? 1 : // 2010 Oct 28
       (e.run==160431||e.run==160578||e.run==160579||
@@ -1080,7 +1067,12 @@ public:
       (e.run==190538||e.run==190539||e.run==190591||
        e.run==190592||e.run==190593||e.run==190595) ? 11 : // 2012 April 06
       (e.run==198023||e.run==198041||e.run==198044||e.run==198045) ? 12 : // 2012 July 02
+      (e.run==200786) ? 13 : // 2012 August 13
+      (e.run==203739) ? 14 : // 2012 September 27
+      (e.run==208392||e.run==208393||e.run==208394||e.run==208395||e.run==208397) ? 15 : // 2012 Dec 02
+      (e.run==210534) ? 16 : // 2013 Jan 21
       NOVAL_I;
+    /*
     hv_p2 = 
       (hv_p1==0) ? ( (t.mod_on.disk==-1  && hv_group==1 && hv_IO==0 ) ? 0
 		     : (t.mod_on.layer==3 && t.mod_on.module>0 && t.mod_on.ladder<0 && traj_sec==2) ? 1 : NOVAL_I ) :
@@ -1109,8 +1101,10 @@ public:
 		      (t.mod_on.layer==3)     ? ( ((e.run==198044&&e.orb>=12662468)||(e.run==198045&&e.orb<20579655)) ? 2 : NOVAL_I) :
 		      (abs(t.mod_on.disk)==1) ? ( (e.run==198045&&e.orb>=20579655&&e.orb<43564392) ? 3 : NOVAL_I) :
 		      (abs(t.mod_on.disk)==2) ? ( (e.run==198045&&e.orb>=43564392) ? 4 : NOVAL_I): NOVAL_I ) :
+      (hv_p1==13) ? ( (t.mod_on.layer==1) ? 0 : NOVAL_I ) :
       NOVAL_I;
-    
+    */
+#if SCANPLOTS == 1
     hv_l1_p1     = (hv_p1!=NOVAL_I) ? ( (t.mod_on.layer==1 && t.mod_on.module<0 && t.mod_on.ladder<0 && traj_sec==2) ? 
 					( hv_p1==   1 ? 0 : NOVAL_I) :
 					(t.mod_on.layer==1 && t.mod_on.module<0 && t.mod_on.ladder<0 && traj_sec==6) ?
@@ -1122,8 +1116,21 @@ public:
 					  hv_p1 ==  9 ? 6 :
 					  hv_p1 == 11 && (e.run==190538||(e.run==190539&&e.ls<89)) ? 7 :
 					  hv_p1 == 12 && (e.run==198023||(e.run==198041&&e.orb<2562384)) ? 8 :
+					  hv_p1 == 13 ? 9 :
+					  hv_p1 == 14 ? 10 :
+					  hv_p1 == 15 && (e.run==208392||(e.run==208393&&e.orb<20800000)) ? 11 :
+					  hv_p1 == 16 ? 12 :
 					  NOVAL_I 
 					  ) : NOVAL_I 
+					) : NOVAL_I;
+    hv_l2_p1     = (hv_p1!=NOVAL_I) ? ( (t.mod_on.layer==2 && t.mod_on.module>0 && t.mod_on.ladder>0 && traj_sec==7) ?
+					( hv_p1 ==  6 ? 0 :
+					  hv_p1 == 11 && (e.run==190539&&e.ls>=91&&e.ls<261) ? 1 : 
+					  hv_p1 == 12 && ((e.run==198041&&e.orb>=2562384)||(e.run==198044&&e.orb<12662468)) ? 2 :
+					  hv_p1 == 15 && (e.run==208393&&e.orb>=20800000&&e.orb<50600000) ? 3 :
+					  hv_p1 == 16 ? 4 :
+					  NOVAL_I
+					  ) : NOVAL_I
 					) : NOVAL_I;
     hv_l3_p1     = (hv_p1!=NOVAL_I) ? ( (t.mod_on.layer==3 && t.mod_on.module>0 && t.mod_on.ladder<0 && traj_sec==2) ?
 					( hv_p1 ==  0 ? 0 :
@@ -1132,6 +1139,8 @@ public:
 					  hv_p1 ==  5 ? 3 :
 					  hv_p1 == 11 && ((e.run==190539&&e.ls>=261)||(e.run==190591&&e.ls<186)) ? 4 :
 					  hv_p1 == 12 && ((e.run==198044&&e.orb>12662468)||(e.run==198045&&e.orb<20579655)) ? 5 :
+					  hv_p1 == 15 && ((e.run==208393&&e.orb>=50600000)||e.run==208394||e.run==208395) ? 6 :
+					  hv_p1 == 16 ? 7 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
@@ -1143,6 +1152,8 @@ public:
 					  hv_p1 == 10 ? 4 :
 					  hv_p1 == 11 && ((e.run==190591&&e.ls>=201)||e.run==190592||e.run==190593||(e.run==190595&&e.ls<107)) ? 5 :
 					  hv_p1 == 12 && ((e.run==198045&&e.orb>20579655&&e.orb<43564392)) ? 6 :
+					  hv_p1 == 15 && (e.run==208397&&e.orb<26000000) ? 7 :
+					  hv_p1 == 16 ? 8 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
@@ -1151,6 +1162,9 @@ public:
 					  hv_p1 ==  7 ? 1 :
 					  hv_p1 == 11 && (e.run==190538||(e.run==190539&&e.ls<89)) ? 2 :
 					  hv_p1 == 12 && (e.run==198023||(e.run==198041&&e.orb<2562384)) ? 3 :
+					  hv_p1 == 13 ? 4 :
+					  hv_p1 == 14 ? 5 :
+					  hv_p1 == 15 && (e.run==208392||(e.run==208393&&e.orb<20800000)) ? 6 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
@@ -1158,6 +1172,7 @@ public:
 					( hv_p1 ==  6 ? 0 :
 					  hv_p1 == 11 && (e.run==190539&&e.ls>=91&&e.ls<261) ? 1 : 
 					  hv_p1 == 12 && ((e.run==198041&&e.orb>=2562384)||(e.run==198044&&e.orb<12662468)) ? 2 :
+					  hv_p1 == 15 && (e.run==208393&&e.orb>=20800000&&e.orb<50600000) ? 3 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
@@ -1165,18 +1180,21 @@ public:
 					( hv_p1 ==  5 ? 0 :
 					  hv_p1 == 11 && ((e.run==190539&&e.ls>=261)||(e.run==190591&&e.ls<186)) ? 1 :
 					  hv_p1 == 12 && ((e.run==198044&&e.orb>12662468)||(e.run==198045&&e.orb<20579655)) ? 2 :
+					  hv_p1 == 15 && ((e.run==208393&&e.orb>=50600000)||e.run==208394||e.run==208395) ? 3 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
     hv_d1full_p1 = (hv_p1!=NOVAL_I) ? ( abs(t.mod_on.disk)==1 ?
 					( hv_p1 == 11 && ((e.run==190591&&e.ls>=201)||e.run==190592||e.run==190593||(e.run==190595&&e.ls<107)) ? 0 :
 					  hv_p1 == 12 && ((e.run==198045&&e.orb>20579655&&e.orb<43564392)) ? 1 :
+					  hv_p1 == 15 && (e.run==208397&&e.orb<26000000) ? 2 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
     hv_d2full_p1 = (hv_p1!=NOVAL_I) ? ( abs(t.mod_on.disk)==2 ?
 					( hv_p1 == 11 && (e.run==190595&&e.ls>=107) ? 0 :
 					  hv_p1 == 12 && ((e.run==198045&&e.orb>43564392)) ? 1 :
+					  hv_p1 == 15 && (e.run==208397&&e.orb>=26000000) ? 2 :
 					  NOVAL_I
 					  ) : NOVAL_I
 					) : NOVAL_I;
@@ -1478,7 +1496,128 @@ public:
 			    (e.orb<63500000) ?  10 :
 			    (e.orb<65600000) ?   5 :
 			    (              NOVAL_I ) ) ) :
+      // voltage scan 2012 Aug 13 - Full Layer 1
+      (e.run==200786) ? ( (e.orb<38136156) ?
+			  ( (e.orb< 4000000) ? 150 :
+			    (e.orb< 7400000) ? 100 :
+			    (e.orb<11300000) ?  80 :
+			    (e.orb<14200000) ?  70 :
+			    (e.orb<17500000) ?  60 :
+			    (e.orb<21500000) ?  50 :
+			    (e.orb<24800000) ?  40 :
+			    (e.orb<28300000) ?  30 :
+			    (e.orb<31600000) ?  20 :
+			    (e.orb<35100000) ?  10 :
+			    (e.orb<38400000) ?   5 :
+			    (              NOVAL_I ) ) : 
+			  (                    NOVAL_I ) ) :
+      // voltage scan 2012 Sep 27 - Full Layer 1
+      (e.run==203739) ? ( (e.orb<40494167&&e.orb>7500000) ? // ok
+			  ( (e.orb<11400000) ? 100 : // ok
+			    (e.orb<14600000) ?  80 : // ok
+			    (e.orb<18000000) ?  60 : // ok
+			    (e.orb<21800000) ?  40 : // ?
+			    (e.orb<25400000) ?  30 : // ?
+			    (e.orb<29500000) ?  20 : // ok
+			    (e.orb<32200000) ?  10 : // ~ok
+			    (e.orb<36500000) ?   5 : // ok
+			    (                  150 ) ) : 
+			  (                    NOVAL_I ) ) :
+      // voltage scan 2012 Dec 02 - Full Layer 1-3, Disk 1-2
+      (e.run==208392||e.run==208393||e.run==208394||e.run==208395||e.run==208397) ?
+      ( (e.run==208392) ? ( (e.orb< 5600000) ? 300 :
+			    (e.orb< 7500000) ? 150 :
+			    (e.orb<10300000) ? 100 :
+			    (                   80 ) ) :
+	(e.run==208393) ? ( (e.orb< 4300000) ?  70 :
+			    (e.orb< 6300000) ?  60 :
+			    (e.orb< 8600000) ?  50 :
+			    (e.orb<11300000) ?  40 :
+			    (e.orb<14300000) ?  30 :
+			    (e.orb<16500000) ?  20 :
+			    (e.orb<18800000) ?  10 :
+			    (e.orb<20800000) ?   5 :
+			    (e.orb<21100000) ? 150 :
+			    (e.orb<25900000) ? 300 :
+			    (e.orb<28200000) ? 100 :
+			    (e.orb<30700000) ?  80 :
+			    (e.orb<32700000) ?  70 :
+			    (e.orb<35500000) ?  60 :
+			    (e.orb<37700000) ?  50 :
+			    (e.orb<40300000) ?  40 :
+			    (e.orb<42300000) ?  30 :
+			    (e.orb<44500000) ?  20 :
+			    (e.orb<48300000) ?  10 :
+			    (e.orb<50600000) ?   5 :
+			    (e.orb<55200000) ? 300 :
+			    (                  100 ) ) :
+	(e.run==208394) ? ( (e.orb< 2200000) ? 100 :
+			    (                   80 ) ) :
+	(e.run==208395) ? ( (e.orb< 2100000) ?  80 :
+			    (e.orb< 4700000) ?  70 :
+			    (e.orb< 7000000) ?  60 :
+			    (e.orb< 9400000) ?  50 :
+			    (e.orb<11500000) ?  40 :
+			    (e.orb<13700000) ?  30 :
+			    (e.orb<15500000) ?  20 :
+			    (e.orb<18100000) ?  10 :
+			    (e.orb<19900000) ?   5 :
+			    (                  150 ) ) :
+	(                   (e.orb< 1400000) ? 300 :
+	                    (e.orb< 4400000) ? 150 :
+			    (e.orb< 6200000) ? 100 :
+			    (e.orb< 8400000) ?  80 :
+			    (e.orb<10200000) ?  70 :
+			    (e.orb<12300000) ?  60 :
+			    (e.orb<14500000) ?  50 :
+			    (e.orb<16500000) ?  40 :
+			    (e.orb<18600000) ?  30 :
+			    (e.orb<20950000) ?  20 :
+			    (e.orb<23300000) ?  10 :
+			    (e.orb<25950000) ?   5 :
+			    (e.orb<29750000) ? 150 :
+			    (e.orb<32000000) ? 100 :
+			    (e.orb<34500000) ?  80 :
+			    (e.orb<36800000) ?  70 :
+			    (e.orb<38600000) ?  60 :
+			    (e.orb<41000000) ?  50 :
+			    (e.orb<42700000) ?  40 :
+			    (e.orb<44700000) ?  30 :
+			    (e.orb<46700000) ?  20 :
+			    (e.orb<49500000) ?  10 :
+			    (e.orb<52650000) ?   5 :
+			    (                  300 ) ) ) :
+      // voltage scan 2013 Jan 21 - Layer 1-3, Disk 1 (1 HV Group)
+      (e.run==210534) ? (   (e.orb<15500000) ? 150 :
+			    (e.orb<19150000) ? 100 :
+			    (e.orb<23150000) ?  90 :
+			    (e.orb<26650000) ?  80 :
+			    (e.orb<30600000) ?  70 :
+			    (e.orb<34550000) ?  60 :
+			    (e.orb<37850000) ?  50 :
+			    (e.orb<41700000) ?  40 :
+			    (e.orb<45900000) ?  30 :
+			    (e.orb<49400000) ?  20 :
+			    (e.orb<53450000) ?  10 :
+			    (                  150 ) ) :
       NOVAL_I;
+#endif
+
+    /* 
+150 16146279
+100 19064068 
+90  23122367-23400444
+80  26565977-27195227
+70  30506786-31252042
+60  34486191,35002546
+50  37850139,38443677
+40  41685934,42370215
+30  45858950,46318276
+20  49409248,50002722
+10  53458449         
+150
+    */
+    
     
     //=========================================================================================
     //                                    Efficiency Cuts
@@ -1547,7 +1686,7 @@ public:
     //   HV Scans
     //   Copy this from Variables!
     
-    bool excl_hv = hv_p2==NOVAL_I||e.run==160431; // This run was not scanned
+    bool excl_hv = hv_p1==NOVAL_I||e.run==160431; // This run was not scanned
     
     // Delay Scans
     bool excl_delay =  !(e.run==160413||e.run==160497||e.run==160577||e.run==160578||e.run==170000)
@@ -1555,7 +1694,7 @@ public:
       && !(t.mod_on.layer==2&&t.mod_on.ladder==-5&&t.mod_on.module==2&&(e.run==161310||e.run==161311));
     
     noscan = excl_hv && excl_delay;
-
+    
     // Exclude some known bad modules
     goodmod = t.mod_on.det==0 ?
       ( // BPix
@@ -1666,11 +1805,11 @@ public:
 #else
     hitsep = t.dx_hit==NOVAL_F||sqrt(t.dx_hit*t.dx_hit+t.dy_hit*t.dy_hit)>0.5; 
 #endif
-
-//     bool Pixhit = pixhit || t.mod_on.det==1;
+    
+    // bool Pixhit = pixhit || t.mod_on.det==1;
 
     //                zb,   nvtx,   federr,   hp,   pt,   nstrip,   d0,   dz,   pixhit,   noscan,   goodmod,   goodroc,   lx_fid,   ly_fid,   valmis,   hitsep
-    effcut_all      =       nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && noscan && goodmod &&            lx_fid && ly_fid && valmis && hitsep;
+    effcut_all      =       nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && noscan && goodmod && goodroc && lx_fid && ly_fid && valmis && hitsep;
     effcut_trig     =       nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && noscan && goodmod && goodroc && lx_fid && ly_fid && valmis && hitsep;
     effcut_nvtx     =               federr && hp && pt && nstrip && d0 && dz && pixhit && noscan && goodmod && goodroc && lx_fid && ly_fid && valmis && hitsep;
     effcut_federr   =       nvtx &&           hp && pt && nstrip && d0 && dz && pixhit && noscan && goodmod && goodroc && lx_fid && ly_fid && valmis && hitsep;
@@ -1696,21 +1835,21 @@ public:
     //     std::cout<<debug_<<" "<<traj_roc<<" "<<clust_roc<<std::endl;
     //   }
     // }
-  
+    
   }
-
+  
   void load_clu_var(const EventData &cluevt, const Cluster &clust) {
-
+    
     //__________________________________________________________________________________________
     //                                   Geometry variables
-
+    
     // Shell
     int shl = (clust.mod_on.det==0) ? 2 * (clust.mod_on.module<0) + (clust.mod_on.ladder<0)
       : 2 * (clust.mod_on.disk<0) + (clust.mod_on.blade<0);
     
     // Roc Number
     int clust_roc = clu_roc_(clust.x, clust.y, clust.mod_on);
-
+    
     int clu_p1_detshl = clust.mod_on.det*4 + shl;
     int clu_p2_seclyrldr = (clust.mod_on.det==0) ? abs(clust.mod_on.ladder)-1 + (clust.mod_on.layer>1)*10 + (clust.mod_on.layer>2)*16 : NOVAL_I;
     int clu_p3_modroc = (clust.mod_on.det==0) ? (abs(clust.mod_on.module)-1)*16 + clust_roc : NOVAL_I;
@@ -1779,7 +1918,8 @@ public:
 
   void init() {
     lumi_totlumi = 0.0;
-
+    lumi_totlumi_2012 = 0.0;
+    
     traj_det_x = NOVAL_I;
     traj_lay_x = NOVAL_I;
     traj_sdpx = NOVAL_I;
@@ -1800,7 +1940,7 @@ public:
     delay = NOVAL_I;
     p2_secdisk = NOVAL_I;
     p3_layrog = NOVAL_I;
-
+    
     reset_counters(NOVAL_I);
     
     clu_det_x = NOVAL_I;
@@ -1812,9 +1952,9 @@ public:
     clu_roc_p1 = NOVAL_I;
     clu_roc_binx = NOVAL_I;
     clu_roc_biny = NOVAL_I;
-
+    
     traj_nrun = 0;
-
+    
     lumi_runcheck_ = 0;
     lumi_fillcheck_ = 0;
     evt_fillcheck_ = 0;
@@ -1822,9 +1962,9 @@ public:
     traj_evt_lscheck_ = NOVAL_I;
     traj_evt_evtcheck_ = NOVAL_I;
     traj_evt_fillcheck_ = 0;
-
+    
     clu_evt_fillcheck_ = 0;
-
+    
     zb = 0;
     nvtx = 0;
     federr = 0;
@@ -1841,7 +1981,7 @@ public:
     ly_fid = 0;
     valmis = 0;
     hitsep = 0;
-
+    
     effcut_all= 0;
     effcut_trig= 0;
     effcut_nvtx= 0;
@@ -1857,7 +1997,7 @@ public:
     effcut_lxly_fid= 0;
     effcut_hitsep= 0;
   }
-
+  
   void reset_counters(int val) {
     // Reset all counters for new event
     for (size_t i=0; i<10; i++) npix_det_[i]=val;
@@ -1878,7 +2018,7 @@ public:
 	}
       }
   }
-
+  
   void count_npix(const EventData &cluevt, const Cluster &clust) {
     // npix
     npix_det_[0]+=clust.size;
@@ -1896,12 +2036,12 @@ public:
     roc_occupancy_list[0][clu_p1_rocid][clu_p2_rocid][clu_p3_rocid]++;
     dcol_occupancy_list[0][clu_p1_rocid][clu_p2_rocid][clu_p3_rocid][int(clust.y)/2%26]++;
   }
-
+  
   void count_runs_fills_lumi(const LumiData &lumi, PostFixes &p) {
     // Manual fill declaration
 #if VERSION2 >= 27
     int fill = lumi.fill;
-    if (fill==NOVAL_I) {
+    if (fill==NOVAL_I||lumi.fill>100000||lumi.fill==0) { // For some reason there are quite random fill numbers (without JSON)
       fill = (lumi.run>=132596&&lumi.run<=132606) ? 1022
 	: (lumi.run>=149181&&lumi.run<=149182) ? 1450
 	: (lumi.run>=160431&&lumi.run<=160433) ? 1615
@@ -1922,6 +2062,11 @@ public:
 	: (lumi.run>=190538&&lumi.run<=190539) ? 2479
 	: (lumi.run>=190591&&lumi.run<=190595) ? 2482
 	: (lumi.run>=195913&&lumi.run<=195937) ? 2717
+	: (lumi.run>=198268&&lumi.run<=198272) ? 2807
+	: (lumi.run==200786) ? 2957
+	: (lumi.run==207454) ? 3296
+	: (lumi.run==207905) ? 3322
+	: (lumi.run==1) ? 1
 	: -1;
     }
 #else
@@ -1945,6 +2090,11 @@ public:
       : (lumi.run>=190538&&lumi.run<=190539) ? 2479
       : (lumi.run>=190591&&lumi.run<=190595) ? 2482
       : (lumi.run>=195913&&lumi.run<=195937) ? 2717
+      : (lumi.run>=198268&&lumi.run<=198272) ? 2807
+      : (lumi.run==200786) ? 2957
+      : (lumi.run==207454) ? 3296
+      : (lumi.run==207905) ? 3322
+      : (lumi.run==1) ? 1
       : -1;
 #endif
     // Count fills - now works for all version
@@ -1963,13 +2113,12 @@ public:
       p.Fill2.push_back("Fill "+s);
     }
     lumi_fillcheck_ = fill;
-
-    if (lumi.run!=lumi_runcheck_&&lumi_run2.count(lumi.run)==0) {
+    
+    if (lumi.run!=lumi_runcheck_&&lumi_run_index.count(lumi.run)==0) {
       // Fill definition !! Very important to keep intact
       filldef[lumi.run] = fill;
       lumi_run.push_back(lumi.run);
-      lumi_nrun = lumi_run.size();
-      lumi_run2[lumi.run] = lumi_nrun;
+      lumi_run_index[lumi.run] = lumi_run.size();
       lumi_runs_in_fill[lumi_fill_index[fill]-1].push_back(lumi.run);
 #if VERSION2 >= 27
       if (lumi_firstrun.count(fill)==0) {
@@ -1989,6 +2138,18 @@ public:
 #endif
     }
     lumi_runcheck_ = lumi.run;
+  }
+
+  void instlumi_preloop_(const LumiData &lumi) {
+    if (!instlumi_ls_map.count(lumi.run)) {
+      std::stringstream ss;
+      ss<<"instlumi_ls_"<<lumi.run;
+      instlumi_ls_map[lumi.run] = new TH1D(ss.str().c_str(),ss.str().c_str(),10000,0.5,10000.5);
+      instlumi_ls_map[lumi.run]->SetDirectory(0);
+    }
+    if (!instlumi_ls_map[lumi.run]->GetBinContent(lumi.ls)) {
+      instlumi_ls_map[lumi.run]->SetBinContent(lumi.ls, lumi.instlumi);
+    }
   }
 
   // Accessors

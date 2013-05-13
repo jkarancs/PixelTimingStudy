@@ -9,14 +9,6 @@ include Makefile.arch
 #OBJS          = $(EFFHISTOO)
 #PROGRAMS      = $(EFFHISTO)
 #
-##------------------------------------------------------------------------------
-#CALCHISTOO      = CalcHisto.$(ObjSuf)
-#CALCHISTOS      = CalcHisto.$(SrcSuf)
-#CALCHISTO       = CalcHisto$(ExeSuf)
-#
-#OBJS          += $(CALCHISTOO)
-#PROGRAMS      += $(CALCHISTO)
-#
 #------------------------------------------------------------------------------
 PIXELHISTOMAKERO      = PixelHistoMaker.$(ObjSuf)
 PIXELHISTOMAKERS      = PixelHistoMaker.$(SrcSuf)
