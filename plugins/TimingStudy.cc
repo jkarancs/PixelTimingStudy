@@ -56,7 +56,8 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 #include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
 #include <DataFormats/Common/interface/EDCollection.h>
-
+#include "FWCore/Utilities/interface/RandomNumberGenerator.h"
+#include "CLHEP/Random/RandPoissonQ.h"
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
@@ -78,7 +79,7 @@
 //set to 1 in order to switch on logging of debug info - may create large log file 
 //(set to 0 for Grid runs)
 #define JKDEBUG 0
-#define SPLIT 0
+#define SPLIT 1
 
 using namespace std;
 using namespace edm;
@@ -478,6 +479,7 @@ void TimingStudy::beginJob()
     std::cout<<"instlumi_ext and pileup variables not filled."<<std::endl;
   }
   int a = (input!=0);
+
   while (a==1) {
     a = fscanf (input, "%d", &run);
     a = fscanf (input, "%d", &ls);
@@ -501,8 +503,12 @@ void TimingStudy::beginRun(edm::Run const& iRun,
   // get ConditionsInRunBlock
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
-  if (!condInRunBlock.isValid()) { return; }
+  if (!condInRunBlock.isValid()) {
+    std::cout<<"** ERROR (beginRun): no RunBlock info is available\n";
+    return; 
+  }
   run_.fill = condInRunBlock->lhcFillNumber;
+  std::cout<<"Begin Run: "<<run_.run<<" in Fill: "<<run_.fill<<std::endl;
 }
 
 void TimingStudy::endRun(edm::Run const& iRun,
@@ -511,10 +517,11 @@ void TimingStudy::endRun(edm::Run const& iRun,
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
   if (!condInRunBlock.isValid()) {
-    std::cout<<"** ERROR: no RunBlock info is available\n";
+    std::cout<<"** ERROR (endRun): no RunBlock info is available\n";
   } else {
     run_.fill = condInRunBlock->lhcFillNumber;
     run_.run = iRun.run();
+    std::cout<<"End Run: "<<run_.run<<" in Fill: "<<run_.fill<<std::endl;
   }
   runTree_->Fill();
 }
@@ -542,11 +549,7 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   edm::Handle<LumiSummary> lumi;
   iLumi.getByLabel("lumiProducer", lumi);
   if (!lumi.isValid()) {
-    if (run_.fill!=0) {
-      std::cout<<"** WARNING: no LumiSummary info is available, likely running on ReReco\n";
-    } else {
-      std::cout<<"** WARNING: no LumiSummary info is available, likely running on MC\n";
-    }
+    std::cout<<"** WARNING: no LumiSummary info is available, are you running on RAW or ReReco?\n";
     lumi_.init();
   } else {
     lumi_.init(); // temporal values deleted, now we fill it for real
@@ -680,7 +683,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   // For Monte Carlo, estimate the instantaneous luminosity based on number of true interactions
   //
-  if (run_.fill==0) {
+  if (evt_.run==1) {
     edm::Handle<std::vector<PileupSummaryInfo> > puInfo;
     iEvent.getByLabel("addPileupInfo", puInfo);
     
@@ -703,7 +706,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
       }
-    }
+    } else std::cout<<"** WARNING: PileupInfo invalid\n";
 
   }
 
