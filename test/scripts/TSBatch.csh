@@ -55,6 +55,8 @@
 #   dbs search --query "find file where dataset=/ZeroBias1/Run2012A-PromptReco-v1/RECO and run = 190593" | grep .root >> input.txt; 
 #   dbs search --query "find file where dataset=/ZeroBias1/Run2012A-PromptReco-v1/RECO and run = 190595" | grep .root >> input.txt
 #
+#   A trick to order input files by run and lumisections and use a list of runs from more datasets:
+#   dbs search --query "find run, lumi, file where dataset=/ZeroBias*/Run2012A-v1/RAW and (run=190538 or run=190539 or run=190591 or run=190592 or run=190593 or run=190595)" | grep .root | awk '{ printf "%d %.4d %s\n", $1, $2, $3 }' | sort -k3,3 -u | sort | awk '{ print $3 }' > input.txt
 #
 # Step 1 - Create - TSBatch.csh create [TaskDir] [InputFile] [BatchQueue] [JobScript] [CMSSW_Version] [GlobalTag]
 # 
@@ -102,88 +104,195 @@
 #
 ##########################################################################
 
-if ( $1 == "create" ) then
-    if ( -d $2 ) then
-	echo "Task "$2" already exists"
-    else
-	if ( ! -e $3 ) then
-	    echo "Input file does not exist"
-	else
-	    echo "--------------------------------------------------------------------------------"
-	    mkdir $2
-	    chmod 777 $2
-	    echo "Task Name:       "$2
-	    cp $3 $2/input.txt
-	    echo "Input file:      "$3
-	    set NJOBS = `wc -l $2/input.txt | awk '{ print $1}'`
-	    echo "Number of Jobs:  "$NJOBS
-	    echo "Lxbatch queue:   "$4
-	    sed "s;outdir;"$2";" $5 > $2/jobscript.csh
-	    chmod 777 $2/jobscript.csh
-	    echo "Job Script file: "$5
-	    echo "CMSSW version:   "$6
-	    echo "Global Tag:      "$7
-	    echo
-	    cd $2
-	    mkdir STDOUT
-	    chmod 666 STDOUT
-	    sed = input.txt | sed 'N;s;\n; ;' | sed '1,9s;^;000;' | sed '10,99s;^;00;' | sed '100,999s;^;0;' | awk '{ print "bsub -oo STDOUT/JOB_"$1".log -q '$4' -L tcsh jobscript.csh '$6' '$7' "$1" "$2 }' > alljobs.csh
-	    cd -
-	    echo "Task Created"
-	    echo "--------------------------------------------------------------------------------"
-	endif
-    endif
-else if ( $1 == "submit" ) then
-    echo "cd "$2 >! $2/submit.csh
-    cat $2/alljobs.csh >> $2/submit.csh
-    echo "cd -" >> $2/submit.csh
-    echo "cd "$2 >! $2/test.csh
-    head -1 $2/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;0001;test;;s;0001;test;" >> $2/test.csh
-    echo "cd -" >> $2/test.csh
-    echo "source "$2"/submit.csh"
-    echo "Or you can try this test script:"
-    echo "source "$2"/test.csh"
-else if ( $1 == "missing" ) then
-    set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
-    source test/scripts/eosmis.csh $2 $NJOBS
-else if ( $1 == "resubmit" ) then
-    echo "cd "$2 >! $2/resub.csh
-    source test/scripts/resub.csh $2/alljobs.csh $3 >> $2/resub.csh
-    echo "cd -" >> $2/resub.csh
-    echo "source "$2"/resub.csh"
-else if ( $1 == "resubmit_missing" ) then
-    set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
-    set LIST = `source test/scripts/eosmis.csh $2 $NJOBS`
-    echo "cd "$2 >! $2/resub.csh
-    source test/scripts/resub.csh $2/alljobs.csh $LIST >> $2/resub.csh
-    echo "cd -" >> $2/resub.csh
-    echo "source "$2"/resub.csh"
-else if ( $1 == "copy_to_kfki" ) then
-    if ( $2 != "" ) then
-	set NJOBS = `wc -l $2/alljobs.csh | awk '{ print $1}'`
-	set LIST = `source test/scripts/eosmis.csh $2 $NJOBS`
-	if ( $LIST != "" ) then
-	    echo "Some files still missing: "$LIST
-	endif
-	source test/scripts/eos_to_kfki.csh $2 >! $2/copy_to_kfki.csh
-	echo "source "$2"/copy_to_kfki.csh"
-    else
-	echo "Missing Task Directory argument"
-    endif
-else if ( $1 == "delete" ) then
-    if ( -d $2) then
-	rm -r $2
-    else
-	echo "Task "$2" does not exist"
+set USERDIR_EOS = "jkarancs/crab"
+set USERDIR_KFKI = "jkarancs"
+
+
+echo "Usage: ">! Usage
+echo "TSBatch.csh [TaskDir] -create [InputFile] [BatchQueue] [JobScript] [CMSSW_Version] [GlobalTag]">> Usage
+echo "TSBatch.csh [TaskDir] -submit">> Usage
+echo "TSBatch.csh [TaskDir] -status">> Usage
+echo "TSBatch.csh [TaskDir] -missing">> Usage
+echo "TSBatch.csh [TaskDir] -resubmit [list]">> Usage
+echo "TSBatch.csh [TaskDir] -resubmit_missing">> Usage
+echo "TSBatch.csh [TaskDir] -copy_to_kfki">> Usage
+echo "TSBatch.csh [TaskDir] -delete">> Usage
+
+
+if ( "$1" == "" ) then
+    echo "No Task Directory Specified"
+    cat Usage
+    rm Usage
+    exit
+else
+    set TASKDIR = $1
+endif
+
+if ( "$2" == "" ) then
+    echo "No Option specified"
+    cat Usage
+    rm Usage
+    exit
+else
+    set OPT = $2
+endif
+
+if ( ! -d $TASKDIR ) then
+    if ( "$OPT" != "-create" ) then
+	echo "Task Directory does not exist"
+	rm Usage
+	exit
     endif
 else
-    echo "Wrong first argument: "
-    echo "Usage "
-    echo "TSBatch.csh create [TaskDir] [InputFile] [BatchQueue] [JobScript] [CMSSW_Version] [GlobalTag]"
-    echo "TSBatch.csh submit [TaskDir]"
-    echo "TSBatch.csh missing [TaskDir]"
-    echo "TSBatch.csh resubmit [TaskDir] [list]"
-    echo "TSBatch.csh resubmit_missing [TaskDir]"
-    echo "TSBatch.csh copy_to_kfki [TaskDir]"
-    echo "TSBatch.csh delete [TaskDir]"
+    if ( "$OPT" == "-create" ) then
+	echo "Task "$TASKDIR" already exists"
+	rm Usage
+	exit
+    else
+	set NJOBS = `wc -l $TASKDIR/alljobs.csh | awk '{ print $1}'`
+    endif
 endif
+
+if ( "$OPT" == "-create" ) then
+    if ( ! -e $3 ) then
+	echo "Input file does not exist"
+    else
+        echo "--------------------------------------------------------------------------------"
+        mkdir $TASKDIR
+        chmod 777 $TASKDIR
+        echo "Task Name:       "$TASKDIR
+        cp $3 $TASKDIR/input.txt
+        echo "Input file:      "$3
+        set NJOBS = `wc -l $TASKDIR/input.txt | awk '{ print $1}'`
+        echo "Number of Jobs:  "$NJOBS
+        echo "Lxbatch queue:   "$4
+        sed "s;outdir;"$TASKDIR";" $5 > $TASKDIR/jobscript.csh
+        chmod 777 $TASKDIR/jobscript.csh
+        echo "Job Script file: "$5
+        echo "CMSSW version:   "$6
+        echo "Global Tag:      "$7
+        echo
+        cd $TASKDIR
+        mkdir STDOUT
+        chmod 666 STDOUT
+        sed = input.txt | sed 'N;s;\n; ;' | awk '{ printf "%.4d %s\n", $1, $2 }' | awk '{ print "bsub -J '$TASKDIR'_JOB"$1" -oo STDOUT/JOB_"$1".log -q '$4' -L tcsh jobscript.csh '$6' '$7' "$1" "$2 }' > alljobs.csh
+        cd -
+        echo "Task Created"
+        echo "--------------------------------------------------------------------------------"
+    endif
+else if ( "$OPT" == "-submit" ) then
+    echo "cd "$TASKDIR >! $TASKDIR/submit.csh
+    cat $TASKDIR/alljobs.csh >> $TASKDIR/submit.csh
+    echo "cd -" >> $TASKDIR/submit.csh
+    echo "cd "$TASKDIR >! $TASKDIR/test.csh
+    head -1 $TASKDIR/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;0001;test;;s;0001;test;" >> $TASKDIR/test.csh
+    echo "cd -" >> $TASKDIR/test.csh
+    echo "source "$TASKDIR"/submit.csh"
+    echo "Or you can try this test script:"
+    echo "source "$TASKDIR"/test.csh"
+else if ( "$OPT" == "-status" ) then
+    bjobs -J "$TASKDIR*" >! taskjobs
+    grep PEND taskjobs >! Pending
+    grep RUN taskjobs >! Running
+    set PEND=`wc -l Pending | awk '{ print $1}'`
+    set RUN=`wc -l Running | awk '{ print $1}'`
+    eos ls eos/cms/store/caf/user/$USERDIR_EOS/$1 | grep .root >! Completed
+    lcg-ls -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$1 | grep .root | sed "s;/; ;g" | awk '{ print $NF }' >> Completed
+    sort -u Completed >! Comp
+    mv Comp Completed
+    set COMP=`wc -l Completed | awk '{ print $1}'`
+    ls -l $1/STDOUT | grep -v test | grep .log >! Done
+    set DONE=`wc -l Done | awk '{ print $1}'`
+    rm taskjobs Pending Running Completed Done
+    echo "Status of Task "$1" ("$NJOBS" Jobs):"
+    echo "Jobs - Pending                : "$PEND
+    echo "     - Running                : "$RUN
+    echo "     - Done (with STDOUT)     : "$DONE
+    echo "------------------------------------"
+    echo "     - Completed (has output) : "$COMP
+    if ( $DONE > $COMP ) then
+        ls -l $TASKDIR/STDOUT | grep -v test | grep .log | awk '{ print "'$TASKDIR'/STDOUT/"$NF }' >! STDOUT_list
+        echo -n "" >! quota_list
+        set QUOTA = 0
+        foreach a ( `cat STDOUT_list` )
+            if ( `grep "Unable to access quota space" $a` != "" ) then
+                echo $a | sed "s;_; ;g;s;\.; ;" | awk '{ printf "%d,", $(NF-1) }' >> quota_list
+        	set QUOTA = `expr $QUOTA + 1`
+            endif
+        end
+        set RESUB_LIST = `sed 's;,$;;' quota_list`
+        if ( $QUOTA > 0 ) then
+            echo "     - Disk quota problem     : "$QUOTA
+            echo "       Free up space on EOS using -move_to_kfki"
+            echo "       Then issue -resubmit "$RESUB_LIST
+        endif
+        rm STDOUT_list quota_list
+    endif
+else if ( "$OPT" == "-missing" ) then
+    lcg-ls -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$TASKDIR | grep .root | sed "s;/; ;g" | awk '{ print $NF }' > ! output
+    eos ls eos/cms/store/caf/user/$USERDIR_EOS/$TASKDIR | grep .root >> output
+    cat output | sort -u | sed 's;_; ;g;s;\.; ;g' | awk '{ printf "%d\n", $(NF-1) }' >! jobnums
+    seq 1 $NJOBS >! Seq
+    diff Seq jobnums | grep "<" | awk '{ printf "%d,", $2 }' | sed 's;,$;\n;'
+    rm Seq jobnums output
+else if ( "$OPT" == "-resubmit" ) then
+    if ( $3 == "" ) then
+	echo "No Jobs specified"
+    else
+	echo "cd "$TASKDIR >! $TASKDIR/resub.csh
+	echo $3 | tr ',' '\n' >! list
+	echo "" >! list2
+	foreach a ( `cat list` )
+	    echo $a | grep -v "-" >> list2
+	    eval `echo $a | grep - | sed 's;^;seq ;;s;-; ;'` >> list2
+	end
+	foreach a ( `cat list2` )
+	    sed -n $a'p' $TASKDIR/alljobs.csh >> $TASKDIR/resub.csh
+	end
+	rm list list2
+	echo "cd -" >> $TASKDIR/resub.csh
+	echo "source "$TASKDIR"/resub.csh"
+    endif
+else if ( "$OPT" == "-resubmit_missing" ) then
+    lcg-ls -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$1 | grep .root > ! output
+    eos ls eos/cms/store/caf/user/$USERDIR_EOS/$1 | grep .root >> output
+    cat output | sort -u | sed 's;_; ;g;s;\.; ;g' | awk '{ printf "%d\n", $(NF-1) }' >! jobnums
+    seq 1 $NJOBS >! Seq
+    diff Seq jobnums | grep "<" | awk '{ print $2 }' >! Missing
+    echo "cd "$TASKDIR >! $TASKDIR/resub.csh
+    foreach a ( `cat Missing` )
+	cat $TASKDIR/alljobs.csh | head -$a | tail -1 >> $TASKDIR/resub.csh
+    end
+    rm Seq jobnums output Missing
+    echo "cd -" >> $TASKDIR/resub.csh
+    echo "source "$TASKDIR"/resub.csh"
+else if ( "$OPT" == "-move_to_kfki" ) then
+    eos ls -l eos/cms/store/caf/user/$USERDIR_EOS/$TASKDIR | grep .root | awk '{ print $5" "$NF }' >! eos_list
+    lcg-ls -l -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$TASKDIR | grep .root | sed "s;/; ;g" | awk '{ print $5" "$NF }' | sort -k 2 >! kfki_list
+    diff eos_list kfki_list | grep "<" | awk '{ print $3 }' | sort -k 2 >! to_move_list
+    echo -n "" >! safe_to_delete_from_eos
+    foreach a ( `cat eos_list | awk '{ print $2 }'` )
+	grep $a kfki_list | awk '{ print "eos rm eos/cms/store/caf/user/'$USERDIR_EOS'/'$TASKDIR'/"$2 }' >> safe_to_delete_from_eos
+    end
+    echo -n "" >! kfki_filesize_mismatch
+    foreach a ( `cat to_move_list` )
+	grep $a kfki_list | awk '{ print "lcg-del -l -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/'$USERDIR_KFKI'/'$TASKDIR'/"$2 }' >> kfki_filesize_mismatch
+    end
+    cat safe_to_delete_from_eos >! $TASKDIR/move_to_kfki.csh
+    cat kfki_filesize_mismatch >> $TASKDIR/move_to_kfki.csh
+    awk '{ print "lcg-cp -v -b -D srmv2 --vo cms srm://srm-eoscms.cern.ch:8443/srm/v2/server\\?SFN=/eos/cms/store/caf/user/'$USERDIR_EOS'/'$TASKDIR'/"$1" srm://grid143.kfki.hu:8446/srm/managerv2\\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/'$USERDIR_KFKI'/'$TASKDIR'/"$1 }' to_move_list >> $TASKDIR/move_to_kfki.csh
+    echo "source "$TASKDIR"/move_to_kfki.csh"
+    rm eos_list kfki_list to_move_list safe_to_delete_from_eos kfki_filesize_mismatch
+else if ( "$OPT" == "-delete" ) then
+    rm -r $TASKDIR
+else
+    echo "Wrong Option"
+    cat Usage
+    rm Usage
+    exit
+endif
+
+rm Usage
+eval `ls -l | grep RECV.log | awk '{ print "rm "$NF }'`
+eval `ls -l | grep TEST.log | awk '{ print "rm "$NF }'`
+eval `ls -l | grep SENT.log | awk '{ print "rm "$NF }'`
