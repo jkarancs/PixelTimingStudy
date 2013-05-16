@@ -7,7 +7,7 @@
 # on the bottom of the script
 #
 # Default settings:
-# INCOMPLETE, SPLIT 0, Nstrip > 0
+# INCOMPLETE, SPLIT 1, Nstrip > 0
 #
 # Usage:
 # source TS_BatchJob_RECO.csh [CMSSW version] [GlobalTag] [job number] [/store/...] [Nevent = -1]
@@ -24,8 +24,6 @@ source ${VO_CMS_SW_DIR}/cmsset_default.csh
 if ( $1 =~ "CMSSW_5_"* ) then
     if ( $1 =~ "CMSSW_5_0_"* ) then
 	setenv SCRAM_ARCH slc5_amd64_gcc434
-    else
-	setenv SCRAM_ARCH slc5_amd64_gcc462
     endif
 else
     setenv SCRAM_ARCH slc5_amd64_gcc434
@@ -37,11 +35,25 @@ mkdir DPGAnalysis
 cd DPGAnalysis
 cvs co -d PixelTimingStudy UserCode/Debrecen/PixelTimingStudy
 cd PixelTimingStudy/
-#sed -i "s;#define SPLIT 0;#define SPLIT 2;" plugins/TimingStudy.cc
-sed -i "s;MB_RECO.root;MB_RECO_"$3".root;" test/MB_RECO_cfg.py
+
+# Revert TimingStudy version to a previos one (eg for scans: v3029):
+#cvs update -r 1.30 plugins/TimingStudy.cc
+#cvs update -r 1.29 plugins/TimingStudy.h
+
+# Set SPLIT mode, number of strip hits stored (current: INCOMPLETE, SPLIT 1, Nstrip>0)
+#sed -i "s;#define SPLIT 1;#define SPLIT 2;" plugins/TimingStudy.cc
 sed -i "s;#minNStripHits = cms.int32(0),;minNStripHits = cms.int32(0),;" test/MB_RECO_cfg.py
-sed -i "s;GR_R_52_V7;"$2";" test/MB_RECO_cfg.py
+
+# Set GlobalTag:
+sed -i "s;GR_R_53_V9F;"$2";" test/MB_RECO_cfg.py
+
+# Input file:
 sed -i "s;fileNames = cms.untracked.vstring(;fileNames = cms.untracked.vstring(\'"$4"\';" test/MB_RECO_cfg.py
+
+# Set job number for output file:
+sed -i "s;MB_RECO.root;MB_RECO_"$3".root;" test/MB_RECO_cfg.py
+
+# Set Number of Events if specified (all by default):
 if ( $5 ) then
     sed -i "s;input = cms.untracked.int32(-1);input = cms.untracked.int32("$5");" test/MB_RECO_cfg.py
 endif
@@ -52,8 +64,8 @@ echo "                                JOB ["$3"] ready"
 echo "                                  Compiling..."
 echo
 
-cmsenv
 scram b
+cmsenv
 echo
 echo "--------------------------------------------------------------------------------"
 echo "                                 Compiling ready"
