@@ -1415,9 +1415,9 @@ class Histograms {
 /* 	  if (aoi>0.2&&aoi<0.27) { */
 	  if (fabs(t.trk.eta)<0.1) {
 	    // avg size
-	    h1d_3p_[0]             [p1][9]->Fill(x, t.clu.sizeX);
-	    h1d_3p_[t.mod_on.det+1][p1][9]->Fill(x, t.clu.sizeX);
-	    h1d_3p_[lay]           [p1][9]->Fill(x, t.clu.sizeX);
+	    h1d_3p_[0]             [p1][9]->Fill(x, t.clu.size);
+	    h1d_3p_[t.mod_on.det+1][p1][9]->Fill(x, t.clu.size);
+	    h1d_3p_[lay]           [p1][9]->Fill(x, t.clu.size);
 	    // ncluperevt
 	    h1d_3p_[0]             [p1][10]->Fill(x);
 	    h1d_3p_[t.mod_on.det+1][p1][10]->Fill(x);
