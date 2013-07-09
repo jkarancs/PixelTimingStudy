@@ -24,6 +24,14 @@ public:
   std::vector<std::vector<std::vector<int> > > goodroc_list; // VER2 >= 27
   int p1_filter; // dpeends on the number of file
   int modout; // dpeends on the number of file
+
+  // runTree variables
+  std::map<int, std::string> run_fillname;
+  std::map<int, int> run_fill_index;
+  int run_nfill;
+  std::map<int, int> run_index;
+  std::vector<int> run_list;
+  std::map<int, int> run_firstrun;
   
   // lumi variables
   int    lumi_prescale;
@@ -37,6 +45,7 @@ public:
   std::map<unsigned long int, double> runls_pileup;
   double lumi_pileup;
   double lumi_instlumi;
+  double instlumi_p1;
   
   // lumi variables
   std::vector<int> lumi_run;
@@ -112,7 +121,7 @@ public:
   int traj_nrun;
   std::vector<int> traj_run;
   float traj_gaincorr;
-  int traj_isnewls;
+  int traj_newls;
   int p1_fill;
   int p1_fill2;
   int traj_p1_fill;
@@ -243,13 +252,15 @@ public:
   std::vector<std::vector<std::vector<std::vector<int> > > > roc_occupancy_list;
   std::vector<std::vector<std::vector<std::vector<std::vector<int> > > > > dcol_occupancy_list;
 
-  int lumi_runcheck_;
-  int traj_evt_runcheck_;
+  int traj_evt_evtcheck_;
   int traj_evt_lscheck_;
+  int traj_evt_runcheck_;
   int traj_evt_fillcheck_;
   int evt_fillcheck_;
+  int lumi_runcheck_;
   int lumi_fillcheck_;
-  int traj_evt_evtcheck_;
+  int run_fillcheck_;
+  int run_runcheck_;
 
   int clu_evt_fillcheck_;
 
@@ -382,6 +393,7 @@ public:
     evt_federr_type[0]=1;
     evt_federr_mult[0]=1;
     lumi_nfill = 0;
+    run_nfill = 0;
   }
 
  public:
@@ -426,10 +438,10 @@ public:
       FILE *input;
       std::stringstream ss;
       ss<<"input/BADROC_EXCL/"
-	<<lumi_fillname[fill]<<".txt";
+	<<run_fillname[fill]<<".txt";
       input = fopen(ss.str().c_str(),"r");
       if (input==0) {
-	std::cout<<"No Bad ROC List exists for Fill "<<lumi_fillname[fill]<<std::endl;
+	std::cout<<"No Bad ROC List exists for Fill "<<run_fillname[fill]<<std::endl;
       } else {
 	int a=1;
 	while (a==1) { int p1,p2,p3;
@@ -480,6 +492,7 @@ public:
     unsigned long int runls = lumi.run*100000+lumi.ls;
     //lumi_instlumi = (lumi.run<190389) ? lumi.instlumi : (runls_instlumi.count(runls) ? runls_instlumi[runls] * 1000 / 23.3104 : NOVAL_F); // (/ub)
     lumi_instlumi = (lumi.run<190389) ? lumi.instlumi : (runls_instlumi.count(runls) ? (good_instlumi ? runls_instlumi[runls] * 1000 / 23.3104 : NOVAL_F) : NOVAL_F); // (/ub)
+    instlumi_p1 = (lumi_instlumi==NOVAL_F) ? NOVAL_I : 1+lumi_instlumi/1500;
     lumi_pileup   = (lumi.run<190389) ? NOVAL_F : (runls_pileup.count(runls) ? runls_pileup[runls] : NOVAL_F);
 #if VERSION2 >= 23
     lumi_beamint = (lumi.beamint[0] + lumi.beamint[1]) / 2.0;
@@ -507,9 +520,9 @@ public:
     // 2012 only (/fb)
     r = lumi.run;
     if ((totallumi_2012.count(r))) lumi_totlumi_2012 = totallumi_2012[r]/1000000000.0;
-    else if (r>132440) { while(!(totallumi_2012.count(r))) r--; lumi_totlumi = totallumi_2012[r]/1000000000.0; }
+    else if (r>187452) { while(!(totallumi_2012.count(r))) r--; lumi_totlumi = totallumi_2012[r]/1000000000.0; }
     else if (r==NOVAL_I) { if (!debug_) std::cout<<"lumi.run = NOVAL_I"<<r<<std::endl; debug_++; lumi_totlumi = NOVAL_F; }
-    else if (r!=1) { std::cout<<"Warning: Early run before 132440 Run = "<<r<<std::endl; lumi_totlumi = NOVAL_F; }
+    else if (r!=1) { lumi_totlumi = 0; }
     
     p1_totlumi = (lumi_totlumi<1) ? 0 
       : (lumi_totlumi>5&&lumi_totlumi<=6) ? 1
@@ -562,7 +575,7 @@ public:
 
   void load_evt_var(const EventData &e) {
     // Run
-    evt_run_binx = lumi_run_index.count(e.run) ? lumi_run_index[e.run] : NOVAL_I;
+    evt_run_binx = run_index.count(e.run) ? run_index[e.run] : NOVAL_I;
     // Calculate total luminosity (/pb)
     // Commented part doesn't work atm (intlumi values are random - can be negative)
     // can be replaced with ~23s * instlumi, then accumulate up to current ls
@@ -589,7 +602,7 @@ public:
     // Warning: evt_p1_fill depends on evt_fill
     if (filldef.count(e.run)) evt_fill = filldef[e.run];
     else { std::cout<<"Problem with filldef with run "<<e.run<<std::endl; evt_fill = -1; }
-    if (evt_fill!=evt_fillcheck_) evt_p1_fill = lumi_fill_index[evt_fill];
+    if (evt_fill!=evt_fillcheck_) evt_p1_fill = run_fill_index[evt_fill];
     evt_fillcheck_ = evt_fill;
 
     // Fed error variable: tells the number of errors of a certain type in the event
@@ -692,8 +705,9 @@ public:
     //     traj_evt_federr_type[e.federrs[i][1]-22] = 1;
     // }
     traj_evt_evtcheck_=e.evt;
+
     // LumiSection
-    traj_isnewls = (traj_evt_lscheck_!=e.ls);
+    traj_newls = (traj_evt_lscheck_!=e.ls||e.run!=traj_evt_runcheck_);
     traj_evt_lscheck_ = e.ls;
     
     // Run
@@ -701,15 +715,15 @@ public:
       traj_nrun++;
       traj_run.push_back(e.run);
       traj_run_binx = 0;
-      if ((lumi_run_index.count(e.run))) traj_run_binx = lumi_run_index[e.run];
+      if ((run_index.count(e.run))) traj_run_binx = run_index[e.run];
     }
     traj_evt_runcheck_ = e.run;
     
     // Fill
     traj_evt_fill = filldef[e.run];
     if (traj_evt_fill!=traj_evt_fillcheck_) { 
-      traj_p1_fill = lumi_fill_index[traj_evt_fill];
-      traj_p1_fill_badroc = lumi_fill_index[traj_evt_fill];
+      traj_p1_fill = run_fill_index[traj_evt_fill];
+      traj_p1_fill_badroc = run_fill_index[traj_evt_fill];
     }
     if (FILLS!=2) traj_p1_fill = NOVAL_I;
     traj_evt_fillcheck_ = traj_evt_fill;
@@ -885,15 +899,15 @@ public:
     // FPix - [Det][Shl][Dsk][Bld][Pnl][PLQ][ROC] --> [Det_Shl][Dsk-Bld][Pnl-Plq-Roc] (no gap)
     p1_detshl = t.mod_on.det*4 + traj_shl;
     p2_seclyrldr = (t.mod_on.det==0) ? lad-1 + (t.mod_on.layer>1)*10 + (t.mod_on.layer>2)*16 : NOVAL_I;
-    p3_modroc = (t.mod_on.det==0) ? (abs(t.mod_on.module)-1)*16 + traj_roc : NOVAL_I;
+    p3_modroc = (t.mod_on.det==0) ? (traj_roc!=NOVAL_I ? (abs(t.mod_on.module)-1)*16 + traj_roc : NOVAL_I) : NOVAL_I;
     p2_dskbld = (t.mod_on.det==1) ? (abs(t.mod_on.disk)-1)*12 + abs(t.mod_on.blade)-1 : NOVAL_I;
-    p3_pnlplqroc = (t.mod_on.det==1) ? ((t.mod_on.panel==1) ? (t.mod_on.module>1)*2 + (t.mod_on.module>2)*6 + (t.mod_on.module>3)*8
-					: 21 + (t.mod_on.module>1)*6 + (t.mod_on.module>2)*8) + traj_roc : NOVAL_I;
+    p3_pnlplqroc = (t.mod_on.det==1) ? (traj_roc!=NOVAL_I ? ((t.mod_on.panel==1) ? (t.mod_on.module>1)*2 + (t.mod_on.module>2)*6 + (t.mod_on.module>3)*8
+							     : 21 + (t.mod_on.module>1)*6 + (t.mod_on.module>2)*8) + traj_roc : NOVAL_I) : NOVAL_I;
     
     p1_rocid = p1_detshl;
     p2_rocid = (t.mod_on.det) ? p2_dskbld : p2_seclyrldr;
     p3_rocid = (t.mod_on.det) ? p3_pnlplqroc : p3_modroc;
-    
+
     p1_modid = p1_rocid;
     p2_modid = p2_rocid;
     p3_modid = (t.mod_on.det==0) ? abs(t.mod_on.module)-1 : t.mod_on.module-1 + (t.mod_on.panel>1)*4;
@@ -1866,7 +1880,7 @@ public:
     
     clu_evt_fill = filldef[cluevt.run];
     if (clu_evt_fill!=clu_evt_fillcheck_)
-      clu_p1_fill = lumi_fill_index[clu_evt_fill];
+      clu_p1_fill = run_fill_index[clu_evt_fill];
     clu_evt_fillcheck_ = clu_evt_fill;
     // Detector and layer number
     clu_det_x = clust.mod_on.det + 1;
@@ -1956,14 +1970,16 @@ public:
     traj_nrun = 0;
     
     lumi_runcheck_ = 0;
-    lumi_fillcheck_ = 0;
-    evt_fillcheck_ = 0;
+    lumi_fillcheck_ = -1;
+    run_fillcheck_ = -1;
+    run_runcheck_ = 0;
+    evt_fillcheck_ = -1;
     traj_evt_runcheck_ = NOVAL_I;
     traj_evt_lscheck_ = NOVAL_I;
     traj_evt_evtcheck_ = NOVAL_I;
-    traj_evt_fillcheck_ = 0;
+    traj_evt_fillcheck_ = -1;
     
-    clu_evt_fillcheck_ = 0;
+    clu_evt_fillcheck_ = -1;
     
     zb = 0;
     nvtx = 0;
@@ -2037,107 +2053,124 @@ public:
     dcol_occupancy_list[0][clu_p1_rocid][clu_p2_rocid][clu_p3_rocid][int(clust.y)/2%26]++;
   }
   
-  void count_runs_fills_lumi(const LumiData &lumi, PostFixes &p) {
-    // Manual fill declaration
-#if VERSION2 >= 27
-    int fill = lumi.fill;
-    if (fill==NOVAL_I||lumi.fill>100000||lumi.fill==0) { // For some reason there are quite random fill numbers (without JSON)
-      fill = (lumi.run>=132596&&lumi.run<=132606) ? 1022
-	: (lumi.run>=149181&&lumi.run<=149182) ? 1450
-	: (lumi.run>=160431&&lumi.run<=160433) ? 1615
-	: (lumi.run>=160577&&lumi.run<=160579) ? 1622
-	: (lumi.run>=160808&&lumi.run<=160835) ? 1634
-      	: (lumi.run>=165098&&lumi.run<=165104) ? 1783
-	: (lumi.run>=167281&&lumi.run<=167284) ? 1883
-      	: (lumi.run>=169985&&lumi.run<=170000) ? 1944
-      	: (lumi.run>=171875&&lumi.run<=171897) ? 1985
-      	: (lumi.run>=172485&&lumi.run<=172620) ? 2000
-	: (lumi.run==173692) ? 2040
-      	: (lumi.run>=175832&&lumi.run<=175837) ? 2083
-	: (lumi.run>=176201&&lumi.run<=176207) ? 2103
-	: (lumi.run>=176304&&lumi.run<=176309) ? 2105
-	: (lumi.run>=178003&&lumi.run<=178004) ? 2186
-	: (lumi.run>=178420&&lumi.run<=178424) ? 2208
-	: (lumi.run>=190289&&lumi.run<=190391) ? 2469
-	: (lumi.run>=190538&&lumi.run<=190539) ? 2479
-	: (lumi.run>=190591&&lumi.run<=190595) ? 2482
-	: (lumi.run>=195913&&lumi.run<=195937) ? 2717
-	: (lumi.run>=198268&&lumi.run<=198272) ? 2807
-	: (lumi.run==200786) ? 2957
-	: (lumi.run==207454) ? 3296
-	: (lumi.run==207905) ? 3322
-	: (lumi.run==1) ? 1
-	: -1;
-    }
-#else
-    int fill = (lumi.run>=132596&&lumi.run<=132606) ? 1022
-      : (lumi.run>=149181&&lumi.run<=149182) ? 1450
-      : (lumi.run>=160431&&lumi.run<=160433) ? 1615
-      : (lumi.run>=160577&&lumi.run<=160579) ? 1622
-      : (lumi.run>=160808&&lumi.run<=160835) ? 1634
-      : (lumi.run>=165098&&lumi.run<=165104) ? 1783
-      : (lumi.run>=167281&&lumi.run<=167284) ? 1883
-      : (lumi.run>=169985&&lumi.run<=170000) ? 1944
-      : (lumi.run>=171875&&lumi.run<=171897) ? 1985
-      : (lumi.run>=172485&&lumi.run<=172620) ? 2000
-      : (lumi.run==173692) ? 2040
-      : (lumi.run>=175832&&lumi.run<=175837) ? 2083
-      : (lumi.run>=176201&&lumi.run<=176207) ? 2103
-      : (lumi.run>=176304&&lumi.run<=176309) ? 2105
-      : (lumi.run>=178003&&lumi.run<=178004) ? 2186
-      : (lumi.run>=178420&&lumi.run<=178424) ? 2208
-      : (lumi.run>=190289&&lumi.run<=190391) ? 2469
-      : (lumi.run>=190538&&lumi.run<=190539) ? 2479
-      : (lumi.run>=190591&&lumi.run<=190595) ? 2482
-      : (lumi.run>=195913&&lumi.run<=195937) ? 2717
-      : (lumi.run>=198268&&lumi.run<=198272) ? 2807
-      : (lumi.run==200786) ? 2957
-      : (lumi.run==207454) ? 3296
-      : (lumi.run==207905) ? 3322
-      : (lumi.run==1) ? 1
-      : -1;
-#endif
+  void count_runs_fills(const RunData& run, PostFixes &p) {
     // Count fills - now works for all version
-    if (fill!=lumi_fillcheck_&&lumi_fill_index.count(fill)==0) {
-      lumi_runs_in_fill.push_back(std::vector<int>());
-      lumi_nfill++;
-      lumi_fill_index[fill] = lumi_nfill; // postfix index, -1 for fill index
+    if (run.fill!=run_fillcheck_&&run_fill_index.count(run.fill)==0) {
+      run_nfill++;
+      run_fill_index[run.fill] = run_nfill; // postfix index
       std::stringstream ss;
-      if (fill==-1) ss<<"_UNDEF";
-      else ss<<"_"<<fill;
+      if (run.fill==NOVAL_I) ss<<"_UNDEF";
+      else ss<<"_"<<run.fill;
       p.fill.push_back(ss.str());
       std::string s = ss.str();
       s.erase(0,1);
-      lumi_fillname[fill]=s;
+      run_fillname[run.fill]=s;
       p.Fill.push_back(s);
       p.Fill2.push_back("Fill "+s);
     }
-    lumi_fillcheck_ = fill;
+    run_fillcheck_ = run.fill;
     
-    if (lumi.run!=lumi_runcheck_&&lumi_run_index.count(lumi.run)==0) {
-      // Fill definition !! Very important to keep intact
-      filldef[lumi.run] = fill;
-      lumi_run.push_back(lumi.run);
-      lumi_run_index[lumi.run] = lumi_run.size();
-      lumi_runs_in_fill[lumi_fill_index[fill]-1].push_back(lumi.run);
-#if VERSION2 >= 27
-      if (lumi_firstrun.count(fill)==0) {
-	lumi_firstrun[fill] = lumi.run;
-	lumi_fillstart[fill] = (unsigned int)(lumi.time - lumi.ls*23.3112);
-	// std::cout<<"Fill"<<fill<<" elso runja: "<<lumi.run
-	// 	 <<" amely ekkor kezdodott: "<<lumi_fillstart[fill]<<std::endl;
-      } else if (lumi_firstrun[fill]>lumi.run) {
-	lumi_firstrun[fill] = lumi.run;
-	lumi_fillstart[fill] = (unsigned int)(lumi.time - lumi.ls*23.3112);
-	// std::cout<<"Fill"<<fill<<" elso runja modosult erre: "<<lumi.run
-	// 	 <<" amely ekkor kezdodott: "<<lumi_fillstart[fill]<<std::endl;
-      }
-#else
-      if (lumi_firstrun.count(fill)==0) lumi_firstrun[fill] = lumi.run;
-      else if (lumi_firstrun[fill]>lumi.run) lumi_firstrun[fill] = lumi.run;
-#endif
+    if (run.run!=run_runcheck_&&run_index.count(run.run)==0) {
+      filldef[run.run] = run.fill;
+      run_list.push_back(run.run);
+      run_index[run.run] = run_list.size();
     }
-    lumi_runcheck_ = lumi.run;
+    run_runcheck_ = run.run;
+
+  }
+
+
+  void count_runs_lumis(const LumiData &lumi, PostFixes &p) {
+//    // Manual fill declaration
+//#if VERSION2 >= 27
+//    int fill = lumi.fill;
+//    if (fill==NOVAL_I||lumi.fill>100000||lumi.fill==0) { // For some reason there are quite random fill numbers (without JSON)
+//      fill = (lumi.run>=132596&&lumi.run<=132606) ? 1022
+//	: (lumi.run>=149181&&lumi.run<=149182) ? 1450
+//	: (lumi.run>=160431&&lumi.run<=160433) ? 1615
+//	: (lumi.run>=160577&&lumi.run<=160579) ? 1622
+//	: (lumi.run>=160808&&lumi.run<=160835) ? 1634
+//      	: (lumi.run>=165098&&lumi.run<=165104) ? 1783
+//	: (lumi.run>=167281&&lumi.run<=167284) ? 1883
+//      	: (lumi.run>=169985&&lumi.run<=170000) ? 1944
+//      	: (lumi.run>=171875&&lumi.run<=171897) ? 1985
+//      	: (lumi.run>=172485&&lumi.run<=172620) ? 2000
+//	: (lumi.run==173692) ? 2040
+//      	: (lumi.run>=175832&&lumi.run<=175837) ? 2083
+//	: (lumi.run>=176201&&lumi.run<=176207) ? 2103
+//	: (lumi.run>=176304&&lumi.run<=176309) ? 2105
+//	: (lumi.run>=178003&&lumi.run<=178004) ? 2186
+//	: (lumi.run>=178420&&lumi.run<=178424) ? 2208
+//	: (lumi.run>=190289&&lumi.run<=190391) ? 2469
+//	: (lumi.run>=190538&&lumi.run<=190539) ? 2479
+//	: (lumi.run>=190591&&lumi.run<=190595) ? 2482
+//	: (lumi.run>=195913&&lumi.run<=195937) ? 2717
+//	: (lumi.run>=198268&&lumi.run<=198272) ? 2807
+//	: (lumi.run==200786) ? 2957
+//	: (lumi.run==207454) ? 3296
+//	: (lumi.run==207905) ? 3322
+//	: (lumi.run==1) ? 1
+//	: -1;
+//    }
+//#else
+//    int fill = (lumi.run>=132596&&lumi.run<=132606) ? 1022
+//      : (lumi.run>=149181&&lumi.run<=149182) ? 1450
+//      : (lumi.run>=160431&&lumi.run<=160433) ? 1615
+//      : (lumi.run>=160577&&lumi.run<=160579) ? 1622
+//      : (lumi.run>=160808&&lumi.run<=160835) ? 1634
+//      : (lumi.run>=165098&&lumi.run<=165104) ? 1783
+//      : (lumi.run>=167281&&lumi.run<=167284) ? 1883
+//      : (lumi.run>=169985&&lumi.run<=170000) ? 1944
+//      : (lumi.run>=171875&&lumi.run<=171897) ? 1985
+//      : (lumi.run>=172485&&lumi.run<=172620) ? 2000
+//      : (lumi.run==173692) ? 2040
+//      : (lumi.run>=175832&&lumi.run<=175837) ? 2083
+//      : (lumi.run>=176201&&lumi.run<=176207) ? 2103
+//      : (lumi.run>=176304&&lumi.run<=176309) ? 2105
+//      : (lumi.run>=178003&&lumi.run<=178004) ? 2186
+//      : (lumi.run>=178420&&lumi.run<=178424) ? 2208
+//      : (lumi.run>=190289&&lumi.run<=190391) ? 2469
+//      : (lumi.run>=190538&&lumi.run<=190539) ? 2479
+//      : (lumi.run>=190591&&lumi.run<=190595) ? 2482
+//      : (lumi.run>=195913&&lumi.run<=195937) ? 2717
+//      : (lumi.run>=198268&&lumi.run<=198272) ? 2807
+//      : (lumi.run==200786) ? 2957
+//      : (lumi.run==207454) ? 3296
+//      : (lumi.run==207905) ? 3322
+//      : (lumi.run==1) ? 1
+//      : -1;
+//#endif
+//    
+//    // Count fills - now works for all version
+//    if (fill!=lumi_fillcheck_&&lumi_fill_index.count(fill)==0) {
+//      lumi_runs_in_fill.push_back(std::vector<int>());
+//      lumi_nfill++;
+//      lumi_fill_index[fill] = lumi_nfill; // postfix index, -1 for fill index
+//      std::stringstream ss;
+//      if (fill==-1) ss<<"_UNDEF";
+//      else ss<<"_"<<fill;
+//      p.fill.push_back(ss.str());
+//      std::string s = ss.str();
+//      s.erase(0,1);
+//      lumi_fillname[fill]=s;
+//      p.Fill.push_back(s);
+//      p.Fill2.push_back("Fill "+s);
+//    }
+//    lumi_fillcheck_ = fill;
+    
+    int fill = filldef[lumi.run];
+#if VERSION2 >= 27
+    if (lumi_firstrun.count(fill)==0) {
+      lumi_firstrun[fill] = lumi.run;
+      lumi_fillstart[fill] = (unsigned int)(lumi.time - lumi.ls*23.3112);
+    } else if (lumi_firstrun[fill]>lumi.run) {
+      lumi_firstrun[fill] = lumi.run;
+      lumi_fillstart[fill] = (unsigned int)(lumi.time - lumi.ls*23.3112);
+    }
+#else
+    if (lumi_firstrun.count(fill)==0) lumi_firstrun[fill] = lumi.run;
+    else if (lumi_firstrun[fill]>lumi.run) lumi_firstrun[fill] = lumi.run;
+#endif
   }
 
   void instlumi_preloop_(const LumiData &lumi) {

@@ -975,24 +975,47 @@ class Histograms {
     eff->Multiply(dist);
     dist->Add(eff,-1);
   }
+
+  void eff_revert(TH2D* eff, TH2D* dist) {
+    eff->Multiply(dist);
+    dist->Add(eff,-1);
+  }
   
   // Reverting Efficiency plots
   void revert_eff() {
-    if (dimensions_==1&&eff_==1) {
-      if (npostfix_==1) {
-	eff_revert(h1d_1p_[0],h1d_1p_[1]);
-      } else if (npostfix_==2) {
-	for (size_t i=0; i<h1d_2p_.size(); i++)
-	  eff_revert(h1d_2p_[i][0],h1d_2p_[i][1]);
-      } else if (npostfix_==3) {
-	for (size_t i=0; i<h1d_3p_.size(); i++) 
-	  for (size_t j=0; j<h1d_3p_[i].size(); j++)
-	    eff_revert(h1d_3p_[i][j][0],h1d_3p_[i][j][1]);
-      } else if (npostfix_==4) {
-	for (size_t i=0; i<h1d_4p_.size(); i++) 
-	  for (size_t j=0; j<h1d_4p_[i].size(); j++)
-	    for (size_t k=0; k<h1d_4p_[i][j].size(); k++)
-	      eff_revert(h1d_4p_[i][j][k][0],h1d_4p_[i][j][k][1]);
+    if (eff_==1) {
+      if (dimensions_==1) {
+        if (npostfix_==1) {
+          eff_revert(h1d_1p_[0],h1d_1p_[1]);
+        } else if (npostfix_==2) {
+          for (size_t i=0; i<h1d_2p_.size(); i++)
+            eff_revert(h1d_2p_[i][0],h1d_2p_[i][1]);
+        } else if (npostfix_==3) {
+          for (size_t i=0; i<h1d_3p_.size(); i++) 
+            for (size_t j=0; j<h1d_3p_[i].size(); j++)
+              eff_revert(h1d_3p_[i][j][0],h1d_3p_[i][j][1]);
+        } else if (npostfix_==4) {
+          for (size_t i=0; i<h1d_4p_.size(); i++) 
+            for (size_t j=0; j<h1d_4p_[i].size(); j++)
+              for (size_t k=0; k<h1d_4p_[i][j].size(); k++)
+                eff_revert(h1d_4p_[i][j][k][0],h1d_4p_[i][j][k][1]);
+        }
+      } else {
+        if (npostfix_==1) {
+          eff_revert(h2d_1p_[0],h2d_1p_[1]);
+        } else if (npostfix_==2) {
+          for (size_t i=0; i<h2d_2p_.size(); i++)
+            eff_revert(h2d_2p_[i][0],h2d_2p_[i][1]);
+        } else if (npostfix_==3) {
+          for (size_t i=0; i<h2d_3p_.size(); i++) 
+            for (size_t j=0; j<h2d_3p_[i].size(); j++)
+              eff_revert(h2d_3p_[i][j][0],h2d_3p_[i][j][1]);
+        } else if (npostfix_==4) {
+          for (size_t i=0; i<h2d_4p_.size(); i++) 
+            for (size_t j=0; j<h2d_4p_[i].size(); j++)
+              for (size_t k=0; k<h2d_4p_[i][j].size(); k++)
+                eff_revert(h2d_4p_[i][j][k][0],h2d_4p_[i][j][k][1]);
+        }	
       }
     }
   }
@@ -1415,9 +1438,9 @@ class Histograms {
 /* 	  if (aoi>0.2&&aoi<0.27) { */
 	  if (fabs(t.trk.eta)<0.1) {
 	    // avg size
-	    h1d_3p_[0]             [p1][9]->Fill(x, t.clu.size);
-	    h1d_3p_[t.mod_on.det+1][p1][9]->Fill(x, t.clu.size);
-	    h1d_3p_[lay]           [p1][9]->Fill(x, t.clu.size);
+	    h1d_3p_[0]             [p1][9]->Fill(x, t.clu.sizeX);
+	    h1d_3p_[t.mod_on.det+1][p1][9]->Fill(x, t.clu.sizeX);
+	    h1d_3p_[lay]           [p1][9]->Fill(x, t.clu.sizeX);
 	    // ncluperevt
 	    h1d_3p_[0]             [p1][10]->Fill(x);
 	    h1d_3p_[t.mod_on.det+1][p1][10]->Fill(x);
@@ -1528,7 +1551,7 @@ class Histograms {
     }
     bool asym = false;
     if (opt.find("AsymmErr")!=std::string::npos) {
-      opt.erase(opt.find("AsymmErr"),7);
+      opt.erase(opt.find("AsymmErr"),8);
       asym = true;
     }
     // Draw Stat boxes
@@ -1582,6 +1605,17 @@ class Histograms {
     leg->SetTextSize(0.04);
     leg->Draw("SAME");
     return leg;
+  }
+
+  // 1 Postfix
+  TLegend* multidraw_with_legend(std::string val, std::string opt,
+				 std::vector<std::string> &p, std::string colz,
+				 std::string title="", float x1=0.6, float x2=0.8, float y1=0.15, float y2=0.35) {
+    std::vector<int> vec = string_to_vector_(val);
+    std::vector<TH1D*> hvec;
+    std::vector<TH1D*> denvec;
+    for (size_t i=0; i<vec.size(); i++) hvec.push_back(h1d_1p_[vec[i]]);
+    return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }
 
   // 2 Postfix
@@ -1667,8 +1701,8 @@ class Histograms {
     std::vector<TH1D*> hvec;
     std::vector<TH1D*> denvec;
     for (size_t k=0; k<vec.size(); k++) {
-      hvec.push_back(h1d_4p_[i][vec[j]][k][l]);
-      if (h1d_4p_[i][vec[j]][k].size()>1) denvec.push_back(h1d_4p_[i][vec[j]][k][1]);
+      hvec.push_back(h1d_4p_[i][j][vec[k]][l]);
+      if (h1d_4p_[i][j][vec[k]].size()>1) denvec.push_back(h1d_4p_[i][j][vec[k]][1]);
     }
     return multidraw_(hvec, denvec, vec, opt, p, colz, title, x1,x2, y1,y2);
   }

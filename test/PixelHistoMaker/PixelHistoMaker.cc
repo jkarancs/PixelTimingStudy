@@ -5,7 +5,7 @@
   2 :   v3533 SPLIT 1 - with alpha/beta              (2013 Apr28-May3     - by Viktor)
   3 :   v3734 SPLIT 1 - with alpha/beta, occupancy   (2013 Latest (>May13))
 */
-#define VER 3
+#define VER 0
 //#define COMPLETE 0
 #define NONEFFPLOTS 0
 #define FEDERRPLOTS 0
@@ -376,9 +376,15 @@ class PixelHistoMaker {
 	nfile_++;
 	TFile f(chEl->GetTitle());
 	tr.readtrees(f);
+	// loop on runTree
+	for (long long int i=0; i<tr.nrun(); i++) {
+	  tr.run_read(i);
+	  var.count_runs_fills(tr.run(),p);
+	}
+	// loop on lumiTree
 	for (long long int i=0; i<tr.nls(); i++) {
 	  tr.lumi_read(i);
-	  var.count_runs_fills_lumi(tr.lumi(),p);
+	  var.count_runs_lumis(tr.lumi(),p);
 	  var.instlumi_preloop_(tr.lumi());
 	  totallumi_++;
 	}
@@ -387,8 +393,9 @@ class PixelHistoMaker {
     }
     var.init();
     // Sort runs and their indexes
-    std::sort(var.lumi_run.begin(),var.lumi_run.end());
-    for (size_t i=0; i<var.lumi_run.size(); ++i) var.lumi_run_index[var.lumi_run[i]] = i+1;
+    // Sort runs and their indexes
+    std::sort(var.run_list.begin(),var.run_list.end());
+    for (size_t i=0; i<var.run_list.size(); ++i) var.run_index[var.run_list[i]] = i+1;
   }
 
   void process(TreeReader &tr, Variables &var,
@@ -1272,6 +1279,7 @@ int main(int argc, char* argv[]) {
 
 
 //                                      201278 Data
+  
   /*
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1332_2_m5k.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1333_2_vYQ.root");
@@ -1340,6 +1348,7 @@ int main(int argc, char* argv[]) {
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1391_2_KAi.root");
   */
   
+  
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1367_1_4VN.root");
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1369_1_Ylm.root");
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_136_1_KkX.root");
@@ -1355,12 +1364,14 @@ int main(int argc, char* argv[]) {
   // Run on lumiTree to get run and lumi information
   phm.preprocess(tr, v, ah, p);
   
-#if FILLS < 2
 #if BADROC != 0
-  int nfill = v.lumi_nfill;
+  int nfill = v.run_nfill;
 #endif
-  v.lumi_nfill = 0;
+  
+#if FILLS < 2
+  v.run_nfill = 0;
 #endif
+
   
   //________________________________________________________________________________________
   //                                  Fill-by-Fill Plots
@@ -1389,42 +1400,39 @@ int main(int argc, char* argv[]) {
 #endif
   ah.l1rate_vs_instlumi = new TH2D("l1rate_vs_instlumi", "Level 1 Trigger Rate vs Inst. Luminostiy", 100, 0, 10000,  10000, 0, 100000);
 
-  ah.run           ->add(p.det, 1, 1, 24, 0, p.mod2,   1, 1, 5, 0, p.def, 1, 1, 12, FILLS==0 ? 1 : v.lumi_run.size(), 0.5, (FILLS==0 ? 1 : v.lumi_run.size()) + 0.5);
+  ah.run           ->add(p.det, 1, 1, 24, 0, p.mod2,   1, 1, 5, 0, p.def, 1, 1, 12, FILLS==0 ? 1 : v.run_list.size(), 0.5, (FILLS==0 ? 1 : v.run_list.size()) + 0.5);
 //ah.run           ->add(p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 2,                           v.lumi_nrun, 0.5, v.lumi_nrun + 0.5);
-  ah.det           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.cumeff, 1,  1, 2,     7,0.5,7.5);
-  ah.mod           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  4, 4,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  21, -10.5,  10.5);
-  ah.mod           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  5, 5,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  33, -16.5,  16.5);
-  ah.mod           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  6, 6,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  45, -22.5,  22.5);
-  ah.mod           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  3, 3, -1, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  25, -12.5,  12.5);
-  ah.roc           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  4, 4,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  42, -10.5,  10.5);
-  ah.roc           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  5, 5,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  66, -16.5,  16.5);
-  ah.roc           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1,  6, 6,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  90, -22.5,  22.5);
-  ah.roc           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.fpixIO, 1,  1, 1, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144,   0.5,  12.5);
-  ah.roc           ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.fpixIO, 1,  2, 2, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144, -12.5,  -0.5);
-  ah.time          ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  96,   0,  24);
-  ah.bx            ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  120,    0, 3600);
-  ah.instlumi      ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
-  ah.instlumi_raw  ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.year,   1, 1,  1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
+  ah.det           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.cumeff, 1,  1, 2,     7,0.5,7.5);
+  ah.mod           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  4, 4,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  21, -10.5,  10.5);
+  ah.mod           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  5, 5,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  33, -16.5,  16.5);
+  ah.mod           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  6, 6,  3, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  45, -22.5,  22.5);
+  ah.mod           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  3, 3, -1, p.cumeff, 1, 1, 2,  9, -4.5, 4.5,  25, -12.5,  12.5);
+  ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  4, 4,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  42, -10.5,  10.5);
+  ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  5, 5,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  66, -16.5,  16.5);
+  ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1,  6, 6,  3, p.inac,   1, 1, 3, 72, -4.5, 4.5,  90, -22.5,  22.5);
+  ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.fpixIO, 1,  1, 1, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144,   0.5,  12.5);
+  ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.fpixIO, 1,  2, 2, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144, -12.5,  -0.5);
+  ah.time          ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  96,   0,  24);
+  ah.bx            ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  120,    0, 3600);
+  ah.instlumi      ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
+  ah.instlumi_raw  ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.year,   1, 1,  1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
   ah.instlumi_raw  ->add(p.fill,  0, 1,              1, 0, p.year,   1, 2,  4, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
   ah.instlumi_raw  ->add(p.fill,  0, 1,              1, 0, p.year,   0, 2,  4, 0, p.det,    0, 1, 24, 0, p.avg,    1, 3, 4, 1000,    0, 10000);
-  ah.il_l1rate     ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000, 20,  0, 100);
-  ah.trigger       ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 10, 0, p.cumeff, 1, 1, 2,   32, -0.5, 31.5);
-  ah.l1rate        ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,   50,    0, 100);
+  ah.il_l1rate     ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000, 20,  0, 100);
+  ah.trigger       ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 10, 0, p.cumeff, 1, 1, 2,   32, -0.5, 31.5);
+  ah.l1rate        ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,   50,    0, 100);
 
 #if BADROC != 0
-#if FILLS < 2
-  v.lumi_nfill = nfill;
-#endif
-  ah.roceff_time  ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  48, -0.5, 47.5,  64, -0.5, 63.5);
-  ah.roceff_time  ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  24, -0.5, 23.5,  45, -0.5, 44.5);
+  ah.roceff_time  ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  48, -0.5, 47.5,  64, -0.5, 63.5);
+  ah.roceff_time  ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  24, -0.5, 23.5,  45, -0.5, 44.5);
 #if BADROC == 2
-  ah.roceff_fill  ->add(p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,  v.lumi_nfill, 0.5, v.lumi_nfill+0.5,  48, -0.5, 47.5,  64, -0.5, 63.5);
-  ah.roceff_fill  ->add(p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,  v.lumi_nfill, 0.5, v.lumi_nfill+0.5,  24, -0.5, 23.5,  45, -0.5, 44.5);
-  ah.fill_stat    ->add(p.cumeff, 1, 1, 2,  v.lumi_nfill, 0.5, v.lumi_nfill+0.5);
+  ah.roceff_fill  ->add(p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5,  48, -0.5, 47.5,  64, -0.5, 63.5);
+  ah.roceff_fill  ->add(p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5,  24, -0.5, 23.5,  45, -0.5, 44.5);
+  ah.fill_stat    ->add(p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5);
 #endif
-  ah.badroc       ->add(p.fill,  1, 2, v.lumi_nfill+1, 1, p.det,    1, 3,  6,    48, 0, 24,  100, 0, 100);
-  ah.nbadroc      ->add(p.fill,  1, 2, v.lumi_nfill+1, 1, p.det,    1, 1,  6,    48, 0, 24);
-  ah.roceff_dist  ->add(p.fill,  1, 2, v.lumi_nfill+1,    1000, 0,  1);
+  ah.badroc       ->add(p.fill,  1, 2, v.run_nfill+1, 1, p.det,    1, 3,  6,    48, 0, 24,  100, 0, 100);
+  ah.nbadroc      ->add(p.fill,  1, 2, v.run_nfill+1, 1, p.det,    1, 1,  6,    48, 0, 24);
+  ah.roceff_dist  ->add(p.fill,  1, 2, v.run_nfill+1,    1000, 0,  1);
 #endif
 
 #if FEDERRPLOTS == 1
@@ -1432,11 +1440,11 @@ int main(int argc, char* argv[]) {
   ah.federr        = new Histograms("federr",         2,   1,   1,   2);
   ah.federr_evt    = new Histograms("federr_evt",     2,   1);
   
-  ah.federr        ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.cumeff, 1, 1, 2,  42, -1.5, 40.5);
-  ah.federr_evt    ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.cumeff, 1, 2, 2,  42, -1.5, 40.5);
-  ah.time_federr   ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.federr_type,  1, 1, 19, 0, p.det, 1, 1, 10, 0, p.federr, 1, 1, 5,  96,   0,  24);
-  ah.time_federr   ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.federr_type,  0, 1, 19, 0, p.det, 0, 1,  1, 0, p.federr, 1, 6, 8,  96,   0,  24);
-  ah.time_federr   ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.federr_type,  1,20, 21, 0, p.det, 1, 1, 10, 0, p.federr, 1, 1, 2,  96,   0,  24);
+  ah.federr        ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.cumeff, 1, 1, 2,  42, -1.5, 40.5);
+  ah.federr_evt    ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.cumeff, 1, 2, 2,  42, -1.5, 40.5);
+  ah.time_federr   ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.federr_type,  1, 1, 19, 0, p.det, 1, 1, 10, 0, p.federr, 1, 1, 5,  96,   0,  24);
+  ah.time_federr   ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.federr_type,  0, 1, 19, 0, p.det, 0, 1,  1, 0, p.federr, 1, 6, 8,  96,   0,  24);
+  ah.time_federr   ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.federr_type,  1,20, 21, 0, p.det, 1, 1, 10, 0, p.federr, 1, 1, 2,  96,   0,  24);
 #endif
 
   //________________________________________________________________________________________
@@ -1449,18 +1457,18 @@ int main(int argc, char* argv[]) {
   ah.bx_ls         = new Histograms("bx_ls",          3,   2);
   ah.ls_fill       = new Histograms("ls_fill",        3,   1);
   ah.instlumi_corr = new Histograms("instlumi_corr",  2,   1);
-  ah.nclu_corr     ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.corr,   1, 1, 2,  200,0,2000,  200,0,2000);
-  ah.npix_corr     ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.corr,   1, 1, 2,  200,0,10000, 200,0,10000);
-  ah.bx_ls         ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 10, 0, p.avg,   1, 2, 2,  40,0,4000, 3600,0,3600);
-  ah.bx_ls         ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 4, 4,  40,0,4000, 3600,0,3600);
-  ah.ls_fill       ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.det,    1, 1, 10, 0, p.avg,   1, 1, 1,  4000,0,4000);
-  ah.ls_fill       ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 2, 2,    40,0,4000);
-  ah.ls_fill       ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 3, 4,  4000,0,4000);
-  ah.time          ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 1, 1,  96,0,24);
-  ah.instlumi      ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 1, 1,  80,0,4000);
-  ah.instlumi      ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.corr2,  1, 1, 2,  40,0,4000, 200,0, 2000, 200,0, 2000);
-  ah.instlumi      ->add(p.fill,  0, 1, v.lumi_nfill+1, 0, p.corr2,  1, 3, 4,  40,0,4000, 200,0,10000, 200,0,10000);
-  ah.instlumi_corr ->add(p.fill,  1, 1, v.lumi_nfill+1, 0, p.corr2,  1, 1, 4,  40,0,4000);
+  ah.nclu_corr     ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.corr,   1, 1, 2,  200,0,2000,  200,0,2000);
+  ah.npix_corr     ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.corr,   1, 1, 2,  200,0,10000, 200,0,10000);
+  ah.bx_ls         ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 10, 0, p.avg,   1, 2, 2,  40,0,4000, 3600,0,3600);
+  ah.bx_ls         ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 4, 4,  40,0,4000, 3600,0,3600);
+  ah.ls_fill       ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 10, 0, p.avg,   1, 1, 1,  4000,0,4000);
+  ah.ls_fill       ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 2, 2,    40,0,4000);
+  ah.ls_fill       ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 3, 4,  4000,0,4000);
+  ah.time          ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 1, 1,  96,0,24);
+  ah.instlumi      ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.det,    0, 1, 10, 0, p.avg,   1, 1, 1,  80,0,4000);
+  ah.instlumi      ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.corr2,  1, 1, 2,  40,0,4000, 200,0, 2000, 200,0, 2000);
+  ah.instlumi      ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.corr2,  1, 3, 4,  40,0,4000, 200,0,10000, 200,0,10000);
+  ah.instlumi_corr ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.corr2,  1, 1, 4,  40,0,4000);
 #endif
 
   // Load Previous plots

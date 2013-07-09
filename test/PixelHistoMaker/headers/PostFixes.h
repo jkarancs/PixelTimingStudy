@@ -138,7 +138,7 @@ class PostFixes {
     federr_type.push_back("_dummyword");
     federr_type.push_back("_fifofull");
     federr_type.push_back("_timeout");
-    federr_type.push_back("_tbmtrailer");
+    federr_type.push_back("_overflow");
     federr_type.push_back("_eventnumber");
     federr_type.push_back("_slinkheader");
     federr_type.push_back("_slinktrailer");
@@ -148,7 +148,6 @@ class PostFixes {
     federr_type.push_back("_dcol");
     federr_type.push_back("_readotorder");
     federr_type.push_back("_crcerror");
-    federr_type.push_back("_overflow");
     federr_type.push_back("_errevt");
     federr_type.push_back("_noerrevt");
 
@@ -160,7 +159,7 @@ class PostFixes {
     Federr_type.push_back("Dummy word");
     Federr_type.push_back("FIFO full");
     Federr_type.push_back("Timeout");
-    Federr_type.push_back("TBM trailer");
+    Federr_type.push_back("Overflow");
     Federr_type.push_back("Event number");
     Federr_type.push_back("Slink header");
     Federr_type.push_back("Slink trailer");
@@ -170,7 +169,6 @@ class PostFixes {
     Federr_type.push_back("Dcol or pixel value");
     Federr_type.push_back("Readout order");
     Federr_type.push_back("CRC error");
-    Federr_type.push_back("Overflow");
 
     il.push_back("_il");
     il.push_back("_nls");

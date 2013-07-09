@@ -323,8 +323,8 @@ class AllHistos {
 	    if (!t.mod_on.det) {
 	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
 	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
 	    }
 	    rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
 	    if (t.mod_on.det==1)
@@ -333,12 +333,12 @@ class AllHistos {
 	    if (!t.mod_on.det) {
 	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder);
 	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
 	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.ladder);
 	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_instlumi);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_l1rate);
+	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_instlumi);
 	    }
 	    rocmap->   increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
 	    if (t.mod_on.det==1)
