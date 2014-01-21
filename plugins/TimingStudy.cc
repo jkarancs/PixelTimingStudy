@@ -45,6 +45,7 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "RecoTracker/MeasurementDet/interface/MeasurementTracker.h"
+#include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 #include "TrackingTools/KalmanUpdators/interface/Chi2MeasurementEstimator.h"
 #include "TrackingTools/DetLayers/interface/DetLayer.h"
@@ -1221,6 +1222,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       ESHandle<MeasurementTracker> measurementTrackerHandle;
       iSetup.get<CkfComponentsRecord>().get(measurementTrackerHandle);
       
+      Handle<MeasurementTrackerEvent> measurementTrackerEventHandle;
+      iEvent.getByLabel("MeasurementTrackerEvent", measurementTrackerEventHandle);
+      
       edm::ESHandle<Chi2MeasurementEstimatorBase> est;
       iSetup.get<TrackingComponentsRecord>().get("Chi2",est);
       
@@ -1391,7 +1395,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  const DetLayer* pxb1 = pxbLayers[extrapolateTo_-1];
 	  const MeasurementEstimator* estimator = est.product();
 	  const LayerMeasurements* theLayerMeasurements = 
-	    new LayerMeasurements(&*measurementTrackerHandle);
+	    new LayerMeasurements(*measurementTrackerHandle, *measurementTrackerEventHandle);
 	  const TrajectoryStateOnSurface tsosPXB2 = itTraj->updatedState();
 	  expTrajMeasurements = 
 	    theLayerMeasurements->measurements(*pxb1, tsosPXB2, *thePropagator, *estimator);
