@@ -6,12 +6,13 @@ process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 process.MessageLogger.cerr.threshold = 'INFO'
 
+## Options and Output Report
+process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 #-------------
 # DQM services
 #-------------
 
-# process.load("DQMServices.Core.DQM_cfg")
 process.load("CondCore.DBCommon.CondDBCommon_cfi")
 process.load("CondCore.DBCommon.CondDBSetup_cfi")
 
@@ -36,6 +37,7 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "GR_R_44_V15::All"
 #process.GlobalTag.globaltag = "GR_R_53_V9F::All"
 
+# For MC
 process.GlobalTag.globaltag = "MC_70_V1::All"
 
 #-------------------------
@@ -48,15 +50,15 @@ process.load('Configuration.EventContent.EventContent_cff')
 #  Reconstruction Modules
 #-------------------------
 
-# clusterizer
-process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
-
 # for raw
 #process.load("EventFilter.SiPixelRawToDigi.SiPixelDigiToRaw_cfi")
 #process.load("EventFilter.SiPixelRawToDigi.SiPixelRawToDigi_cfi")
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.siPixelDigis.IncludeErrors = True # To create UserError DetIdCollection
+
+# clusterizer
+process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
 
 # needed for pixel RecHits
 process.load("Configuration.StandardSequences.Reconstruction_cff")
@@ -76,32 +78,9 @@ process.load("RecoTracker.MeasurementDet.MeasurementTrackerEventProducer_cfi")
 # process.load("EventFilter.SiStripRawToDigi.SiStripRawToDigis_standard_cff")
 # process.siStripDigis.ProductLabel = 'source'
 
-# process.load("RecoLocalTracker.SiStripClusterizer.SiStripClusterizer_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.SiStripRecHitConverter_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.SiStripRecHitMatcher_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.StripCPEfromTrackAngle_cfi")
-# process.load("RecoLocalTracker.SiStripZeroSuppression.SiStripZeroSuppression_cfi")
-
-##
-## Needed when running on RAW:
-##
-# change strip cluster threshold to reduce noise effects
-##process.siStripClusters.Clusterizer.ClusterThreshold = 9
-##process.siStripClusters.Clusterizer.SeedThreshold = 6
-##process.siStripClusters.Clusterizer.ChannelThreshold = 4
-
-##
-## Needed when running on RECO:
-##
-## Fitter-smoother: loosen outlier rejection as for first data-taking with LHC "collisions"
-#process.KFFittingSmootherWithOutliersRejectionAndRK.BreakTrajWith2ConsecutiveMissing = False
-#process.KFFittingSmootherWithOutliersRejectionAndRK.EstimateCut = 1000
-#process.KFFittingSmootherWithOutliersRejectionAndRK.NoInvalidHitsBeginEnd = False
-#process.KFFittingSmootherWithOutliersRejectionAndRK.LogPixelProbabilityCut =  -16.0
-
-#------------------------------------
-# ckftracks alternative for CMSSW 70X
-#------------------------------------
+#----------------------------------------------
+# temporary ckftracks alternative for CMSSW 70X
+#----------------------------------------------
 
 # trackingGlobalReco does not work, needs EarlyMuons for muon seeding.
 # ckftracks & iterTracking does not work as well  (same problem).
@@ -148,40 +127,36 @@ process.load("RecoTracker.TransientTrackingRecHit.TransientTrackingRecHitBuilder
 
 process.load("Alignment.OfflineValidation.TrackerOfflineValidation_cfi")
 
-## #-------------
-## #  HLT Filter
-## #-------------
+#--------------------
+#  HLT Trigger filter
+#--------------------
 
-## import HLTrigger.HLTfilters.hltHighLevel_cfi as hlt
-## # accept if 'path_1' succeeds
-## process.hltfilter = hlt.hltHighLevel.clone(
-## # Min-Bias
-## #   HLTPaths = ['HLT_L1Tech_BSC_minBias'],
-# ---->    HLTPaths = ['HLT_L1Tech_BSC_minBias_OR'],
-## #    HLTPaths = ['HLT_L1Tech_BSC_halo_forPhysicsBackground'],
-## #    HLTPaths = ['HLT_L1Tech_BSC_HighMultiplicity'],
-## #    HLTPaths = #['HLT_L1Tech_BSC_minBias','HLT_L1Tech_BSC_minBias_OR','HLT_L1Tech
-## #_BSC_HighMultiplicity'],
-## # Zero-Bias
-## #    HLTPaths = #['HLT_L1_BPTX','HLT_ZeroBias','HLT_L1_BPTX_MinusOnly','HLT_L1_BP
-## #TX_PlusOnly'],
-## #    HLTPaths = ['HLT_L1_BPTX'],
-## #    HLTPaths = ['HLT_ZeroBias'],
-## #    HLTPaths = ['HLT_L1_BPTX_MinusOnly'],
-## #    HLTPaths = ['HLT_L1_BPTX_PlusOnly'],
-## # Commissioning: HLT_L1_BptxXOR_BscMinBiasOR
-## #    HLTPaths = ['HLT_L1_BptxXOR_BscMinBiasOR'],
-## #
-## #    HLTPaths = ['p*'],
-## #    HLTPaths = ['path_?'],
-##    andOr = True,  # False = and, True=or
-##    throw = False
-##    )
-## 
-## # to select PhysicsBit
-## process.load('HLTrigger.special.hltPhysicsDeclared_cfi')
-## process.hltPhysicsDeclared.L1GtReadoutRecordTag = 'gtDigis'
-
+# import HLTrigger.HLTfilters.hltHighLevel_cfi as hlt
+# # accept if 'path_1' succeeds
+# process.hltfilter = hlt.hltHighLevel.clone(
+# # Min-Bias
+# #    HLTPaths = ['HLT_L1Tech_BSC_minBias'],
+# #    HLTPaths = ['HLT_L1Tech_BSC_minBias_OR'],
+# #    HLTPaths = ['HLT_L1Tech_BSC_halo_forPhysicsBackground'],
+# #    HLTPaths = ['HLT_L1Tech_BSC_HighMultiplicity'],
+# #    HLTPaths = ['HLT_L1Tech_BSC_minBias','HLT_L1Tech_BSC_minBias_OR','HLT_L1Tech_BSC_HighMultiplicity'],
+# # Zero-Bias
+# #    HLTPaths = ['HLT_L1_BPTX','HLT_ZeroBias','HLT_L1_BPTX_MinusOnly','HLT_L1_BPTX_PlusOnly'],
+# #    HLTPaths = ['HLT_L1_BPTX'],
+#     HLTPaths = ['HLT_ZeroBias'],
+# #    HLTPaths = ['HLT_L1_BPTX_MinusOnly'],
+# #    HLTPaths = ['HLT_L1_BPTX_PlusOnly'],
+# # Commissioning: HLT_L1_BptxXOR_BscMinBiasOR
+# #    HLTPaths = ['HLT_L1_BptxXOR_BscMinBiasOR'],
+# #    HLTPaths = ['p*'],
+# #    HLTPaths = ['path_?'],
+#    andOr = True,  # False = and, True=or
+#    throw = False
+#    )
+# 
+# # to select PhysicsBit
+# process.load('HLTrigger.special.hltPhysicsDeclared_cfi')
+# process.hltPhysicsDeclared.L1GtReadoutRecordTag = 'gtDigis'
 
 #-------------------------
 #  Ntuplizer code
@@ -190,7 +165,7 @@ process.load("Alignment.OfflineValidation.TrackerOfflineValidation_cfi")
 ##process.load("DPGAnalysis.PixelTimingStudy.TimingStudy_cfi")
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      trajectoryInput = cms.string('TrackRefitter'),
-                                     fileName = cms.string("Raw_Ntuple.root"),
+                                     fileName = cms.string("Ntuple.root"),
                                      extrapolateFrom = cms.int32(2),
                                      extrapolateTo = cms.int32(1),
                                      keepOriginalMissingHit = cms.bool(False),
@@ -215,7 +190,11 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet10",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
-                                                              "HLT_MinBias")
+                                                              "HLT_MinBias"),
+                                     dataPileupFile = cms.string("data/PileupHistogram_test.root"),
+                                     mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
+                                     dataPileupHistoName = cms.string("pileup"),
+                                     mcPileupHistoName = cms.string("mcpileup")
 )
 
 # For the three cases:
@@ -228,59 +207,32 @@ process.ckfNtuple.trajectoryInput = 'ckfRefitter'
 process.pixlessNtuple = process.TimingStudy.clone()
 process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
 
-
-#-------------------------------------------------
-# Configure output ntuple file using TFileService
-#-------------------------------------------------
-
-##process.TFileService = cms.Service("TFileService", 
-##                                   ___file_Name___ = cms.string("test.root"),
-##                                   closeFileFast = cms.untracked.bool(True)
-##                                   )
-
 #-------------------------------------------------
 # Input files:
 #-------------------------------------------------
 
 process.source = cms.Source("PoolSource",
-                            # replace with your files
-                            #lastRun = cms.untracked.uint32(64789),
-                            #timetype = cms.string('runnumber'),
                             #firstRun = cms.untracked.uint32(64108),
-                            #interval = cms.uint32(1),
+                            #lastRun = cms.untracked.uint32(64789),
                             #firstLuminosityBlock = cms.untracked.uint32(44),
     fileNames = cms.untracked.vstring(
 #CMSSW70X RAW test file
+#'file:TTbar_GEN-SIM-RAW_input.root'
 '/store/relval/CMSSW_7_0_0_pre11/RelValProdTTbar/GEN-SIM-RAW/START70_V4-v1/00000/36994557-496A-E311-A69D-002618943868.root'
-
-# High Background Fill to test 42X
-#'/store/data/Run2011B/MinimumBias/RAW/v1/000/178/421/9E3586B3-5BF5-E011-8F0B-BCAEC518FF6E.root'
-#'file:/home/jkarancs/RAW/MinimumBias_Run2011B-v1_RAW/CMSSW_4_2_7/0CBB28E2-CCDD-E011-8F23-003048D2C020.root'
 )
 )
-
-##process.source.inputCommand = cms.untracked.vstring("drop *_*_*_FU"
-##                                                    ,"drop *_*_*_HLT",
-##                                                    "drop *_MEtoEDMConverter_*_*","drop *_lumiProducer_*_REPACKER"
-##                                                    )
 
 #-------------------------------------------------
 # Number of events
 #-------------------------------------------------
 
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 #-------------------------------------------------
 # Path
 #-------------------------------------------------
-#process.pl = cms.Path(
-#        # Lum
-#    process.lumiProducer*
-#    process.conditionsInEdm
-#)
 
-#process.p = cms.Path(
+#process.p = cms.Path( # Worked for CMSSW_5_X
 #    # Trigger selection:
 #    # process.hltLevel1GTSeed*
 #    #process.hltPhysicsDeclared*
@@ -295,7 +247,6 @@ process.maxEvents = cms.untracked.PSet(
 #    #//process.RawToDigi*process.reconstructionCosmics*
 #    # Track reco:
 #    process.trackerlocalreco*
-#    process.MeasurementTrackerEvent*
 #    process.recopixelvertexing*
 #    process.ckftracks*
 #    #process.ckftracks_plus_pixelless*

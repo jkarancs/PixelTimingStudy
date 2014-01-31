@@ -24,6 +24,7 @@
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
+#include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
 #include "TObject.h"
 #include "TH1D.h"
 #include "TFile.h"
@@ -85,6 +86,14 @@ class TimingStudy : public edm::EDAnalyzer
   std::vector<std::string> triggerNames_; // Max 20 trigger names
   edm::InputTag triggerTag_;
 
+  bool calcWeights_;
+  std::string mcPileupFile_;
+  std::string mcPileupHistoName_;
+  std::string dataPileupFile_;
+  std::string dataPileupHistoName_;
+
+  edm::LumiReWeighting LumiWeights_;
+
   bool isNewLS_;
   std::map<unsigned long int, double> runls_instlumi_;
   std::map<unsigned long int, double> runls_pileup_;
@@ -110,6 +119,7 @@ class TimingStudy : public edm::EDAnalyzer
     float instlumi;
     float instlumi_ext;
     float pileup;
+    float weight;
     float vtxndof;
     float vtxchi2;
     float vtxD0;
@@ -155,6 +165,7 @@ class TimingStudy : public edm::EDAnalyzer
       instlumi=NOVAL_F;
       instlumi_ext=NOVAL_F;
       pileup=NOVAL_F;
+      weight=NOVAL_F;
       vtxndof=vtxD0=vtxZ=NOVAL_F;
       vtxX=vtxY=vtxchi2=NOVAL_F;
       vtxntrk=NOVAL_I;
@@ -177,8 +188,8 @@ class TimingStudy : public edm::EDAnalyzer
       for (size_t i=0; i<16; i++) federrs[i][0]=federrs[i][1]=NOVAL_I;
 
       list="fill/I:run:ls:orb:bx:evt:nvtx:trig:nclu[4]:npix[4]:beamint[2]/i:"
-	"l1_rate/F:intlumi:instlumi:instlumi_ext:pileup:vtxndof:vtxchi2:vtxD0:"
-	"vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:"
+	"l1_rate/F:intlumi:instlumi:instlumi_ext:pileup:weight:vtxndof:vtxchi2:"
+	"vtxD0:vtxX:vtxY:vtxZ:vtxntrk/I:good:tmuon/F:tmuon_err:tecal:tecal_raw:"
 	"tecal_err:field:wbc/I:delay:ntracks:ntrackFPix[2]:ntrackBPix[3]:"
 	"ntrackFPixvalid[2]:ntrackBPixvalid[3]:trackSep/F:federrs_size/I:"
 	"federrs[federrs_size][2]";

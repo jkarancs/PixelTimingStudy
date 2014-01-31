@@ -111,6 +111,14 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 
   mcLumiScale_=1.0;
 
+  calcWeights_=false;
+  mcPileupFile_="";
+  mcPileupHistoName_="";
+  dataPileupFile_="";
+  dataPileupHistoName_="";
+
+  LumiWeights_ = edm::LumiReWeighting();
+
   isNewLS_ = false;
   lumi_.init(); // ctor of lumi_ should take care of this, but just to be sure
 }
@@ -179,6 +187,22 @@ void TimingStudy::beginJob()
   if (iConfig_.exists("mcLumiScale")) {
     mcLumiScale_=iConfig_.getParameter<double>("mcLumiScale");
     std::cout<<"NON-DEFAULT PARAMETER: mcLumiScale= "<<mcLumiScale_<<std::endl;
+  }
+
+  // Pileup reweighting
+  if (iConfig_.exists("mcPileupFile")&&iConfig_.exists("mcPileupHistoName")&&
+      iConfig_.exists("dataPileupFile")&&iConfig_.exists("dataPileupHistoName")) {
+    mcPileupFile_=iConfig_.getParameter<std::string>("mcPileupFile");
+    mcPileupHistoName_=iConfig_.getParameter<std::string>("mcPileupHistoName");
+    dataPileupFile_=iConfig_.getParameter<std::string>("dataPileupFile");
+    dataPileupHistoName_=iConfig_.getParameter<std::string>("dataPileupHistoName");
+
+    std::cout<<"NON-DEFAULT PARAMETERS: mcPileupFile= "<<mcPileupFile_<<std::endl;
+    std::cout<<"mcPileupHistoName= "<<mcPileupHistoName_<<std::endl;
+    std::cout<<"dataPileupFile= "<<dataPileupFile_<<std::endl;
+    std::cout<<"dataPileupHistoName= "<<dataPileupHistoName_<<std::endl;
+
+    calcWeights_ = true;
   }
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
@@ -493,7 +517,11 @@ void TimingStudy::beginJob()
     }
   }
   if (input) fclose (input);
-  
+
+  // Initialize LumiReWeighting
+  if (calcWeights_) LumiWeights_ = edm::LumiReWeighting(mcPileupFile_, dataPileupFile_,
+							mcPileupHistoName_, dataPileupHistoName_);
+
   edm::LogInfo("TimingStudy") << "Begin Job Finished" << std::endl;
 
 }
@@ -704,6 +732,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       if(pu0!=puInfo->end()) {
 	evt_.pileup = pu0->getTrueNumInteractions();
 	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
+	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions());
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
       }
@@ -718,6 +747,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   evt_.instlumi_ext = (evt_.run==1) ? NOVAL_F :
     (runls_instlumi_.count(runls) ? runls_instlumi_[runls] * 1000 / 23.3104 : NOVAL_F);
   evt_.pileup = (evt_.run==1) ? evt_.pileup : (runls_pileup_.count(runls) ? runls_pileup_[runls] : NOVAL_F);
+  if (evt_.run!=1) evt_.weight = 1.0;
 
   evt_.good=NOVAL_I;
 
