@@ -30,6 +30,7 @@
   <use   name="SimTracker/TrackerHitAssociation"/>
   <use   name="Alignment/OfflineValidation"/>
   <use   name="PhysicsTools/UtilAlgos"/>
+  <use   name="PhysicsTools/Utilities"/>
   <use   name="FWCore/ServiceRegistry"/>
   <use   name="clhep"/>
   <use   name="boost"/>

@@ -36,7 +36,8 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = "FT_R_53_V18::All"
 
 # For MC
-process.GlobalTag.globaltag = "START53_V27::All"
+#process.GlobalTag.globaltag = "START53_V27::All"
+process.GlobalTag.globaltag = "MC_70_V1::All"
 
 #-------------------------
 #  Reconstruction Modules
@@ -104,7 +105,7 @@ process.pixlessRefitter.TrajectoryInEvent = True
 
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      trajectoryInput = cms.string('TrackRefitter'),
-                                     fileName = cms.string("Reco_Ntuple.root"),
+                                     fileName = cms.string("Ntuple.root"),
                                      extrapolateFrom = cms.int32(2),
                                      extrapolateTo = cms.int32(1),
                                      keepOriginalMissingHit = cms.bool(False),
@@ -130,9 +131,9 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     mcPileupFile = cms.FileInPath("DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root"),
+                                     mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
+                                     dataPileupFile = cms.string("data/PileupHistogram_test.root"),
                                      mcPileupHistoName = cms.string("mcpileup"),
-                                     dataPileupFile = cms.FileInPath("DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root"),
                                      dataPileupHistoName = cms.string("pileup")
 )
 
@@ -153,7 +154,7 @@ process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 # CMSSW_7_X:
-
+'/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RECO/START70_V5-v1/00000/0869C91A-1C86-E311-B4C7-02163E00EB49.root'
 
 # CMSSW_5_X RECO Files
 #'/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root'
@@ -180,6 +181,8 @@ process.p = cms.Path(
     #process.hltfilter*
     # Beamspot:
     #process.offlineBeamSpot*
+    # New in 7X
+    process.MeasurementTrackerEvent*    
     # Refitters:
 #    process.ctfRefitter*
     process.ckfRefitter*

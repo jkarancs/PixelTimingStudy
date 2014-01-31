@@ -216,9 +216,10 @@ process.source = cms.Source("PoolSource",
                             #lastRun = cms.untracked.uint32(64789),
                             #firstLuminosityBlock = cms.untracked.uint32(44),
     fileNames = cms.untracked.vstring(
-#CMSSW70X RAW test file
-#'file:TTbar_GEN-SIM-RAW_input.root'
-'/store/relval/CMSSW_7_0_0_pre11/RelValProdTTbar/GEN-SIM-RAW/START70_V4-v1/00000/36994557-496A-E311-A69D-002618943868.root'
+# CMSSW71X
+'/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RAW/START70_V5-v1/00000/0A546B02-0F86-E311-9417-02163E008DB5.root'
+# CMSSW70X
+#'/store/relval/CMSSW_7_0_0_pre11/RelValProdTTbar/GEN-SIM-RAW/START70_V4-v1/00000/36994557-496A-E311-A69D-002618943868.root'
 )
 )
 
@@ -226,7 +227,7 @@ process.source = cms.Source("PoolSource",
 # Number of events
 #-------------------------------------------------
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
 
 #-------------------------------------------------
 # Path
@@ -281,8 +282,8 @@ process.p = cms.Path(
     process.recopixelvertexing*
     process.MeasurementTrackerEvent* #New in 70X
     #process.standalonemuontracking*
-    #process.iterTracking 
-    #process.ckftracks               #has iterTracking
+    #process.iterTracking* 
+    #process.ckftracks*              #has iterTracking
     process.ckftracks_woMS*
     process.vertexreco*
     process.conditionDumperInEdm*
