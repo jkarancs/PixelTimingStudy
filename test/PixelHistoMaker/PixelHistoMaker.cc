@@ -1,11 +1,12 @@
 /*
-  VER   TimingStudy Ntuple version                   Date created
-  0 :   v3431 SPLIT 0                                (2012                - by Alberto/Janos/Joco/Silvia)
-  1 :   v3533 SPLIT 0                                (2013 Apr24          - by Viktor)
-  2 :   v3533 SPLIT 1 - with alpha/beta              (2013 Apr28-May3     - by Viktor)
-  3 :   v3734 SPLIT 1 - with alpha/beta, occupancy   (2013 Latest (>May13))
+  VER   TimingStudy Ntuple version              Date created
+  0 :   v3431 SPLIT 0                           (2012                - by Alberto/Janos/Joco/Silvia)
+  1 :   v3533 SPLIT 0                           (2013 Apr24          - by Viktor)
+  2 :   v3533 SPLIT 1 + alpha/beta              (2013 Apr28-May3     - by Viktor)
+  3 :   v3734 SPLIT 1 + occupancy               (2013 May 13)
+  4 :   v3735 SPLIT 1 + pileup reweighting      (2014 Feb 04)
 */
-#define VER 0
+#define VER 4
 //#define COMPLETE 0
 #define NONEFFPLOTS 0
 #define FEDERRPLOTS 0
@@ -26,6 +27,7 @@
 // #include "headers/DataStruct_v31.h"
 // #include "headers/DataStruct_v33.h"
 // #include "headers/DataStruct_v34.h"
+// #include "headers/DataStruct_v35.h"
 #include <iostream>
 // #include "headers/TreeReader_v23.h"
 // #include "headers/TreeReader_v25.h"
@@ -53,6 +55,10 @@
 #elif VER == 3
 #define SPLIT 1
 #include "headers/DataStruct_v34.h"
+#include "headers/TreeReader_v37.h"
+#elif VER == 4
+#define SPLIT 1
+#include "headers/DataStruct_v35.h"
 #include "headers/TreeReader_v37.h"
 #endif
 #include "TChain.h"
