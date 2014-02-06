@@ -8,15 +8,12 @@ Reweighting (Recipe: https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforD
 -------------------------
         CMSSW 5X
 -------------------------
-cmsrel CMSSW_5_3_11
-cd CMSSW_5_3_11/src
+cmsrel CMSSW_5_3_14
+cd CMSSW_5_3_14/src
 cmsenv
 git cms-addpkg RecoLuminosity/LumiDB
 git cms-addpkg PhysicsTools/Utilities
-mkdir DPGAnalysis
-cd DPGAnalysis
-git clone -b CMSSW-5X https://github.com/jkarancs/PixelTimingStudy
-cd ..
+git clone -b CMSSW-5X https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
 scram b -j 20
 
 - Quick test of the method
@@ -50,9 +47,7 @@ cd CMSSW_7_0_0_pre11/src/
 cmsenv
 git cms-addpkg RecoLuminosity/LumiDB
 git cms-addpkg PhysicsTools/Utilities
-mkdir DPGAnalysis; cd DPGAnalysis
-git clone https://github.com/jkarancs/PixelTimingStudy
-cd PixelTimingStudy
+git clone https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
 scram b -j 20
 
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions12/8TeV/Reprocessing/Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt input_dataset_JSON.txt
