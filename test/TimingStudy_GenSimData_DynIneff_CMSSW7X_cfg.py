@@ -4,20 +4,29 @@ process = cms.Process("Demo")
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
-#process.MessageLogger.cerr.threshold = 'INFO'
+process.MessageLogger.cerr.threshold = 'INFO'
 
-## Options and Output Report
-process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+
+# ------------------- Output Report --------------------
+#process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 # ----------------- Number of Events -------------------
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 
 
 # ------------------- Input Files ----------------------
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-'file:/data/store/relval/CMSSW_7_0_0_pre8/GEN-SIM/00E8DCE5-3459-E311-A9FB-0025905A608A.root'
+        #'file:/data/store/relval/CMSSW_7_0_0_pre8/GEN-SIM/00E8DCE5-3459-E311-A9FB-0025905A608A.root'
+        #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+        'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
+    )
 )
+PileupInput = cms.untracked.string(
+    'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+)
+PileupDistHistoInput = cms.untracked.string(
+    'file:$CMSSW_BASE/src/DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root'
 )
 
 
@@ -41,8 +50,8 @@ process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff")
 
 
-# ------------------- GEN-SIM Modules ------------------
-#process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+# ------------------------- DIGI -----------------------
+
 process.load("IOMC.RandomEngine.IOMC_cff") # RandomNumberGeneratorService
 process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
     simMuonDTDigis = cms.PSet(
@@ -63,147 +72,149 @@ process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService
     )
 )
 
-#process.load("SimG4Core.Configuration.SimG4Core_cff") # g4SimHits
-process.load("SimGeneral.MixingModule.mixNoPU_cfi") # mix
-#-> process.load("SimTracker.Configuration.SimTracker_cff") # stripDigitizer
+# configuration to model pileup for initial physics phase
+# mix
+#process.load("SimGeneral.MixingModule.mixNoPU_cfi") # No Pileup
+process.load('SimGeneral.MixingModule.mix_2012_201278_1_cfi') # Silvias pileup mixing
 
-process.mix.bunchspace = 50
+#process.mix.fileNames = process.source.fileNames
+process.mix.fileNames = PileupInput
+process.mix.input.nbPileupEvents.fileName = PileupDistHistoInput
 
-process.mix.digitizers.pixel.AddPixelInefficiency = -100
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix1 = cms.double(0.999)
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix2 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix3 = cms.double(1.0)
-
-process.mix.digitizers.pixel.thePixelEfficiency_BPix1 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelEfficiency_BPix2 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelEfficiency_BPix3 = cms.double(1.0)
-
-process.mix.digitizers.pixel.theBPix1LadderEfficiency = cms.vdouble(
-0.978109,
-0.971506,
-0.973958,
-0.968912,
-0.972571,
-0.970577,
-0.975467,
-0.974471,
-0.980044,
-0.978212,
-0.981972,
-0.979526,
-0.984278,
-0.983857,
-0.981697,
-0.983154,
-0.981313,
-0.979542,
-0.980088,
-0.974888
+process.mix.digitizers.pixel.AddPixelInefficiencyFromPython = True # default: true
+process.mix.digitizers.pixel.theLadderEfficiency_BPix1 = cms.vdouble(
+    0.7963,
+    0.71863,
+    0.75178,
+    0.68154,
+    0.72828,
+    0.73056,
+    0.76997,
+    0.75153,
+    0.81202,
+    0.79234,
+    0.84533,
+    0.81061,
+    0.85368,
+    0.83221,
+    0.83094,
+    0.84578,
+    0.8389,
+    0.81607,
+    0.81074,
+    0.76099
 )
-process.mix.digitizers.pixel.theBPix2LadderEfficiency = cms.vdouble(
-0.996517,
-0.993511,
-0.993921,
-0.993094,
-0.994043,
-0.992445,
-0.998017,
-0.99265,
-0.992787,
-0.993585,
-0.994242,
-0.993641,
-0.993321,
-0.994404,
-0.992527,
-0.995297,
-0.995386,
-0.995533,
-0.995127,
-0.993078,
-0.994289,
-0.994998,
-0.994907,
-0.994478,
-0.995607,
-0.994411,
-0.994601,
-0.995483,
-0.993749,
-0.995476,
-0.993124,
-0.993807
+
+process.mix.digitizers.pixel.theModuleEfficiency_BPix1 = cms.vdouble(
+    1.00323,
+    1.00074,
+    0.977744,
+    0.783408
 )
-process.mix.digitizers.pixel.theBPix3LadderEfficiency = cms.vdouble(
-0.996391,
-0.998275,
-0.995975,
-0.996847,
-0.996605,
-0.995927,
-0.996711,
-0.995751,
-0.997383,
-0.998293,
-0.996128,
-0.997693,
-0.99706,
-0.996678,
-0.997661,
-0.998237,
-0.995592,
-0.998173,
-0.997099,
-0.997654,
-0.996812,
-0.99663,
-0.996741,
-0.99782,
-0.995598,
-0.996586,
-0.996395,
-0.99856,
-0.998679,
-0.996158,
-0.997272,
-0.99643,
-0.997723,
-0.99644,
-0.997767,
-0.997775,
-0.996921,
-0.996289,
-0.996784,
-0.996464,
-0.998081,
-0.997297,
-0.998379,
-0.99735
+
+process.mix.digitizers.pixel.thePUEfficiency_BPix1 = cms.vdouble(
+   1.01997,
+   -4.03709e-07,
+   -1.26739e-09
 )
-#process.mix.digitizers.pixel.theBPix1ModuleEfficiency = cms.vdouble(
-#    1.00323,
-#    1.00074,
-#    0.977744,
-#    0.783408
+#process.mix.digitizers.pixel.theLadderEfficiency_BPix2 = cms.vdouble(
+#0.996517,
+#0.993511,
+#0.993921,
+#0.993094,
+#0.994043,
+#0.992445,
+#0.998017,
+#0.99265,
+#0.992787,
+#0.993585,
+#0.994242,
+#0.993641,
+#0.993321,
+#0.994404,
+#0.992527,
+#0.995297,
+#0.995386,
+#0.995533,
+#0.995127,
+#0.993078,
+#0.994289,
+#0.994998,
+#0.994907,
+#0.994478,
+#0.995607,
+#0.994411,
+#0.994601,
+#0.995483,
+#0.993749,
+#0.995476,
+#0.993124,
+#0.993807
+#)
+#process.mix.digitizers.pixel.theLadderEfficiency_BPix3 = cms.vdouble(
+#0.996391,
+#0.998275,
+#0.995975,
+#0.996847,
+#0.996605,
+#0.995927,
+#0.996711,
+#0.995751,
+#0.997383,
+#0.998293,
+#0.996128,
+#0.997693,
+#0.99706,
+#0.996678,
+#0.997661,
+#0.998237,
+#0.995592,
+#0.998173,
+#0.997099,
+#0.997654,
+#0.996812,
+#0.99663,
+#0.996741,
+#0.99782,
+#0.995598,
+#0.996586,
+#0.996395,
+#0.99856,
+#0.998679,
+#0.996158,
+#0.997272,
+#0.99643,
+#0.997723,
+#0.99644,
+#0.997767,
+#0.997775,
+#0.996921,
+#0.996289,
+#0.996784,
+#0.996464,
+#0.998081,
+#0.997297,
+#0.998379,
+#0.99735
 #)
 
-#process.mix.digitizers.pixel.theBPix1PUEfficiency = cms.vdouble(
-#    1.01997,
-#    -4.03709e-07,
-#    -1.26739e-09
-#)
-
-
-# ------------------- GEN-SIM to DIGI ------------------
 process.load('Configuration.StandardSequences.Digi_cff') # pdigi
 #  from SimMuon.Configuration.SimMuon_cff import *
 #  from SimCalorimetry.Configuration.SimCalorimetry_cff import *
 #  from SimGeneral.Configuration.SimGeneral_cff import *
 #  doAllDigi = cms.Sequence(calDigi+muonDigi)
-#  #pdigi = cms.Sequence(cms.SequencePlaceholder("randomEngineStateProducer")*cms.SequencePlaceholder("mix")*doAllDigi*addPileupInfo)
-#  pdigi = cms.Sequence(cms.SequencePlaceholder("randomEngineStateProducer")*addPileupInfo*cms.SequencePlaceholder("mix")*doAllDigi)
+#  pdigi = cms.Sequence(cms.SequencePlaceholder("randomEngineStateProducer")*cms.SequencePlaceholder("mix")*doAllDigi*addPileupInfo)
 
-#process.pdigi = cms.Sequence(cms.SequencePlaceholder("randomEngineStateProducer")*process.addPileupInfo*cms.SequencePlaceholder("mix")*process.doAllDigi)
+#process.doAllDigi = cms.Sequence(
+#    #process.calDigi +
+#    process.muonDigi
+#)
+#process.pdigi = cms.Sequence(
+#    process.randomEngineStateProducer*
+#    process.mix*
+#    process.doAllDigi*
+#    process.addPileupInfo
+#)
 
 # L1 Digis
 process.load('Configuration.StandardSequences.SimL1Emulator_cff') # SimL1Emulator
@@ -223,6 +234,7 @@ process.load('Configuration.StandardSequences.RawToDigi_cff')
 #process.siPixelDigis.IncludeErrors = True # To create UserError DetIdCollection
 #process.siPixelDigis.InputLabel = cms.InputTag("siPixelRawData")
 
+process.siPixelRawData.InputLabel = 'mix'
 
 # --------------------- DIGI to RECO -------------------
 process.load("Configuration.StandardSequences.Reconstruction_cff")
@@ -298,35 +310,53 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
 )
 
 # ------------------------ Path ------------------------
-process.p = cms.Path(
-    process.pdigi*
-    process.SimL1Emulator*
-    process.DigiToRaw*
-    process.RawToDigi*
-    
-    # # DigiToRaw (Needed for MC)
-    # process.SiStripDigiToRaw*
-    # # Digi
-    # process.scalersRawToDigi*
-    # process.gtEvmDigis*
-    # process.siPixelDigis*
-    # process.siStripDigis*
-    # #process.RawToDigi*              #Whole detector
-    # LumiSummary
-    process.lumiProducer*
-    # L1Reco
-    process.L1Reco*
-    #process.conditionDumperInEdm* (L1Reco has it)    
-    # Reco
-    process.trackerlocalreco*
-    #process.localreco*              #Whole detector
-    process.offlineBeamSpot*
-    process.recopixelvertexing*
-    process.MeasurementTrackerEvent* #New in 70X
+process.Digi = cms.Sequence(process.pdigi)
+process.L1_Sim = cms.Sequence(process.SimL1Emulator)
+process.Digi_to_Raw = cms.Sequence( #process.DigiToRaw
+    process.l1GtPack +
+    process.l1GtEvmPack +
+    process.siPixelRawData +
+    process.SiStripDigiToRaw +
+    process.rawDataCollector
+)
+process.Raw_to_Digi = cms.Sequence( #process.RawToDigi
+     process.siPixelDigis +
+     process.siStripDigis +
+     process.scalersRawToDigi +
+     process.gtEvmDigis
+)
+process.Digi_to_Reco = cms.Sequence( #process.reconstruction
+    process.L1Reco +
+    ( process.offlineBeamSpot +
+      process.trackerlocalreco ) *
+    process.recopixelvertexing *
+    process.MeasurementTrackerEvent *
     #process.ckftracks*
     process.ckftracks_woMS*
-    process.vertexreco*
-    # Refitter
+    process.vertexreco
+)
+process.Ntuplizer = cms.Sequence(
     process.TrackRefitter*
     process.TimingStudy
 )
+
+process.p1 = cms.Path(
+    # GEN-SIM ->
+    process.Digi*
+    process.L1_Sim*
+    process.Digi_to_Raw*
+    # GEN-SIM-RAW ->
+    #process.SiStripDigiToRaw
+    # RAW ->
+    process.Raw_to_Digi*
+    process.Digi_to_Reco*
+    # RECO ->
+    #process.MeasurementTrackerEvent*
+    process.Ntuplizer
+)
+
+#process.output = cms.OutputModule("PoolOutputModule",
+#    fileName = cms.untracked.string("TestReco.root"),
+#    outputCommands = cms.untracked.vstring('keep *_mix_*_*'),
+#)
+#process.outpath = cms.EndPath(process.output)
