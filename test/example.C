@@ -84,11 +84,10 @@ void example() {
   
   TH1D *lay_num = new TH1D("lay_num","Efficiency vs Layers/Disks;;Hit Efficiency", 7,0.5,7.5);
   TH1D *lay_den = new TH1D("lay_den","Efficiency vs Layers/Disks;;Hit Efficiency", 7,0.5,7.5);
-  custom_can_(lay_num, "lay_eff", "#sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 490,500, 90);
+  custom_can_(lay_num, "lay_eff", "", "", "Efficiency", 0, 0, 490,500, 90);
   trajTree->Draw("(det==0)?layer:disk+5+(disk<0)>>lay_num","pass_effcuts&&validhit");
   trajTree->Draw("(det==0)?layer:disk+5+(disk<0)>>lay_den","pass_effcuts");
   lay_num->Divide(lay_den);
-  lay_num->GetYaxis()->SetRangeUser(0.98,1.0);
   lay_num->SetMarkerStyle(8);
   lay_num->SetMarkerSize(1.3);
   lay_num->GetXaxis()->SetBinLabel(1, "Layer 1");
@@ -100,9 +99,19 @@ void example() {
   lay_num->GetXaxis()->SetBinLabel(7, "Disk +2");
   lay_num->GetXaxis()->LabelsOption("h");
   lay_num->GetXaxis()->SetLabelSize(0.05);
-  lay_num->GetYaxis()->SetRangeUser(0.98,1.005);
+  lay_num->GetYaxis()->SetRangeUser(0.95,1.01);
   gStyle->SetErrorX(0);
-  lay_num->Draw("PE1X0");
   lay_num->Draw("P");
+
+  //TH1D *lad_l1_num = new TH1D("lad_l1_num","Efficiency vs Ladders - Layer 1;Ladders;Hit Efficiency", 21,-10.5,10.5);
+  //TH1D *lad_l1_den = new TH1D("lad_l1_den","Efficiency vs Ladders - Layer 1;Ladders;Hit Efficiency", 21,-10.5,10.5);
+  //custom_can_(lad_l1_num, "lad_l1_eff", "", "Ladders", "Hit Efficiency");
+  //trajTree->Draw("ladder>>lad_l1_num","layer==1&&pass_effcuts&&validhit");
+  //trajTree->Draw("ladder>>lad_l1_den","layer==1&&pass_effcuts");
+  //lad_l1_num->Divide(lad_l1_den);
+  //lad_l1_num->GetYaxis()->SetRangeUser(0.98,1.005);
+  //lad_l1_num->SetMarkerStyle(8);
+  //lad_l1_num->SetMarkerSize(1.3);
+  //lad_l1_num->Draw("P");
   
 }

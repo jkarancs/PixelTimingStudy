@@ -1,200 +1,192 @@
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("Demo")
+
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
-
-#-------------
-# DQM services
-#-------------
-
-# process.load("DQMServices.Core.DQM_cfg")
-# process.load("CondCore.DBCommon.CondDBCommon_cfi")                ???
-# process.load("CondCore.DBCommon.CondDBSetup_cfi")
-
-#-----------------------------
-# Magnetic Field
-#-----------------------------
-
-process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff')
-
-#-------------------------------------------------
-# GEOMETRY
-#-------------------------------------------------
-
-process.load("Configuration.StandardSequences.Geometry_cff")
-
-#-------------------------------------------------
-# GLOBALTAG
-#-------------------------------------------------
-
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = "GR09_E_V6::All" ##"GR09_P_V6::All"
-
-#-------------------------
-#  Reconstruction Modules
-#-------------------------
-
-process.load("Configuration.StandardSequences.RawToDigi_Data_cff")
-##process.load("Configuration.StandardSequences.ReconstructionCosmics_cff")
-process.load("Configuration.StandardSequences.Reconstruction_cff")
-process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
-
-# Real data raw to digi
-# process.load("EventFilter.SiPixelRawToDigi.SiPixelRawToDigi_cfi")
-# process.siPixelDigis.InputLabel = 'source'
-# process.siPixelDigis.IncludeErrors = True
-
-# Local Reconstruction
-# process.load("RecoLocalTracker.SiPixelClusterizer.SiPixelClusterizer_cfi")
-# process.load("EventFilter.SiStripRawToDigi.SiStripRawToDigis_standard_cff")
-# process.siStripDigis.ProductLabel = 'source'
-
-# process.load("RecoLocalTracker.SiStripClusterizer.SiStripClusterizer_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.SiStripRecHitConverter_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.SiStripRecHitMatcher_cfi")
-# process.load("RecoLocalTracker.SiStripRecHitConverter.StripCPEfromTrackAngle_cfi")
-# process.load("RecoLocalTracker.SiStripZeroSuppression.SiStripZeroSuppression_cfi")
-
-##
-## Needed when running on RAW:
-##
-# change strip cluster threshold to reduce noise effects
-##process.siStripClusters.Clusterizer.ClusterThreshold = 9
-##process.siStripClusters.Clusterizer.SeedThreshold = 6
-##process.siStripClusters.Clusterizer.ChannelThreshold = 4
-
-##
-## Needed when running on RECO:
-##
-## Fitter-smoother: loosen outlier rejection as for first data-taking with LHC "collisions"
-process.KFFittingSmootherWithOutliersRejectionAndRK.BreakTrajWith2ConsecutiveMissing =False
-process.KFFittingSmootherWithOutliersRejectionAndRK.EstimateCut = 1000
-
-
-
-#-------------------------
-#  Track Refitter
-#-------------------------
-
-process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
-
-process.ctfRefitter = process.TrackRefitterP5.clone()
-process.ctfRefitter.src = 'ctfWithMaterialTracksP5'
-process.ctfRefitter.TrajectoryInEvent = True
-
-process.ckfRefitter = process.TrackRefitter.clone()
-process.ckfRefitter.src = 'generalTracks'
-process.ckfRefitter.TrajectoryInEvent = True
-
-process.pixlessRefitter = process.TrackRefitter.clone()
-process.pixlessRefitter.src = 'ctfPixelLess'
-process.pixlessRefitter.TrajectoryInEvent = True
-
-process.load("RecoTracker.TransientTrackingRecHit.TransientTrackingRecHitBuilderWithoutRefit_cfi")
-
-#--------------------------------------------------
-#  Load and Configure Offline Validation - needed?
-#--------------------------------------------------
-
-process.load("Alignment.OfflineValidation.TrackerOfflineValidation_cfi")
-
-# Trigger filter
-process.load('L1TriggerConfig.L1GtConfigProducers.L1GtTriggerMaskTechTrigConfig_cff')
-process.load('HLTrigger/HLTfilters/hltLevel1GTSeed_cfi')
-process.hltLevel1GTSeed.L1TechTriggerSeeding = cms.bool(True)
-process.hltLevel1GTSeed.L1SeedsLogicalExpression = cms.string('40 OR 41')
-
-
-#-------------------------
-#  Ntuplizer code
-#-------------------------
-
-process.TimingStudy = cms.EDFilter("TimingStudy",
-                                   trajectoryInput = cms.string('TrackRefitter'),
-                                   OutputFile = cms.string('TTreeFile.root')
-)
-
-# For the three cases:
-process.ctfNtuple = process.TimingStudy.clone()
-process.ctfNtuple.trajectoryInput = 'ctfRefitter'
-
-process.ckfNtuple = process.TimingStudy.clone()
-process.ckfNtuple.trajectoryInput = 'ckfRefitter'
-
-process.pixlessNtuple = process.TimingStudy.clone()
-process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
-
-
-#-------------------------------------------------
-# Configure output ntuple file using TFileService
-#-------------------------------------------------
-
-process.TFileService = cms.Service("TFileService", 
-                                   fileName = cms.string("test.root"),
-                                   closeFileFast = cms.untracked.bool(True)
-                                   )
-
-#-------------------------------------------------
-# Input files:
-#-------------------------------------------------
-
-process.source = cms.Source("PoolSource",
-                            # replace with your files
-                            #lastRun = cms.untracked.uint32(64789),
-                            #timetype = cms.string('runnumber'),
-                            #firstRun = cms.untracked.uint32(64108),
-                            #interval = cms.uint32(1),
-    fileNames = cms.untracked.vstring(
-    #'/store/data/CRAFT09/Cosmics/RAW-RECO/SuperPointing-CRAFT09_R_V4_CosmicsSeq_v1/0009/F8D1CF5D-DCB9-DE11-9C5D-00261894393A.root'
-    #'file:/home/veszpv/data/CMSSW_3_2_7/CRAFT09-SuperPointing-CRAFT09_R_V4_CosmicsSeq_v1/763782DB-DCB9-DE11-A238-003048678B30.root'
-    #'file:/home/veszpv/data/CMSSW_3_3_3/MinimumBias.BeamCommissioning09-v1.RAW/E6F8D1B6-B1D8-DE11-83B6-001D09F2AD7F.root'
-    #'file:/home/veszpv/data/CMSSW_3_3_4/MinimumBias.BeamCommissioning09-PromptReco-v2.RECO/30BB156B-8FDD-DE11-92FD-003048D37456.root'
-    'file:/home/veszpv/data/CMSSW_3_3_5/BSCskim_123151_Express.root'
-    #'file:/home/veszpv/data/CMSSW_3_3_5/BeamCommissioning09-Cosmics-RECO/5831FFE1-1CDE-DE11-AE90-001D09F2906A.root'
-) )
-
-# these drop commands are necessary to get rid of all HLT problems and DQM bulk
-process.source.inputCommand = cms.untracked.vstring("drop *_*_*_FU"
-                                                    ,"drop *_*_*_HLT",
-                                                    "drop *_MEtoEDMConverter_*_*","drop *_lumiProducer_*_REPACKER"
-                                                    )
-
-
-#-------------------------------------------------
-# Number of events
-#-------------------------------------------------
-
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1) )
-
-
-#-------------------------------------------------
-# Path
-#-------------------------------------------------
-
-process.p = cms.Path(
-    # Trigger selection:
-    #process.hltLevel1GTSeed*
-    # Reco:
-    #process.siPixelDigis*process.siStripDigis*
-    #//process.RawToDigi*process.reconstructionCosmics*
-    # Beamspot:
-    process.offlineBeamSpot*
-    # Track reco:
-    #process.trackerlocalreco*process.recopixelvertexing*process.ckftracks_plus_pixelless*
-    # Refitters:
-#    process.ctfRefitter*
-    process.ckfRefitter*
-    process.pixlessRefitter*
-    # Ntuplizers
-#    process.ctfNtuple
-    process.ckfNtuple*
-    process.pixlessNtuple
-    )
-
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 process.MessageLogger.cerr.threshold = 'INFO'
-process.TrackerDigiGeometryESModule.applyAlignment = True
 
 
+# ------------------- Output Report --------------------
+#process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
+
+# ----------------- Number of Events -------------------
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
+
+
+# ------------------- Input Files ----------------------
+process.source = cms.Source("PoolSource",
+    fileNames = cms.untracked.vstring(
+        'file:/data/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root'
+    )
+)
+## # GEN-SIM Input file with MinBias events
+## PileupInput = cms.untracked.string(
+##     'file:/data/store/mc/Summer12/MinBias_TuneZ2star_8TeV-pythia6/GEN-SIM/START50_V13-v3/0000/0005E496-3661-E111-B31E-003048F0E426.root'
+## )
+## # Input pileup distribution for MixingModule
+## # root file, that contains a TH1 histo named: pileup
+## PileupDistHistoInput = cms.untracked.string(
+##     'file:$CMSSW_BASE/src/DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root'
+## )
+
+
+# --------------------- GlobalTag ----------------------
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.GlobalTag.globaltag = "FT_R_53_V18::All"
+# For MC
+#process.GlobalTag.globaltag = "START53_V26::All"
+
+
+# ---------------------- BeamSpot ----------------------
+process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
+             
+
+# ---------------------- Geometry ----------------------
+#process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
+process.load("Configuration.Geometry.GeometryIdeal_cff")
+
+
+# ------------------- Magnetic Field -------------------
+process.load("Configuration.StandardSequences.MagneticField_38T_cff")
+#process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff")
+
+
+## # ------------------------- DIGI -----------------------
+## 
+## process.load("IOMC.RandomEngine.IOMC_cff") # RandomNumberGeneratorService
+## process.load('Configuration.StandardSequences.Digi_cff') # pdigi
+## 
+## # configuration to model pileup for initial physics phase
+## # mix
+## #process.load("SimGeneral.MixingModule.mixNoPU_cfi") # No Pileup
+## process.load('SimGeneral.MixingModule.mix_2012_201278_1_cfi') # Silvias pileup mixing
+## 
+## #process.mix.fileNames = process.source.fileNames
+## process.mix.fileNames = PileupInput
+## process.mix.input.nbPileupEvents.fileName = PileupDistHistoInput
+## 
+## # L1 Digis
+## process.load('Configuration.StandardSequences.SimL1Emulator_cff') # SimL1Emulator
+
+
+## # --------------------- DIGI to RAW --------------------
+## process.load('Configuration.StandardSequences.DigiToRaw_cff')
+## #-> process.load("EventFilter.SiPixelRawToDigi.SiPixelDigiToRaw_cfi") # SiPixelDigiToRaw
+## #-> process.load("EventFilter.SiStripRawToDigi.SiStripDigiToRaw_cfi") # SiStripDigiToRaw
+
+
+## # --------------------- RAW to DIGI --------------------
+## process.load('Configuration.StandardSequences.RawToDigi_cff')
+## #-> process.load("EventFilter.SiPixelRawToDigi.SiPixelRawToDigi_cfi") # siPixelDigis
+## #-> process.load("EventFilter.SiStripRawToDigi.SiStripRawToDigis_standard_cff") # siStripDigis
+
+
+## # --------------------- DIGI to RECO -------------------
+## process.load("Configuration.StandardSequences.Reconstruction_cff")
+## #-> process.load("RecoTracker.MeasurementDet.MeasurementTrackerEventProducer_cfi") # MeasurementTrackerEvent
+## #-> process.load("RecoPixelVertexing.Configuration.RecoPixelVertexing_cff") # recopixelvertexing
+## #-> process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff") # trackerlocalreco
+## ###-> process.load("RecoLocalTracker.SiPixelRecHits.SiPixelRecHits_cfi")
+## ###-> process.load("RecoLocalTracker.SiPixelClusterizer.SiPixelClusterizer_cfi")
+
+## # L1 Reco
+## process.load('Configuration.StandardSequences.L1Reco_cff') # L1Reco
+## #-> process.load("EventFilter.L1GlobalTriggerRawToDigi.conditionDumperInEdm_cfi") # conditionsInEdm
+
+
+# ------------------- Track Refitter -------------------
+process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
+process.TrackRefitter.src = "generalTracks"
+process.TrackRefitter.TrajectoryInEvent = True
+
+
+# ---------------------- Ntuplizer ---------------------
+process.TimingStudy = cms.EDAnalyzer("TimingStudy",
+                                     trajectoryInput = cms.string('TrackRefitter'),
+                                     fileName = cms.string("Ntuple.root"),
+                                     extrapolateFrom = cms.int32(2),
+                                     extrapolateTo = cms.int32(1),
+                                     keepOriginalMissingHit = cms.bool(False),
+                                     usePixelCPE= cms.bool(True),
+                                     #minNStripHits = cms.int32(0),
+                                     triggerNames=cms.vstring("HLT_ZeroBias",
+                                                              "HLT_Physics",
+                                                              "HLT_Random",
+                                                              "HLT_PixelTracks_Multiplicity100",
+                                                              "HLT_PixelTracks_Multiplicity80",
+                                                              "HLT_PixelTracks_Multiplicity125",
+                                                              "HLT_PixelTracks_Multiplicity110",
+                                                              "HLT_PixelTracks_Multiplicity85",
+                                                              "HLT_PixelTracks_Multiplicity70",
+                                                              "HLT_PixelTracks_Multiplicity40",
+                                                              "HLT_L1Tech_BSC_HighMultiplicity",
+                                                              "HLT_JetE30_NoBPTX",
+                                                              "HLT_JetE30_NoBPTX_NoHalo",
+                                                              "HLT_JetE30_NoBPTX3BX_NoHalo",
+                                                              "HLT_JetE50_NoBPTX3BX_NoHalo",
+                                                              "HLT_60Jet10",
+                                                              "HLT_70Jet10",
+                                                              "HLT_70Jet13",
+                                                              "HLT_L1Tech_BSC_minBias",
+                                                              "HLT_MinBias"),
+                                     #dataPileupFile = cms.string("data/PileupHistogram_test.root"),
+                                     #mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
+                                     #dataPileupHistoName = cms.string("pileup"),
+                                     #mcPileupHistoName = cms.string("mcpileup"),
+                                     mcLumiScale = cms.double(221.95)
+)
+
+
+# ------------------------ Path ------------------------
+## process.Digi = cms.Sequence(process.pdigi)
+## process.L1_Sim = cms.Sequence(process.SimL1Emulator)
+## process.Digi_to_Raw = cms.Sequence( #process.DigiToRaw
+##     process.l1GtPack +
+##     process.l1GtEvmPack +
+##     process.siPixelRawData +
+##     process.SiStripDigiToRaw +
+##     process.rawDataCollector
+## )
+## process.Raw_to_Digi = cms.Sequence( #process.RawToDigi
+##      process.siPixelDigis +
+##      process.siStripDigis +
+##      process.scalersRawToDigi +
+##      process.gtEvmDigis
+## )
+## process.Digi_to_Reco = cms.Sequence( #process.reconstruction
+##     #process.L1Reco +
+##     process.conditionsInEdm +
+##     ( process.offlineBeamSpot +
+##       process.trackerlocalreco ) *
+##     process.recopixelvertexing *
+##     process.ckftracks*
+##     process.vertexreco
+## )
+process.Ntuplizer = cms.Sequence(
+    process.TrackRefitter*
+    process.TimingStudy
+)
+
+process.p = cms.Path(
+    ## # GEN-SIM ->
+    ## process.Digi*
+    ## process.L1_Sim*
+    ## process.Digi_to_Raw*
+    ## # GEN-SIM-RAW ->
+    ## #process.SiStripDigiToRaw
+    ## # RAW ->
+    ## process.Raw_to_Digi*
+    ## process.Digi_to_Reco*
+    # RECO ->
+    #process.MeasurementTrackerEvent*
+    process.Ntuplizer
+)
+
+#process.output = cms.OutputModule("PoolOutputModule",
+#    fileName = cms.untracked.string("TestReco.root"),
+#    #outputCommands = cms.untracked.vstring('keep *_mix_*_*'),
+#    outputCommands = cms.untracked.vstring('keep *'),
+#)
+#process.outpath = cms.EndPath(process.output)
