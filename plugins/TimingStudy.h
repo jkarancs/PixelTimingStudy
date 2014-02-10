@@ -98,6 +98,8 @@ class TimingStudy : public edm::EDAnalyzer
   std::map<unsigned long int, double> runls_instlumi_;
   std::map<unsigned long int, double> runls_pileup_;
 
+  std::set<int> badroc_list_;
+
  public:
 
   // Event info

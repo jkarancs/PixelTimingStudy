@@ -13,25 +13,33 @@ cd CMSSW_5_3_11/src
 cmsenv
 git cms-addpkg RecoLuminosity/LumiDB
 git cms-addpkg PhysicsTools/Utilities
-mkdir DPGAnalysis
-cd DPGAnalysis
-git clone -b CMSSW-5X https://github.com/jkarancs/PixelTimingStudy
-cd ..
+git clone -b CMSSW-5X https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
 scram b -j 20
 
 - Quick test of the method
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions12/8TeV/PileUp/pileup_latest.txt .
-dbs search --query "find run, lumi where file=/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root"
+dbs search --query "find run, lumi where file=/store/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root"
 echo '{"202504": [[127, 128], [249, 253]]}' > test_input_JSON.txt
-RecoLuminosity/LumiDB/scripts/pileupCalc.py -i test_input_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root
+RecoLuminosity/LumiDB/scripts/pileupCalc.py -i test_input_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/PileupHistogram_test.root
 
 cd DPGAnalysis/PixelTimingStudy
 cmsStage /store/user/taroni/Pixel/PUComparisonE/STEP2_normalized.root STEP2_normalized.root .
 root STEP2_normalized.root
  TH1D* mcpileup = new TH1D("mcpileup","MC Pileup", 50, 0, 50);
  Events->Draw("(TrueNumInteractions_)>>mcpileup");
- TFile *f= new TFile("data/PileupHistogram_test.root","update");
+ TFile *f= new TFile("PileupHistogram_test.root","update");
  mcpileup->Write();
+
+- or Specifify the Imput pileup distribution for MC
+- to be used with the MixingModule to recreate the same pileup distribution as in data
+root
+ TFile *f = new TFile("DPGAnalysis/PixelTimingStudy/PileupHistogram_test.root","update");
+ TH1D* mc_input = new TH1D("mc_input","MC Input Pileup", 50, 0, 50);
+ TH1D* mcpileup = new TH1D("mcpileup","MC Pileup", 50, 0, 50);
+ for (int i=1; i<=50; i++) { mcpileup->SetBinContent(i,pileup->GetBinContent(i)); }
+ for (int i=2; i<=50; i++) { mc_input->SetBinContent(i-1,mcpileup->GetBinContent(i)); }
+ mcpileup->Write();
+ mc_input->Write();
 
 cmsRun test/TimingStudy_RecoData_cfg.py
 
@@ -40,7 +48,7 @@ root test/reweight_test.C
 - Run 201278 case
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions12/8TeV/PileUp/pileup_latest.txt .
 echo '{"201278": [[62, 163], [166, 229], [232, 256], [259, 316], [318, 595], [598, 938], [942, 974], [976, 1160], [1163, 1304], [1306, 1793], [1796, 1802], [1805, 1906], [1909, 1929], [1932, 2174]]}' > 201278_input_JSON.txt
-RecoLuminosity/LumiDB/scripts/pileupCalc.py -i 201278_input_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/data/PileupHistogram_201278.root
+RecoLuminosity/LumiDB/scripts/pileupCalc.py -i 201278_input_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/PileupHistogram_201278.root
 
 -------------------------
         CMSSW 7X
@@ -50,15 +58,22 @@ cd CMSSW_7_0_0_pre11/src/
 cmsenv
 git cms-addpkg RecoLuminosity/LumiDB
 git cms-addpkg PhysicsTools/Utilities
-mkdir DPGAnalysis; cd DPGAnalysis
-git clone https://github.com/jkarancs/PixelTimingStudy
-cd PixelTimingStudy
+echo "cp -r /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimGeneral ."
+git cms-addpkg SimGeneral/MixingModule
+git cms-addpkg SimTracker/SiPixelDigitizer
+cp /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimTracker/SiPixelDigitizer/plugins/SiPixelDigitizerAlgorithm.h SimTracker/SiPixelDigitizer/plugins/
+cp /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimTracker/SiPixelDigitizer/plugins/SiPixelDigitizerAlgorithm.cc SimTracker/SiPixelDigitizer/plugins/
+cp /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimTracker/SiPixelDigitizer/plugins/SiPixelDigitizer.h SimTracker/SiPixelDigitizer/plugins/
+cp /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimTracker/SiPixelDigitizer/plugins/SiPixelDigitizer.cc SimTracker/SiPixelDigitizer/plugins/
+cp /data/hazia/ineff/CMSSW_7_1_0_pre1/src/SimGeneral/MixingModule/python/mix_2012_201278_1_cfi.py SimGeneral/MixingModule/python/
+git clone https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
 scram b -j 20
+cd DPGAnalyis/PixelTimingStudy
 
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions12/8TeV/Reprocessing/Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt input_dataset_JSON.txt
 cp /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions12/8TeV/PileUp/pileup_latest.txt .
 
-RecoLuminosity/LumiDB/scripts/pileupCalc.py -i input_dataset_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/data/PileupHistogram.root
+RecoLuminosity/LumiDB/scripts/pileupCalc.py -i input_dataset_JSON.txt --inputLumiJSON pileup_latest.txt --calcMode true --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 DPGAnalysis/PixelTimingStudy/PileupHistogram.root
 
 
 - Make new Branch for CMSSW-5X

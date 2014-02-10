@@ -529,15 +529,38 @@ void TimingStudy::beginJob()
 void TimingStudy::beginRun(edm::Run const& iRun,
 			   edm::EventSetup const& iSetup){
   run_.init();
-  // get ConditionsInRunBlock
+  badroc_list_.clear();
+
+  run_.run = iRun.run();
+  
+  // get ConditionsInRunBlock for fill number
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
-  if (!condInRunBlock.isValid()) {
-    std::cout<<"** ERROR (beginRun): no RunBlock info is available\n";
-    return; 
+  if (condInRunBlock.isValid()) {
+    run_.fill = condInRunBlock->lhcFillNumber;
+  } else if (run_.run==1) {
+    run_.fill = 0;
+  } else {
+    std::cout<<"** ERROR (beginRun): no condInRunBlock info is available\n";
+    std::cout<<"** WARNING: Bad ROC List cannot be loaded\n";
+    return;
   }
-  run_.fill = condInRunBlock->lhcFillNumber;
   std::cout<<"Begin Run: "<<run_.run<<" in Fill: "<<run_.fill<<std::endl;
+  
+  // Load BadRocList from text file for the specific fill
+  if (run_.run!=1) {
+    int fill = -1, badroc = -1;
+    FILE *f = fopen("fills_and_badrocs.txt","r");
+    if (f==NULL) {
+      std::cout<<"** WARNING: Bad ROC List (fills_and_badrocs.txt) was not found\n";
+    } else {
+      while (fscanf(f, "%d %d", &fill, &badroc)!=-1)
+	if (fill==run_.fill) badroc_list_.insert(badroc);
+      if (badroc_list_.empty())
+	std::cout<<"** WARNING: Bad ROC List is empty for fill "<<run_.fill<<std::endl;
+      fclose(f);
+    }
+  }
 }
 
 void TimingStudy::endRun(edm::Run const& iRun,
@@ -546,7 +569,7 @@ void TimingStudy::endRun(edm::Run const& iRun,
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
   if (!condInRunBlock.isValid()) {
-    std::cout<<"** ERROR (endRun): no RunBlock info is available\n";
+    std::cout<<"** ERROR (endRun): no condInRunBlock info is available\n";
   } else {
     run_.fill = condInRunBlock->lhcFillNumber;
     run_.run = iRun.run();
@@ -730,9 +753,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
 
       if(pu0!=puInfo->end()) {
-	evt_.pileup = pu0->getTrueNumInteractions();
-	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
-	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions());
+	evt_.pileup = pu0->getTrueNumInteractions()+1;
+	evt_.instlumi = (pu0->getTrueNumInteractions()+1) * mcLumiScale_;
+	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions()+1);
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
       }
@@ -1894,7 +1917,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       for (int jtrk=itrk+1; jtrk<nTracks; jtrk++) {
 	for (size_t j=0; j<trajmeas_[jtrk].size(); j++) {
 	  if (trajmeas_[jtrk][j].mod.det!=0) continue;
-	  if (trajmeas_[itrk][i].mod.ladder!=trajmeas_[jtrk][j].mod.layer) continue;
+	  if (trajmeas_[itrk][i].mod.ladder!=trajmeas_[jtrk][j].mod.ladder) continue;
 	  if (trajmeas_[itrk][i].mod.module!=trajmeas_[jtrk][j].mod.module) continue;	  
 	  if (trajmeas_[itrk][i].mod.layer!=trajmeas_[jtrk][j].mod.layer) continue;
 	  if (trajmeas_[jtrk][j].validhit!=1) continue;
@@ -2019,13 +2042,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	nclu_mod[trajmeas_[itrk][i].mod_on.rawid] : 0;
       trajmeas_[itrk][i].npix_mod = (npix_mod.count(trajmeas_[itrk][i].mod_on.rawid)) ?
 	npix_mod[trajmeas_[itrk][i].mod_on.rawid] : 0;
-
+      
       int RocID = get_RocID_from_local_coords(trajmeas_[itrk][i].lx, trajmeas_[itrk][i].ly, trajmeas_[itrk][i].mod_on);
       if (RocID!=NOVAL_I) {
 	unsigned long int modroc = trajmeas_[itrk][i].mod_on.rawid * 100 + RocID;
 	trajmeas_[itrk][i].nclu_roc = (nclu_roc.count(modroc)) ? nclu_roc[modroc] : 0;
 	trajmeas_[itrk][i].npix_roc = (npix_roc.count(modroc)) ? npix_roc[modroc] : 0;
-      } else {
+      } else { // Hit is outside module boundaries
 	trajmeas_[itrk][i].nclu_roc = NOVAL_I;
 	trajmeas_[itrk][i].npix_roc = NOVAL_I;
       }
@@ -2162,9 +2185,40 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       
       // Nearest other hit is far away (D_hit > 0.5 cm)
       bool hitsep = trajmeas_[itrk][i].hit_near==0;
- 
-      trajmeas_[itrk][i].pass_effcuts = nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && lx_fid && ly_fid && valmis && hitsep;
-
+      
+      // Check if the Roc is not on the Badoc List
+      bool goodroc = true;
+      
+      if (RocID == NOVAL_I) { // Hit is outside module boundaries
+	goodroc = false;
+      } else {
+	int shl = (trajmeas_[itrk][i].mod_on.det==0) ? 
+	  2 * (trajmeas_[itrk][i].mod_on.module<0) + (trajmeas_[itrk][i].mod_on.ladder<0)
+	  : 2 * (trajmeas_[itrk][i].mod_on.disk<0) + (trajmeas_[itrk][i].mod_on.blade<0);
+	int detshl = trajmeas_[itrk][i].mod_on.det*4 + shl;
+	
+	// BPix
+	int seclyrldr = (trajmeas_[itrk][i].mod_on.det==1) ? NOVAL_I :
+	  abs(trajmeas_[itrk][i].mod_on.ladder)-1 + (trajmeas_[itrk][i].mod_on.layer>1)*10 + (trajmeas_[itrk][i].mod_on.layer>2)*16;
+	int modroc = (trajmeas_[itrk][i].mod_on.det==1) ? NOVAL_I :
+	  (RocID==NOVAL_I ? NOVAL_I : (abs(trajmeas_[itrk][i].mod_on.module)-1)*16 + RocID);
+	
+	// FPix
+	int dskbld = (trajmeas_[itrk][i].mod_on.det==0) ? NOVAL_I :
+	  (abs(trajmeas_[itrk][i].mod_on.disk)-1)*12 + abs(trajmeas_[itrk][i].mod_on.blade)-1;
+	int pnlplqroc = (trajmeas_[itrk][i].mod_on.det==0) ? NOVAL_I :
+	  ( (trajmeas_[itrk][i].mod_on.panel==1) ? 
+	    ( (trajmeas_[itrk][i].mod_on.module>1)*2 + (trajmeas_[itrk][i].mod_on.module>2)*6 + (trajmeas_[itrk][i].mod_on.module>3)*8 )
+	    :  ( 21 + (trajmeas_[itrk][i].mod_on.module>1)*6 + (trajmeas_[itrk][i].mod_on.module>2)*8 )
+	    ) + RocID;
+	
+	int rocnum = detshl * 10000 + ((trajmeas_[itrk][i].mod_on.det) ? dskbld : seclyrldr) * 100 + ((trajmeas_[itrk][i].mod_on.det) ? pnlplqroc : modroc);
+	
+	goodroc = !badroc_list_.count(rocnum);
+      }
+      
+      trajmeas_[itrk][i].pass_effcuts = nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && goodroc && lx_fid && ly_fid && valmis && hitsep;
+      
       #ifndef SPLIT
       trajTree_->SetBranchAddress("event", &evt_);
       trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);

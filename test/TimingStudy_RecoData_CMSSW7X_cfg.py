@@ -154,7 +154,7 @@ process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 # CMSSW_7_X:
-'/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RECO/START70_V5-v1/00000/0869C91A-1C86-E311-B4C7-02163E00EB49.root'
+'file:/data/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RECO/START70_V5-v1/00000/0869C91A-1C86-E311-B4C7-02163E00EB49.root'
 
 # CMSSW_5_X RECO Files
 #'/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root'

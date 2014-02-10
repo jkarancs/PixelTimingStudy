@@ -7,7 +7,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 100
 process.MessageLogger.cerr.threshold = 'INFO'
 
 ## Options and Output Report
-process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+#process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 #-------------
 # DQM services
@@ -50,33 +50,27 @@ process.load('Configuration.EventContent.EventContent_cff')
 #  Reconstruction Modules
 #-------------------------
 
-# for raw
+# RAW
 #process.load("EventFilter.SiPixelRawToDigi.SiPixelDigiToRaw_cfi")
 #process.load("EventFilter.SiPixelRawToDigi.SiPixelRawToDigi_cfi")
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.siPixelDigis.IncludeErrors = True # To create UserError DetIdCollection
 
-# clusterizer
-process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
-
-# needed for pixel RecHits
+# RECO
 process.load("Configuration.StandardSequences.Reconstruction_cff")
-
-# Conditions in edm producer
-process.load("EventFilter.L1GlobalTriggerRawToDigi.conditionDumperInEdm_cfi")
+# process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
+### process.load("RecoLocalTracker.SiPixelRecHits.SiPixelRecHits_cfi")
+### process.load("RecoLocalTracker.SiPixelClusterizer.SiPixelClusterizer_cfi")
 
 # Beamspot
 process.load("RecoVertex.BeamSpotProducer.BeamSpot_cff")
 
+# Conditions in edm producer
+process.load("EventFilter.L1GlobalTriggerRawToDigi.conditionDumperInEdm_cfi")
+
 # New Producer needed for Trajectory Measurements
 process.load("RecoTracker.MeasurementDet.MeasurementTrackerEventProducer_cfi")
-
-# Local Reconstruction
-# process.load("RecoLocalTracker.SiPixelRecHits.PixelCPEESProducers_cff") # for templates
-# process.load("RecoLocalTracker.SiPixelClusterizer.SiPixelClusterizer_cfi")
-# process.load("EventFilter.SiStripRawToDigi.SiStripRawToDigis_standard_cff")
-# process.siStripDigis.ProductLabel = 'source'
 
 #----------------------------------------------
 # temporary ckftracks alternative for CMSSW 70X
@@ -217,7 +211,7 @@ process.source = cms.Source("PoolSource",
                             #firstLuminosityBlock = cms.untracked.uint32(44),
     fileNames = cms.untracked.vstring(
 # CMSSW71X
-'/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RAW/START70_V5-v1/00000/0A546B02-0F86-E311-9417-02163E008DB5.root'
+'file:/data/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RAW/START70_V5-v1/00000/0A546B02-0F86-E311-9417-02163E008DB5.root'
 # CMSSW70X
 #'/store/relval/CMSSW_7_0_0_pre11/RelValProdTTbar/GEN-SIM-RAW/START70_V4-v1/00000/36994557-496A-E311-A69D-002618943868.root'
 )

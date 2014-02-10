@@ -10,6 +10,7 @@ process.MessageLogger.cerr.threshold = 'INFO'
 # ------------------- Output Report --------------------
 #process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
+
 # ----------------- Number of Events -------------------
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 
@@ -22,12 +23,19 @@ process.source = cms.Source("PoolSource",
         'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
     )
 )
-PileupInput = cms.untracked.string(
+# GEN-SIM Input file with MinBias events
+#PileupInput = process.source.fileNames
+PileupInput = cms.untracked.vstring(
     'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
 )
-PileupDistHistoInput = cms.untracked.string(
-    'file:$CMSSW_BASE/src/DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root'
+# Input pileup distribution for MixingModule
+# Can use the same file in TimingStudy for pileup reweighting
+# Note: the desired mc_input distribution has to be shifted by -1 wrt mcpileup
+PileupHistoInput = cms.untracked.string(
+    #'file:PileupHistogram_201278_flatpileupMC.root' # Flat Pileup
+    'file:PileupHistogram_201278.root' # 201278 Pileup
 )
+PileupHistoName=cms.untracked.string('mc_input')
 
 
 # --------------------- GlobalTag ----------------------
@@ -53,70 +61,61 @@ process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cf
 # ------------------------- DIGI -----------------------
 
 process.load("IOMC.RandomEngine.IOMC_cff") # RandomNumberGeneratorService
-process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
-    simMuonDTDigis = cms.PSet(
-        initialSeed = cms.untracked.uint32(1234567),
-        engineName = cms.untracked.string('TRandom3')
-    ),
-    simMuonCSCDigis = cms.PSet(
-        initialSeed = cms.untracked.uint32(1234567),
-        engineName = cms.untracked.string('TRandom3')
-    ),
-    mix = cms.PSet(
-        initialSeed = cms.untracked.uint32(1234567),
-        engineName = cms.untracked.string('TRandom3')
-    ),
-    simMuonRPCDigis = cms.PSet(
-        initialSeed = cms.untracked.uint32(1234567),
-        engineName = cms.untracked.string('TRandom3')
-    )
-)
 
 # configuration to model pileup for initial physics phase
 # mix
 #process.load("SimGeneral.MixingModule.mixNoPU_cfi") # No Pileup
 process.load('SimGeneral.MixingModule.mix_2012_201278_1_cfi') # Silvias pileup mixing
 
-#process.mix.fileNames = process.source.fileNames
-process.mix.fileNames = PileupInput
-process.mix.input.nbPileupEvents.fileName = PileupDistHistoInput
-
-process.mix.digitizers.pixel.AddPixelInefficiencyFromPython = True # default: true
-process.mix.digitizers.pixel.theLadderEfficiency_BPix1 = cms.vdouble(
-    0.7963,
-    0.71863,
-    0.75178,
-    0.68154,
-    0.72828,
-    0.73056,
-    0.76997,
-    0.75153,
-    0.81202,
-    0.79234,
-    0.84533,
-    0.81061,
-    0.85368,
-    0.83221,
-    0.83094,
-    0.84578,
-    0.8389,
-    0.81607,
-    0.81074,
-    0.76099
+# Change MinBias input file and Input Pileup Distribution
+process.mix.input = cms.SecSource("PoolSource",
+    type = cms.string('histo'),
+    nbPileupEvents  = cms.PSet(
+        fileName = PileupHistoInput,
+        histoName = PileupHistoName,
+    ),
+    sequential = cms.untracked.bool(False),
+    manage_OOT = cms.untracked.bool(True),
+    OOT_type = cms.untracked.string('Poisson'),
+    fileNames = PileupInput
 )
 
-process.mix.digitizers.pixel.theModuleEfficiency_BPix1 = cms.vdouble(
-    1.00323,
-    1.00074,
-    0.977744,
-    0.783408
-)
-
-process.mix.digitizers.pixel.thePUEfficiency_BPix1 = cms.vdouble(
-   1.01997,
-   -4.03709e-07,
-   -1.26739e-09
-)
+#process.mix.digitizers.pixel.AddPixelInefficiencyFromPython = True # default: true
+#process.mix.digitizers.pixel.theLadderEfficiency_BPix1 = cms.vdouble(
+#    0.7963,
+#    0.71863,
+#    0.75178,
+#    0.68154,
+#    0.72828,
+#    0.73056,
+#    0.76997,
+#    0.75153,
+#    0.81202,
+#    0.79234,
+#    0.84533,
+#    0.81061,
+#    0.85368,
+#    0.83221,
+#    0.83094,
+#    0.84578,
+#    0.8389,
+#    0.81607,
+#    0.81074,
+#    0.76099
+#)
+#
+#process.mix.digitizers.pixel.theModuleEfficiency_BPix1 = cms.vdouble(
+#    1.00323,
+#    1.00074,
+#    0.977744,
+#    0.783408
+#)
+#
+#process.mix.digitizers.pixel.thePUEfficiency_BPix1 = cms.vdouble(
+#   1.01997,
+#   -4.03709e-07,
+#   -1.26739e-09
+#)
 #process.mix.digitizers.pixel.theLadderEfficiency_BPix2 = cms.vdouble(
 #0.996517,
 #0.993511,
@@ -199,22 +198,6 @@ process.mix.digitizers.pixel.thePUEfficiency_BPix1 = cms.vdouble(
 #)
 
 process.load('Configuration.StandardSequences.Digi_cff') # pdigi
-#  from SimMuon.Configuration.SimMuon_cff import *
-#  from SimCalorimetry.Configuration.SimCalorimetry_cff import *
-#  from SimGeneral.Configuration.SimGeneral_cff import *
-#  doAllDigi = cms.Sequence(calDigi+muonDigi)
-#  pdigi = cms.Sequence(cms.SequencePlaceholder("randomEngineStateProducer")*cms.SequencePlaceholder("mix")*doAllDigi*addPileupInfo)
-
-#process.doAllDigi = cms.Sequence(
-#    #process.calDigi +
-#    process.muonDigi
-#)
-#process.pdigi = cms.Sequence(
-#    process.randomEngineStateProducer*
-#    process.mix*
-#    process.doAllDigi*
-#    process.addPileupInfo
-#)
 
 # L1 Digis
 process.load('Configuration.StandardSequences.SimL1Emulator_cff') # SimL1Emulator
@@ -235,6 +218,7 @@ process.load('Configuration.StandardSequences.RawToDigi_cff')
 #process.siPixelDigis.InputLabel = cms.InputTag("siPixelRawData")
 
 process.siPixelRawData.InputLabel = 'mix'
+
 
 # --------------------- DIGI to RECO -------------------
 process.load("Configuration.StandardSequences.Reconstruction_cff")
@@ -268,10 +252,12 @@ process.ckftracks_woMS = cms.Sequence(process.InitialStep
                                          *process.doAlldEdXEstimators
 )
 
+
 # ------------------- Track Refitter -------------------
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
 process.TrackRefitter.src = "generalTracks"
 process.TrackRefitter.TrajectoryInEvent = True
+
 
 # ---------------------- Ntuplizer ---------------------
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
@@ -302,12 +288,13 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     #dataPileupFile = cms.string("data/PileupHistogram_test.root"),
-                                     #mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
-                                     #dataPileupHistoName = cms.string("pileup"),
-                                     #mcPileupHistoName = cms.string("mcpileup"),
+                                     dataPileupFile = cms.string("PileupHistogram_201278.root"),
+                                     mcPileupFile   = cms.string("PileupHistogram_201278.root"),
+                                     dataPileupHistoName = cms.string("pileup"),
+                                     mcPileupHistoName = cms.string("mcpileup"),
                                      mcLumiScale = cms.double(221.95)
 )
+
 
 # ------------------------ Path ------------------------
 process.Digi = cms.Sequence(process.pdigi)
