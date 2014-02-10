@@ -752,9 +752,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
 
       if(pu0!=puInfo->end()) {
-	evt_.pileup = pu0->getTrueNumInteractions();
-	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
-	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions());
+	evt_.pileup = pu0->getTrueNumInteractions()+1;
+	evt_.instlumi = (pu0->getTrueNumInteractions()+1) * mcLumiScale_;
+	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions()+1);
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
       }

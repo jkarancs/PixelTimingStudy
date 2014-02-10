@@ -21,13 +21,14 @@ process.source = cms.Source("PoolSource",
     )
 )
 # GEN-SIM Input file with MinBias events
-PileupInput = cms.untracked.string(
-    'file:/data/store/mc/Summer12/MinBias_TuneZ2star_8TeV-pythia6/GEN-SIM/START50_V13-v3/0000/0005E496-3661-E111-B31E-003048F0E426.root'
-)
+PileupInput = process.source.fileNames
+#PileupInput = cms.untracked.vstring(
+#    '/store/mc/Summer12/MinBias_TuneZ2star_8TeV-pythia6/GEN-SIM/START50_V13-v3/0000/0005E496-3661-E111-B31E-003048F0E426.root'
+#)
 # Input pileup distribution for MixingModule
-# root file, that contains a TH1 histo named: pileup
-PileupDistHistoInput = cms.untracked.string(
-    'file:$CMSSW_BASE/src/DPGAnalysis/PixelTimingStudy/data/PileupHistogram_test.root'
+PileupHistoName=cms.untracked.string('mcpileup')
+PileupHistoInput = cms.untracked.string(
+    'file:PileupHistogram_201278.root'
 )
 
 
@@ -61,9 +62,18 @@ process.load('Configuration.StandardSequences.Digi_cff') # pdigi
 #process.load("SimGeneral.MixingModule.mixNoPU_cfi") # No Pileup
 process.load('SimGeneral.MixingModule.mix_2012_201278_1_cfi') # Silvias pileup mixing
 
-#process.mix.fileNames = process.source.fileNames
-process.mix.fileNames = PileupInput
-process.mix.input.nbPileupEvents.fileName = PileupDistHistoInput
+process.mix.input = cms.SecSource("PoolSource",
+    type = cms.string('histo'),
+    nbPileupEvents  = cms.PSet(
+        fileName = PileupHistoInput,
+        histoName = PileupHistoName,
+    ),
+    sequential = cms.untracked.bool(False),
+    manage_OOT = cms.untracked.bool(True),
+    OOT_type = cms.untracked.string('Poisson'),
+    fileNames = PileupInput
+)
+
 
 process.simSiPixelDigis.AddPixelInefficiency = -2 # It loads the efficiency scale factors from the config file
 process.simSiPixelDigis.thePixelColEfficiency_BPix1 = cms.double(1.0)
@@ -224,7 +234,7 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 
 # L1 Reco
 process.load('Configuration.StandardSequences.L1Reco_cff') # L1Reco
-#-> process.load("EventFilter.L1GlobalTriggerRawToDigi.conditionDumperInEdm_cfi") # conditionDumperInEdm
+#-> process.load("EventFilter.L1GlobalTriggerRawToDigi.conditionDumperInEdm_cfi") # conditionsInEdm
 
 # ------------------- Track Refitter -------------------
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
@@ -260,10 +270,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     #dataPileupFile = cms.string("data/PileupHistogram_test.root"),
-                                     #mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
-                                     #dataPileupHistoName = cms.string("pileup"),
-                                     #mcPileupHistoName = cms.string("mcpileup"),
+                                     dataPileupFile = cms.string("PileupHistogram_201278.root"),
+                                     mcPileupFile   = cms.string("PileupHistogram_201278.root"),
+                                     dataPileupHistoName = cms.string("pileup"),
+                                     mcPileupHistoName = cms.string("mcpileup"),
                                      mcLumiScale = cms.double(221.95)
 )
 
@@ -284,7 +294,7 @@ process.Raw_to_Digi = cms.Sequence( #process.RawToDigi
      process.gtEvmDigis
 )
 process.Digi_to_Reco = cms.Sequence( #process.reconstruction
-    process.conditionDumperInEdm +
+    process.conditionsInEdm +
     #process.L1Reco +
     ( process.offlineBeamSpot +
       process.trackerlocalreco ) *
