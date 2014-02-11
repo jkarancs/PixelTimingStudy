@@ -1,6 +1,6 @@
 #!/bin/tcsh
 ##########################################################################
-# Creator: Janos Karancsi - 2012/04/11
+# Creator: Janos Karancsi - 2012/04/11 (update 2013/02/11)
 #   This is a Script that creates jobs to run TimingStudy on the Lxbatch.
 #   it uses various other scripts in the test/scripts directory.
 #   Make sure to use this on the lxplus in a directory accessible outside!
@@ -9,10 +9,10 @@
 #   produces other scripts in the task directory that you can source
 #   Feel free to try it!
 #
-# Job info: See test/scripts/TSBatch_Job_RECO.csh file
+# Job info: See (eg.) TSBatch_Job_GENSIM.csh file
 #   The Job Script moves output files to EOS:
 #   /store/caf/user/<username>/...
-#   So make sure that you edit USERDIR first! (see BSub  tutorial)
+#   So make sure that you edit USERDIR_EOS first! (see BSub  tutorial)
 #   I don't know yet, how to delegate proxy on lxbatch to save to other SE,
 #   but there is an option to copy output from EOS to T2_HU_Budapest
 #   You can try a test task with Create and then
@@ -21,26 +21,23 @@
 # BSub tutorial:
 #   - if a submit/resubmit script (see Usage) suggest sourcing a file view it first!
 #   - make a test job out of the first line like in the example
-#     - edit test/scripts/TSBatch_Job_RECO.csh
-#       replace the USERDIR string ("jkarancs/crab") with your username
-#     - do previous step for test/scrips/eosmis.csh and copy_to_kfki.csh as well,
 #     - Create a task by doing Step 0,1 of Usage below (it is a working example)
 #     - you can replace the cmscaf1nd queue (Step 1) if you don't have access
 #       with 8nm or just delete "-q <queue>" equivalently
 #       Available queues for user: bqueues -u <username>
 #     - specify a maximum number of events, eg 10
 #     eg:
-#     cp test/scripts/TSBatch_Job_RECO.csh test.csh
+#     cp TSBatch_Job_GENSIM.csh test.csh
 #     chmod 777 test.csh     #This is needed so lxbatch job can access it
-#     bsub -L tcsh test.csh CMSSW_5_2_3_patch1 GR_R_52_V7 0001_test /store/data/Commissioning12/ZeroBias1/RECO/PromptReco-v1/000/190/411/FE4CD0E8-DD80-E111-88F1-5404A638869B.root 10
+#     bsub -J v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test_JOBtest -oo STDOUT/JOB_test.log -L tcsh jobscript.csh CMSSW_7_1_0_pre1 MC_70_V1 test /store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root 10
 #    - The above steps are done in the test.csh script of the submit option (Step 2)
 #
 # Usage - In Steps 0-6:
 #
 # Step 0 - Check out PixelTimingStudy (or just the test directory like below)
 #   eg:
-#   cmsenv      #in any CMSSW release area
-#   cvs co -d test UserCode/Debrecen/PixelTimingStudy/test
+#   cmsenv      #in any CMSSW release area (CMSSW_*/src)
+#   git clone https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingSt
 #
 #   - This script uses other scripts in the test/scripts directory so stay in the current directory
 #   - Create a list of input files that are accessible within CERN (T2/T1/T0_CERN_CH, T2_CH_CAF etc)
@@ -54,58 +51,60 @@
 #   dbs search --query "find file where dataset=/ZeroBias1/Run2012A-PromptReco-v1/RECO and run = 190592" | grep .root >> input.txt; 
 #   dbs search --query "find file where dataset=/ZeroBias1/Run2012A-PromptReco-v1/RECO and run = 190593" | grep .root >> input.txt; 
 #   dbs search --query "find file where dataset=/ZeroBias1/Run2012A-PromptReco-v1/RECO and run = 190595" | grep .root >> input.txt
+#    
+#    basically the input.txt constaints a list of files on the /store/...
+#
 #
 #   A trick to order input files by run and lumisections and use a list of runs from more datasets:
 #   dbs search --query "find run, lumi, file where dataset=/ZeroBias*/Run2012A-v1/RAW and (run=190538 or run=190539 or run=190591 or run=190592 or run=190593 or run=190595)" | grep .root | awk '{ printf "%d %.4d %s\n", $1, $2, $3 }' | sort -k3,3 -u | sort | awk '{ print $3 }' > input.txt
 #
-# Step 1 - Create - TSBatch.csh create [TaskDir] [InputFile] [BatchQueue] [JobScript] [CMSSW_Version] [GlobalTag]
+# Step 1 - Create - TSBatch.csh [TaskDir] -create [InputFile] [BatchQueue] [JobScript] [CMSSW_Version] [GlobalTag]
 # 
-#   source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.csh
-#   voms-proxy-init --voms cms -valid 120:00
+#   grid-proxy-init --voms cms -valid 120:00
 #   <Grid pass phrase>
-#   source test/scripts/TSBatch.csh create v3029_INC_SPL0_442p2_MB0TN_Run2011A_PR_RECO_HV5 input.txt cmscaf1nd test/scripts/TSBatch_Job_RECO.csh CMSSW_4_4_2_patch2 GR_R_44_V15
+#   source test/scripts/TSBatch.csh v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test -create test_input.txt cmscaf1nd test/scripts/TSBatch_Job_GENSIM.csh CMSSW_7_1_0_pre1 MC_70_V1
 #
 # 
-# Step 2 - Submit - TSBatch.csh submit [TaskDir]
+# Step 2 - Submit - TSBatch.csh [TaskDir] -submit
 #
-#   source test/scripts/TSBatch.csh submit v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
-#   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/submit.csh
+#   source test/scripts/TSBatch.csh submit v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test
+#   > source v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test/submit.csh
 #
 #
-# Step 3 - Missing * - TSBatch.csh missing [TaskDir]
+# Step 3 - Missing * - TSBatch.csh [TaskDir] -missing
 #
-#   source test/scripts/TSBatch.csh missing v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
+#   source test/scripts/TSBatch.csh missing v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test
 #   > 21,105,165,345,524,
 #
 #
-# Step 4 - Resubmit * - TSBatch.csh resubmit [TaskDir] [list]
+# Step 4 - Resubmit * - TSBatch.csh [TaskDir] -resubmit [list]
 #
-#   source test/scripts/TSBatch.csh resubmit v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2 21,105,165,345,524
-#   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/resub.csh
+#   source test/scripts/TSBatch.csh resubmit v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test 21,105,165,345,524
+#   > source v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test/resub.csh
 # 
 #
-# Step 5 - Resubmit Missing - TSBatch.csh resubmit_missing [TaskDir]
+# Step 5 - Resubmit Missing - TSBatch.csh [TaskDir] -resubmit_missing
 #   * Combines the above two automatically
 #
-#   source test/scripts/TSBatch.csh resubmit_missing v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
-#   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/resub.csh
+#   source test/scripts/TSBatch.csh resubmit_missing v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test
+#   > source v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test/resub.csh
 #
 #
-# Step 6 - Copy to KFKI - TSBatch.csh copy_to_kfki [TaskDir]
+# Step 6 - Copy to KFKI - TSBatch.csh [TaskDir] -copy_to_kfki
 #
-#   source test/scripts/TSBatch.csh copy_to_kfki v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
-#   > source v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2/copy_to_kfki.csh
+#   source test/scripts/TSBatch.csh copy_to_kfki v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test
+#   > source v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test/copy_to_kfki.csh
 #
 #
-# Step 7 - Delete - TSBatch.csh delete [TaskDir]
+# Step 7 - Delete - TSBatch.csh [TaskDir] -delete
 #   - Or you can simply delete the directory now
 #
-#   source test/scripts/TSBatch.csh delete v3029_523p1_ZB1_PR_v1_RECO_INC_SPL2
+#   source test/scripts/TSBatch.csh delete v3735_INC_SPL1_ns11_710pre1_MB_GENSIM_test
 #
 ##########################################################################
 
-set USERDIR_EOS = "jkarancs/crab"
-set USERDIR_KFKI = "jkarancs"
+set USERDIR_EOS = "jkarancs/batch"
+set USERDIR_KFKI = "jkarancs/TimingStudy"
 
 
 echo "Usage: ">! Usage
@@ -166,7 +165,7 @@ if ( "$OPT" == "-create" ) then
         set NJOBS = `wc -l $TASKDIR/input.txt | awk '{ print $1}'`
         echo "Number of Jobs:  "$NJOBS
         echo "Lxbatch queue:   "$4
-        sed "s;outdir;"$TASKDIR";" $5 > $TASKDIR/jobscript.csh
+        sed "s;outdir;"$TASKDIR";;s;userdir;"$USERDIR_EOS";" $5 > $TASKDIR/jobscript.csh
         chmod 777 $TASKDIR/jobscript.csh
         echo "Job Script file: "$5
         echo "CMSSW version:   "$6
@@ -185,7 +184,7 @@ else if ( "$OPT" == "-submit" ) then
     cat $TASKDIR/alljobs.csh >> $TASKDIR/submit.csh
     echo "cd -" >> $TASKDIR/submit.csh
     echo "cd "$TASKDIR >! $TASKDIR/test.csh
-    head -1 $TASKDIR/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;0001;test;;s;0001;test;" >> $TASKDIR/test.csh
+    head -1 $TASKDIR/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;JOB0001;JOBtest;;s;JOB_0001;JOB_test;;s; 0001 ; test ;" >> $TASKDIR/test.csh
     echo "cd -" >> $TASKDIR/test.csh
     echo "source "$TASKDIR"/submit.csh"
     echo "Or you can try this test script:"
