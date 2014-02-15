@@ -14,7 +14,7 @@
 # example:
 # source TS_BatchJob_RAW.csh CMSSW_5_2_3_patch1 GR_R_52_V7 0001 /store/...
 ##########################################################################
-set cfg_file = "test/TimingStudy_GenSimData_DynIneff_CMSSW7X_cfg.py"
+set cfg_file = "test/dcol_scan_l1/dcol_0800.py"
 
 echo
 echo "--------------------------------------------------------------------------------"

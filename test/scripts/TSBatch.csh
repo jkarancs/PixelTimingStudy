@@ -103,7 +103,7 @@
 #
 ##########################################################################
 
-set USERDIR_EOS = "jkarancs/batch"
+set USERDIR_EOS = "jkarancs/TimingStudy"
 set USERDIR_KFKI = "jkarancs/TimingStudy"
 
 
@@ -152,12 +152,26 @@ else
     endif
 endif
 
+# Checking voms proxy
+voms-proxy-info > & ! vomsout.txt
+if ( `grep "Couldn't find a valid proxy." vomsout.txt` != "" ) then
+    echo "---------------- Requesting Voms Proxy ----------------"
+    voms-proxy-init --voms cms -valid 120:00
+else if ( `grep "Proxy not found" vomsout.txt` != "" ) then
+    echo "---------------- Requesting Voms Proxy ----------------"
+    voms-proxy-init --voms cms -valid 120:00
+else if ( `grep "timeleft" vomsout.txt | awk '{ print $3 }'` == "0:00:00" ) then
+    echo "------------ Proxy Expired, Requesting New ------------"
+    voms-proxy-init --voms cms -valid 120:00
+endif
+rm vomsout.txt
+
 if ( "$OPT" == "-create" ) then
     if ( ! -e $3 ) then
 	echo "Input file does not exist"
     else
         echo "--------------------------------------------------------------------------------"
-        mkdir $TASKDIR
+        mkdir -p $TASKDIR
         chmod 777 $TASKDIR
         echo "Task Name:       "$TASKDIR
         cp $3 $TASKDIR/input.txt
@@ -178,25 +192,26 @@ if ( "$OPT" == "-create" ) then
         cd -
         echo "Task Created"
         echo "--------------------------------------------------------------------------------"
+	set queue=$4
     endif
 else if ( "$OPT" == "-submit" ) then
     echo "cd "$TASKDIR >! $TASKDIR/submit.csh
     cat $TASKDIR/alljobs.csh >> $TASKDIR/submit.csh
     echo "cd -" >> $TASKDIR/submit.csh
     echo "cd "$TASKDIR >! $TASKDIR/test.csh
-    head -1 $TASKDIR/alljobs.csh | sed "s;-q cmscaf1nd ;;" | sed 's;$; 10;' | sed "s;JOB0001;JOBtest;;s;JOB_0001;JOB_test;;s; 0001 ; test ;" >> $TASKDIR/test.csh
+    head -1 $TASKDIR/alljobs.csh | sed 's; -q '$queue'; -q 1nh;' | sed 's;$; 10;' | sed "s;JOB0001;JOBtest;;s;JOB_0001;JOB_test;;s; 0001 ; test ;" >> $TASKDIR/test.csh
     echo "cd -" >> $TASKDIR/test.csh
     echo "source "$TASKDIR"/submit.csh"
     echo "Or you can try this test script:"
     echo "source "$TASKDIR"/test.csh"
 else if ( "$OPT" == "-status" ) then
-    bjobs -J "$TASKDIR*" >! taskjobs
+    ( bjobs -J "$TASKDIR*" >! taskjobs ) > & /dev/null
     grep PEND taskjobs >! Pending
     grep RUN taskjobs >! Running
     set PEND=`wc -l Pending | awk '{ print $1}'`
     set RUN=`wc -l Running | awk '{ print $1}'`
-    eos ls eos/cms/store/caf/user/$USERDIR_EOS/$1 | grep .root >! Completed
-    lcg-ls -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$1 | grep .root | sed "s;/; ;g" | awk '{ print $NF }' >> Completed
+    ( eos ls eos/cms/store/caf/user/$USERDIR_EOS/$1 | grep .root >! Completed ) > & /dev/null
+    ( lcg-ls -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$1 | grep .root | sed "s;/; ;g" | awk '{ print $NF }' >> Completed ) >& /dev/null
     sort -u Completed >! Comp
     mv Comp Completed
     set COMP=`wc -l Completed | awk '{ print $1}'`
@@ -266,8 +281,8 @@ else if ( "$OPT" == "-resubmit_missing" ) then
     echo "cd -" >> $TASKDIR/resub.csh
     echo "source "$TASKDIR"/resub.csh"
 else if ( "$OPT" == "-move_to_kfki" ) then
-    eos ls -l eos/cms/store/caf/user/$USERDIR_EOS/$TASKDIR | grep .root | awk '{ print $5" "$NF }' >! eos_list
-    lcg-ls -l -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$TASKDIR | grep .root | sed "s;/; ;g" | awk '{ print $5" "$NF }' | sort -k 2 >! kfki_list
+    ( eos ls -l eos/cms/store/caf/user/$USERDIR_EOS/$TASKDIR | grep .root | awk '{ print $5" "$NF }' >! eos_list ) >& /dev/null
+    ( lcg-ls -l -b -D srmv2 --vo cms srm://grid143.kfki.hu:8446/srm/managerv2\?SFN=/dpm/kfki.hu/home/cms/phedex/store/user/$USERDIR_KFKI/$TASKDIR | grep .root | sed "s;/; ;g" | awk '{ print $5" "$NF }' | sort -k 2 >! kfki_list ) >& /dev/null
     diff eos_list kfki_list | grep "<" | awk '{ print $3 }' | sort -k 2 >! to_move_list
     echo -n "" >! safe_to_delete_from_eos
     foreach a ( `cat eos_list | awk '{ print $2 }'` )
