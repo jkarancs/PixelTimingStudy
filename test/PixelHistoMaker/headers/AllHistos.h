@@ -316,38 +316,48 @@ class AllHistos {
     //                            Dynamic Efficiency Loss Plots
     //                                 (By Jozsef Krizsan)
     
-    if (v.effcut_all) {
-      if (v.zb) {
-	if (v.traj_instlumi>2000) {
-	  if (e.run!=1) { // Data
-	    if (!t.mod_on.det) {
-	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
-	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
-	    }
-	    rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
-	    if (t.mod_on.det==1)
-	      rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
-	  } else { // MC
-	    if (!t.mod_on.det) {
-	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder);
-	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
-	      dynamic_ineff ->h1d(0, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.ladder);
-	      dynamic_ineff ->h1d(1, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.module);
-	      dynamic_ineff ->h1d(2, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_l1rate);
-	      dynamic_ineff ->h1d(3, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_instlumi);
-	    }
-	    rocmap->   increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
-	    if (t.mod_on.det==1)
-	      rocmap-> increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
-	    rocmap->   increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny);
-	    if (t.mod_on.det==1)
-	      rocmap-> increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny+1);
-	  }
+    if (v.effcut_all&&v.zb) {
+      if (e.run!=1) { // Data
+	if (!t.mod_on.det) {
+#if VERSION2 >= 35
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
+#else
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder, e.weight);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module, e.weight);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate, e.weight);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi, e.weight);
+#endif
 	}
+	rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	if (t.mod_on.det==1)
+	  rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
+      } else { // MC
+	if (!t.mod_on.det) {
+#if VERSION2 >= 35
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder, e.weight);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module, e.weight);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate, e.weight);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi, e.weight);
+#else
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
+#endif
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.ladder);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.module);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_l1rate);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  2, v.gen_missing)->Fill(v.traj_instlumi);
+	}
+	rocmap->   increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	if (t.mod_on.det==1)
+	  rocmap-> increasebin_2d(v.traj_roc_p1, 1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
+	rocmap->   increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny);
+	if (t.mod_on.det==1)
+	  rocmap-> increasebin_2d(v.traj_roc_p1, 2, v.gen_missing, v.traj_roc_binx, v.traj_roc_biny+1);
       }
     }
 
@@ -498,7 +508,11 @@ class AllHistos {
       // Fill-by-Fill plots
       if (!(abs(t.mod_on.disk)==1&&(t.mod_on.panel+t.mod_on.module)<4))
 	det->              h1d(0,                t.missing)->Fill(v.traj_lay_x);
+#if VERSION2 >= 35
+      mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y, e.weight);
+#else
       mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y);
+#endif
       roc->   increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
       if (t.mod_on.det==1)
 	roc-> increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1); // fpix

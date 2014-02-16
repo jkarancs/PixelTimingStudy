@@ -12,30 +12,43 @@ process.MessageLogger.cerr.threshold = 'INFO'
 
 
 # ----------------- Number of Events -------------------
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
 
 # ------------------- Input Files ----------------------
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
+        # cern
+        #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
+        # ui3 local
+        'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
         #'file:/data/store/relval/CMSSW_7_0_0_pre8/GEN-SIM/00E8DCE5-3459-E311-A9FB-0025905A608A.root'
         #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
-        #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
-        'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
     )
 )
 # GEN-SIM Input file with MinBias events
 #PileupInput = process.source.fileNames
 PileupInput = cms.untracked.vstring(
+    # cern
     #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
-    'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+    # ui3 local
+    #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+    # kfki
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_486_5_oQC.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_296_5_MDT.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_2_1_bC2.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_315_5_pTg.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_31_1_dy5.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_156_5_E2E.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_16_1_4Dr.root',
+    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_350_5_Na5.root',
 )
 # Input pileup distribution for MixingModule
 # Can use the same file in TimingStudy for pileup reweighting
 # Note: the desired mc_input distribution has to be shifted by -1 wrt mcpileup
 PileupHistoInput = cms.untracked.string(
-    'file:PileupHistogram_201278_flatpileupMC.root' # Flat Pileup
-    #'file:PileupHistogram_201278.root' # 201278 Pileup
+    #'file:PileupHistogram_201278_flatpileupMC.root' # Flat Pileup
+    'file:PileupHistogram_201278.root' # 201278 Pileup
 )
 PileupHistoName=cms.untracked.string('mc_input')
 
@@ -81,148 +94,6 @@ process.mix.input = cms.SecSource("PoolSource",
     OOT_type = cms.untracked.string('Poisson'),
     fileNames = PileupInput
 )
-
-process.mix.digitizers.pixel.AddPixelInefficiencyFromPython = True # default: true
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix1 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix2 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelColEfficiency_BPix3 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelColEfficiency_FPix1 = cms.double(0.999)
-process.mix.digitizers.pixel.thePixelColEfficiency_FPix2 = cms.double(0.999)
-
-process.mix.digitizers.pixel.thePixelEfficiency_BPix1 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelEfficiency_BPix2 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelEfficiency_BPix3 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelEfficiency_FPix1 = cms.double(0.999)
-process.mix.digitizers.pixel.thePixelEfficiency_FPix2 = cms.double(0.999)
-
-process.mix.digitizers.pixel.thePixelChipEfficiency_BPix1 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelChipEfficiency_BPix2 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelChipEfficiency_BPix3 = cms.double(1.0)
-process.mix.digitizers.pixel.thePixelChipEfficiency_FPix1 = cms.double(0.999)
-process.mix.digitizers.pixel.thePixelChipEfficiency_FPix2 = cms.double(0.999)
-
-#process.mix.digitizers.pixel.theLadderEfficiency_BPix1 = cms.vdouble(
-#    0.978351,
-#    0.971877,
-#    0.974283,
-#    0.969328,
-#    0.972922,
-#    0.970964,
-#    0.975762,
-#    0.974786,
-#    0.980244,
-#    0.978452,
-#    0.982129,
-#    0.979737,
-#    0.984381,
-#    0.983971,
-#    0.98186,
-#    0.983283,
-#    0.981485,
-#    0.979753,
-#    0.980287,
-#    0.975195,
-#)
-#process.mix.digitizers.pixel.theModuleEfficiency_BPix1 = cms.vdouble(
-#    1.00361,
-#    0.999371,
-#    0.961242,
-#    0.766481,
-#)
-
-#process.mix.digitizers.pixel.theLadderEfficiency_BPix2 = cms.vdouble(
-#    0.996276,
-#    0.993354,
-#    0.993752,
-#    0.992948,
-#    0.993871,
-#    0.992317,
-#    0.997733,
-#    0.992516,
-#    0.992649,
-#    0.993425,
-#    0.994065,
-#    0.993481,
-#    0.993169,
-#    0.994223,
-#    0.992397,
-#    0.99509,
-#    0.995177,
-#    0.995319,
-#    0.994925,
-#    0.992933,
-#    0.994111,
-#    0.9948,
-#    0.994711,
-#    0.994294,
-#    0.995392,
-#    0.994229,
-#    0.994414,
-#    0.995271,
-#    0.993585,
-#    0.995264,
-#    0.992977,
-#    0.993642,
-#)
-#process.mix.digitizers.pixel.theModuleEfficiency_BPix2 = cms.vdouble(
-#    1.00069,
-#    0.999792,
-#    0.99562,
-#    0.955627,
-#)
-
-#process.mix.digitizers.pixel.theLadderEfficiency_BPix3 = cms.vdouble(
-#    0.996206,
-#    0.998039,
-#    0.995801,
-#    0.99665,
-#    0.996414,
-#    0.995755,
-#    0.996518,
-#    0.995584,
-#    0.997171,
-#    0.998056,
-#    0.99595,
-#    0.997473,
-#    0.996858,
-#    0.996486,
-#    0.997442,
-#    0.998002,
-#    0.995429,
-#    0.997939,
-#    0.996896,
-#    0.997434,
-#    0.996616,
-#    0.996439,
-#    0.996546,
-#    0.997597,
-#    0.995435,
-#    0.996396,
-#    0.99621,
-#    0.998316,
-#    0.998431,
-#    0.99598,
-#    0.997063,
-#    0.996245,
-#    0.997502,
-#    0.996254,
-#    0.997545,
-#    0.997553,
-#    0.996722,
-#    0.996107,
-#    0.996588,
-#    0.996277,
-#    0.99785,
-#    0.997087,
-#    0.998139,
-#    0.997139,
-#)
-#process.mix.digitizers.pixel.theModuleEfficiency_BPix3 = cms.vdouble(
-#    1.00006,
-#    0.999744,
-#    0.998147,
-#    1.00314,
-#)
 
 process.load('Configuration.StandardSequences.Digi_cff') # pdigi
 
@@ -315,10 +186,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     dataPileupFile = cms.string("PileupHistogram_201278_flatpileupMC.root"),
-                                     mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
-                                     #dataPileupFile = cms.string("PileupHistogram_201278.root"),
-                                     #mcPileupFile   = cms.string("PileupHistogram_201278.root"),
+                                     #dataPileupFile = cms.string("PileupHistogram_201278_flatpileupMC.root"),
+                                     #mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
+                                     dataPileupFile = cms.string("PileupHistogram_201278.root"),
+                                     mcPileupFile   = cms.string("PileupHistogram_201278.root"),
                                      dataPileupHistoName = cms.string("pileup"),
                                      mcPileupHistoName = cms.string("mcpileup"),
                                      mcLumiScale = cms.double(221.95)
