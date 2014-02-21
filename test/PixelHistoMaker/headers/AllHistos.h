@@ -318,22 +318,18 @@ class AllHistos {
     
     if (v.effcut_all&&v.zb) {
       if (e.run!=1) { // Data
-	if (!t.mod_on.det) {
-#if VERSION2 >= 35
-	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
-	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
-	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
-	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
-#else
-	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder, e.weight);
-	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module, e.weight);
-	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate, e.weight);
-	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi, e.weight);
-#endif
+	//"201278": [[62, 163], [166, 229], [232, 256], [259, 316], [318, 595], [598, 938], [942, 974], [976, 1160], [1163, 1304], [1306, 1793], [1796, 1802], [1805, 1906], [1909, 1929], [1932, 2174]]
+	if (e.run==201278&&!(e.ls<62||(e.ls>163&&e.ls<166)||(e.ls>229&&e.ls<232)||(e.ls>256&&e.ls<259)||(e.ls>316&&e.ls<318)||(e.ls>595&&e.ls<598)||(e.ls>938&&e.ls<942)||(e.ls>974&&e.ls<976)||(e.ls>1160&&e.ls<1163)||(e.ls>1304&&e.ls<1306)||(e.ls>1793&&e.ls<1796)||(e.ls>1802&&e.ls<1805)||(e.ls>1906&&e.ls<1909)||(e.ls>1929&&e.ls<1932)||e.ls>2174)) {
+	  if (!t.mod_on.det) {
+	    dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
+	    dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
+	    dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	    dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
+	  }
+	  rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	  if (t.mod_on.det==1)
+	    rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
 	}
-	rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
-	if (t.mod_on.det==1)
-	  rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
       } else { // MC
 	if (!t.mod_on.det) {
 #if VERSION2 >= 35

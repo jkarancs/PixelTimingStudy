@@ -657,7 +657,7 @@ int main(int argc, char* argv[]) {
   ah.dynamic_ineff ->add(p.dynamic, 1, 1, 1, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2,  45, -22.5, 22.5);
   ah.dynamic_ineff ->add(p.dynamic, 1, 2, 2, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2,   9, -4.5, 4.5);
   ah.dynamic_ineff ->add(p.dynamic, 1, 3, 3, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 120, 0, 120);
-  ah.dynamic_ineff ->add(p.dynamic, 1, 4, 4, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 160, 0, 8000);
+  ah.dynamic_ineff ->add(p.dynamic, 1, 4, 4, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 100, 0, 10000);
   
   ah.rocmap         ->add(p.det,    1,  4, 4,  3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5,  42, -10.5,  10.5);
   ah.rocmap         ->add(p.det,    1,  5, 5,  3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5,  66, -16.5,  16.5);
@@ -1307,7 +1307,6 @@ int main(int argc, char* argv[]) {
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1349_2_frD.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1350_2_Vqw.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1351_2_BvC.root");
-  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1351_3_3pb.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1352_1_D83.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1353_2_PGk.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1354_1_bZT.root");
@@ -1324,21 +1323,16 @@ int main(int argc, char* argv[]) {
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1365_2_i5F.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1366_1_I99.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1367_1_4VN.root");
-  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1368_2_hTC.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1369_1_Ylm.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1370_1_fNO.root");
-  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1370_2_EDy.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1371_2_t69.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1372_1_FWB.root");
-  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1372_2_Otd.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1373_1_755.root");
-  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1373_2_Qjc.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1374_2_4ZN.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1375_2_Lra.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1376_1_53i.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1377_1_4cc.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1378_2_j3U.root");
-  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1378_3_2bb.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1379_1_lV4.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1380_2_75f.root");
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1381_1_Czr.root");
@@ -1354,7 +1348,13 @@ int main(int argc, char* argv[]) {
   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1391_2_KAi.root");
   */
   
-  
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1351_3_3pb.root");
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1368_2_hTC.root");
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1370_2_EDy.root");
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1372_2_Otd.root");
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1373_2_Qjc.root");
+  //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1378_3_2bb.root");
+
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1367_1_4VN.root");
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1369_1_Ylm.root");
 //   phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_136_1_KkX.root");

@@ -28,27 +28,23 @@ process.source = cms.Source("PoolSource",
 )
 # GEN-SIM Input file with MinBias events
 #PileupInput = process.source.fileNames
-PileupInput = cms.untracked.vstring(
-    # cern
-    #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
-    # ui3 local
-    #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
-    # kfki
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_486_5_oQC.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_296_5_MDT.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_2_1_bC2.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_315_5_pTg.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_31_1_dy5.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_156_5_E2E.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_16_1_4Dr.root',
-    '/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_350_5_Na5.root',
-)
+from SimGeneral.MixingModule.mixPoolSource_cfi import *
+PileupInput = FileNames
+#PileupInput = cms.untracked.vstring(
+#    # cern
+#    #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
+#    # ui3 local
+#    'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+#    # kfki - use these with crab when running on T2_HU_Budapest
+#    #'/store/user/hazia/minbias_8TeV_gensim_2000k/ahazi/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/3b78376919891d28264f00a4aed08854/MinBias_8TeV_GEN_SIM_2000k_486_5_oQC.root',
+#)
+
 # Input pileup distribution for MixingModule
 # Can use the same file in TimingStudy for pileup reweighting
 # Note: the desired mc_input distribution has to be shifted by -1 wrt mcpileup
 PileupHistoInput = cms.untracked.string(
-    #'file:PileupHistogram_201278_flatpileupMC.root' # Flat Pileup
-    'file:PileupHistogram_201278.root' # 201278 Pileup
+    'file:PileupHistogram_201278_flatpileupMC.root' # Flat Pileup
+    #'file:PileupHistogram_201278.root' # 201278 Pileup
 )
 PileupHistoName=cms.untracked.string('mc_input')
 
@@ -186,10 +182,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     #dataPileupFile = cms.string("PileupHistogram_201278_flatpileupMC.root"),
-                                     #mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
-                                     dataPileupFile = cms.string("PileupHistogram_201278.root"),
-                                     mcPileupFile   = cms.string("PileupHistogram_201278.root"),
+                                     dataPileupFile = cms.string("PileupHistogram_201278_flatpileupMC.root"),
+                                     mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
+                                     #dataPileupFile = cms.string("PileupHistogram_201278.root"),
+                                     #mcPileupFile   = cms.string("PileupHistogram_201278.root"),
                                      dataPileupHistoName = cms.string("pileup"),
                                      mcPileupHistoName = cms.string("mcpileup"),
                                      mcLumiScale = cms.double(221.95)
