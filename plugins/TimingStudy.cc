@@ -1088,6 +1088,8 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	digi.row=itDigi->row();
 	digi.col=itDigi->column();
 	digi.adc=itDigi->adc();
+	digi.mod=module;
+	digi.mod_on=module_on;
 	digis_.push_back(digi);
 	if (JKDEBUG) {
 	  std::cout<<"\t#"<<digi.i<<" adc "<<digi.adc<<" at ("<<digi.col<<", "<<digi.row<<")";
