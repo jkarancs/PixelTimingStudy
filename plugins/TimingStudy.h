@@ -7,7 +7,7 @@
  ************************************************************/
 
 // ----------------------------------------------------------------------------------------
-
+#include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
@@ -15,7 +15,7 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
-#include "DQM/TrackerMonitorTrack/interface/MonitorTrackResiduals.h"
+//#include "DQM/TrackerMonitorTrack/interface/MonitorTrackResiduals.h"
 //#include "TrackingTools/PatternTools/interface/TrajectoryFitter.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryFitter.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
@@ -495,6 +495,9 @@ class TimingStudy : public edm::EDAnalyzer
     int missing;
     float lx;
     float ly;
+    float res_dx;
+    float res_dz;
+    float lev;
     int clust_near;
     int hit_near;
     int pass_effcuts;
@@ -542,6 +545,9 @@ class TimingStudy : public edm::EDAnalyzer
       missing=NOVAL_I;
       lx=NOVAL_F;
       ly=NOVAL_F;
+      res_dx=NOVAL_F;
+      res_dz=NOVAL_F;
+      lev=NOVAL_F;
       clust_near=NOVAL_I;
       hit_near=NOVAL_I;
       pass_effcuts=NOVAL_I;
@@ -580,15 +586,15 @@ class TimingStudy : public edm::EDAnalyzer
       d_cl[0]=d_cl[1]=NOVAL_F;
 
 #ifdef COMPLETE
-      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_efcuts:nclu_mod:"
-	"nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:"
-	"norm_charge:lz:glx:gly:glz:lxmatch:lymatch:i/I:onedge:inactive:badhit:"
-	"telescope:telescope_valid:dmodule:dladder:glmatch/F:lx_err:ly_err:lz_err:"
-	"lxymatch:res_hit:sig_hit:d_cl[2]";
+      list="validhit/I:missing:lx/F:ly:res_dx:res_dz:lev:clust_near/I:hit_near:"
+	"pass_efcuts:nclu_mod:nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:"
+	"dy_cl[2]:dx_hit:dy_hit:norm_charge:lz:glx:gly:glz:lxmatch:lymatch:i/I:"
+	"onedge:inactive:badhit:telescope:telescope_valid:dmodule:dladder:"
+	"glmatch/F:lx_err:ly_err:lz_err:lxymatch:res_hit:sig_hit:d_cl[2]";
 #else
-      list="validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_efcuts:nclu_mod:"
-	"nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:dy_cl[2]:dx_hit:dy_hit:"
-	"norm_charge";
+      list="validhit/I:missing:lx/F:ly:res_dx:res_dz:lev:clust_near/I:hit_near:"
+	"pass_efcuts:nclu_mod:nclu_roc:npix_mod:npix_roc:alpha/F:beta:dx_cl[2]:"
+	"dy_cl[2]:dx_hit:dy_hit:norm_charge";
 #endif
     }
 

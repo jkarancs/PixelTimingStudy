@@ -37,7 +37,10 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 # For MC
 #process.GlobalTag.globaltag = "START53_V27::All"
-process.GlobalTag.globaltag = "MC_70_V1::All"
+#process.GlobalTag.globaltag = "MC_70_V1::All"
+
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag.globaltag = cms.string( autoCond[ 'startup' ] )
 
 #-------------------------
 #  Reconstruction Modules
@@ -110,7 +113,7 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      extrapolateTo = cms.int32(1),
                                      keepOriginalMissingHit = cms.bool(False),
                                      usePixelCPE= cms.bool(True),
-                                     #minNStripHits = cms.int32(0),
+                                     minNStripHits = cms.int32(0),
                                      triggerNames=cms.vstring("HLT_ZeroBias",
                                                               "HLT_Physics",
                                                               "HLT_Random",
@@ -131,10 +134,11 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                                               "HLT_70Jet13",
                                                               "HLT_L1Tech_BSC_minBias",
                                                               "HLT_MinBias"),
-                                     mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
-                                     dataPileupFile = cms.string("data/PileupHistogram_test.root"),
-                                     mcPileupHistoName = cms.string("mcpileup"),
-                                     dataPileupHistoName = cms.string("pileup")
+                                     # Reweighting
+                                     #mcPileupFile   = cms.string("data/PileupHistogram_test.root"),
+                                     #dataPileupFile = cms.string("data/PileupHistogram_test.root"),
+                                     #mcPileupHistoName = cms.string("mcpileup"),
+                                     #dataPileupHistoName = cms.string("pileup")
 )
 
 # For the three cases:
@@ -153,16 +157,16 @@ process.pixlessNtuple.trajectoryInput = 'pixlessRefitter'
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-# CMSSW_7_X:
-'file:/data/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RECO/START70_V5-v1/00000/0869C91A-1C86-E311-B4C7-02163E00EB49.root'
-
-# CMSSW_5_X RECO Files
-#'/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root'
-#'/store/data/Run2012C/MinimumBias/RECO/PromptReco-v2/000/201/278/A0EEE587-55ED-E111-B860-003048F118DE.root'
-
-# Silvia's MC sample - 10k events
-#'/store/user/taroni/Pixel/PUComparisonE/STEP2_normalized.root'
-)
+        # CMSSW_7_X:
+        #'file:/data/store/relval/CMSSW_7_1_0_pre1/RelValProdMinBias/GEN-SIM-RECO/START70_V5-v1/00000/0869C91A-1C86-E311-B4C7-02163E00EB49.root'
+        'file:/data/store/relval/CMSSW_7_1_0_pre8/RelValZMM_13/GEN-SIM-RECO/PRE_LS171_V9-v1/00000/000464CB-F5E1-E311-B191-00261894397B.root'
+        
+        # CMSSW_5_X RECO Files
+        #'/store/data/Run2012C/MinimumBias/RECO/22Jan2013-v1/20006/04E396DF-9172-E211-B250-003048FEAF90.root'
+        #'/store/data/Run2012C/MinimumBias/RECO/PromptReco-v2/000/201/278/A0EEE587-55ED-E111-B860-003048F118DE.root'
+        # Silvia's MC sample - 10k events
+        #'/store/user/taroni/Pixel/PUComparisonE/STEP2_normalized.root'
+    )
 )
 
 #-------------------------------------------------

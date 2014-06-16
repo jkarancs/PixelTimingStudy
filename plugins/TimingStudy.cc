@@ -77,6 +77,17 @@
 #include <iostream>
 #include <vector>
 
+// For Resolution
+#include "Geometry/CommonTopologies/interface/Topology.h"
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+#include "TrackingTools/Records/interface/TransientRecHitRecord.h"
+#include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
+#include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHit.h"
+#include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHitBuilder.h"
+#include "RecoTracker/TransientTrackingRecHit/interface/TkTransientTrackingRecHitBuilder.h"
+#define NEW_TRACKINGRECHITS // For V710_pre7 and later
+
+
 //set to 1 in order to switch on logging of debug info - may create large log file 
 //(set to 0 for Grid runs)
 #define JKDEBUG 0
@@ -284,7 +295,7 @@ void TimingStudy::beginJob()
   
   // traj
   // Non-splitted branch
-  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:clust_near/I:hit_near:pass_effcuts");
+  trajTree_->Branch("traj", &trajmeas, "validhit/I:missing:lx/F:ly:res_dx:res_dz:lev:clust_near/I:hit_near:pass_effcuts");
   #if SPLIT > 0
   // Paired branches
   trajTree_->Branch("traj_occup",            &trajmeas.nclu_mod,        "nclu_mod/I:nclu_roc:npix_mod:npix_roc");
@@ -857,7 +868,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     w.Print();
   }
 
-
   // Read FED error info
 
   std::map<uint32_t, int> federrors;
@@ -944,7 +954,53 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     w.Print();
   }
 
+  //=========================================================================================
+  //                      Resolution code from PixelTriplets (13 June 2014)
+  //=========================================================================================
+#ifdef NEW_TRACKINGRECHITS
+  
+  // Fitter
+  edm::ESHandle<TrajectoryFitter> aFitter;
+  iSetup.get<TrajectoryFitter::Record>().get("KFFittingSmootherWithOutliersRejectionAndRK",aFitter);
+  std::unique_ptr<TrajectoryFitter> theFitter = aFitter->clone();
+  
+  //----------------------------------------------------------------------------
+  // Transient Rechit Builders
+  edm::ESHandle<TransientTrackBuilder> theB;
+  iSetup.get<TransientTrackRecord>().get( "TransientTrackBuilder", theB );
 
+  // Transient rec hits:
+  edm::ESHandle<TransientTrackingRecHitBuilder> hitBuilder;
+  iSetup.get<TransientRecHitRecord>().get( "WithTrackAngle", hitBuilder );
+
+  // Cloner, New from 71Xpre7
+  const TkTransientTrackingRecHitBuilder * builder =
+    static_cast<TkTransientTrackingRecHitBuilder const *>(hitBuilder.product());
+  auto hitCloner = builder->cloner();
+  theFitter->setHitCloner(&hitCloner);
+
+#else
+  // old
+  edm::ESHandle<TrajectoryFitter> TF;
+  iSetup.get<TrajectoryFitter::Record>().get( "KFFittingSmootherWithOutliersRejectionAndRK", TF );
+  const TrajectoryFitter* theFitter = TF.product();
+  
+  edm::ESHandle<TransientTrackBuilder> theB;
+  iSetup.get<TransientTrackRecord>().get( "TransientTrackBuilder", theB );
+  
+  // transient rec hits:
+  edm::ESHandle<TransientTrackingRecHitBuilder> hitBuilder;
+  iSetup.get<TransientRecHitRecord>().get( "WithTrackAngle", hitBuilder );
+  
+#endif
+  
+  // TrackPropagator:
+  edm::ESHandle<Propagator> prop;
+  iSetup.get<TrackingComponentsRecord>().get( "PropagatorWithMaterial", prop );
+  const Propagator* thePropagator = prop.product();
+  
+  Surface::GlobalPoint origin = Surface::GlobalPoint(0,0,0);
+  
   // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  - >
 
 
@@ -1236,6 +1292,411 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       const Trajectory& traj  = *itTrajTrack->key;
       const Track&      track = *itTrajTrack->val;
       
+
+      //=========================================================================================
+      //                      Resolution code from PixelTriplets (13 June 2014)
+      //=========================================================================================
+      
+      // transient track (for resolution)
+      TransientTrack tTrack = theB->build(track);
+      TrajectoryStateOnSurface initialTSOS = tTrack.innermostMeasurementState();
+      TrajectoryStateClosestToPoint tscp = tTrack.trajectoryStateClosestToPoint( origin );
+      double kap = tTrack.initialFreeState().transverseCurvature();
+      if( tscp.isValid() ) {
+	kap = tscp.perigeeParameters().transverseCurvature();
+      }
+      double rho = 1/kap;
+      double rinv = -kap;
+      
+      // precise hit in CMS global coordinates
+      double xPXB1 = 0;
+      double yPXB1 = 0;
+      double zPXB1 = 0;
+      double xPXB2 = 0;
+      double yPXB2 = 0;
+      double zPXB2 = 0;
+      double xPXB3 = 0;
+      double yPXB3 = 0;
+      double zPXB3 = 0;
+      int n1 = 0;
+      int n2 = 0;
+      int n3 = 0;    
+
+      uint32_t innerDetId = 0;
+      edm::OwnVector<TrackingRecHit> recHitVector; // for seed
+      Trajectory::RecHitContainer coTTRHvec; // for fit, constant
+
+      // Loop on recHits in order to fill above hit coordinates
+      for( trackingRecHit_iterator irecHit = track.recHitsBegin();
+	   irecHit != track.recHitsEnd(); ++irecHit ) {
+	
+	DetId detId = (*irecHit)->geographicalId();
+	
+	// enum Detector { Tracker=1, Muon=2, Ecal=3, Hcal=4, Calo=5 };
+	if( detId.det() != 1 ) continue;
+	
+	recHitVector.push_back( (*irecHit)->clone() );
+	
+	// build transient hit:
+#ifdef NEW_TRACKINGRECHITS
+	// for pre7
+	auto tmprh = (*irecHit)->cloneForFit(*builder->geometry()->idToDet((**irecHit).geographicalId()));
+	auto transRecHit = hitCloner.makeShared(tmprh, initialTSOS);
+#else
+	TransientTrackingRecHit::RecHitPointer transRecHit = hitBuilder->build( &*(*irecHit), initialTSOS);
+#endif
+	coTTRHvec.push_back( transRecHit );
+	
+	if( ! (*irecHit)->isValid() ) continue;
+	
+	double gX = transRecHit->globalPosition().x();
+	double gY = transRecHit->globalPosition().y();
+	double gZ = transRecHit->globalPosition().z();
+	
+	if( transRecHit->canImproveWithTrack() ) {//use z from track to apply alignment
+	    
+	  TrajectoryStateOnSurface propTSOS = thePropagator->propagate( initialTSOS, transRecHit->det()->surface() );
+	  if( propTSOS.isValid() ){
+#ifdef NEW_TRACKINGRECHITS
+	    auto preciseHit = hitCloner.makeShared(tmprh,propTSOS); //pre7
+#else
+	    TransientTrackingRecHit::RecHitPointer preciseHit = transRecHit->clone(propTSOS);
+#endif
+	    gX = preciseHit->globalPosition().x();
+	    gY = preciseHit->globalPosition().y();
+	    gZ = preciseHit->globalPosition().z();
+	  }
+	}
+	
+	if( sqrt( gX*gX + gY*gY ) < 99.9 ) innerDetId = detId.rawId();
+
+	int ilay = PXBDetId(detId).layer();
+	if ( ilay == 1 ) {
+	  n1++;
+	  xPXB1 = gX;
+	  yPXB1 = gY;
+	  zPXB1 = gZ;
+	} else if ( ilay == 2 ) {
+	  n2++;
+	  xPXB2 = gX;
+	  yPXB2 = gY;
+	  zPXB2 = gZ;
+	} else if ( ilay == 3 ){
+	  n3++;
+	  xPXB3 = gX;
+	  yPXB3 = gY;
+	  zPXB3 = gZ;
+	}
+      }
+      
+      // trajectory residuals:
+      PTrajectoryStateOnDet PTraj = trajectoryStateTransform::persistentState( initialTSOS, innerDetId );
+      const TrajectorySeed seed( PTraj, recHitVector, alongMomentum );
+      std::vector<Trajectory> refitTrajectoryCollection = theFitter->fit( seed, coTTRHvec, initialTSOS );
+      if( refitTrajectoryCollection.size() > 0 ) { // should be either 0 or 1
+	
+	const Trajectory& refitTrajectory = refitTrajectoryCollection.front();
+	
+	// Trajectory.measurements:
+	Trajectory::DataContainer refitTMs = refitTrajectory.measurements();
+	
+	for( Trajectory::DataContainer::iterator iTM = refitTMs.begin();
+	     iTM != refitTMs.end(); iTM++ ) {
+	  
+	  if( ! iTM->recHit()->isValid() ) continue;
+	  
+	  TrajectoryStateOnSurface combinedPredictedState =
+	    TrajectoryStateCombiner().combine( iTM->forwardPredictedState(), iTM->backwardPredictedState() );
+	  
+	  if( ! combinedPredictedState.isValid() ) continue;//skip hit
+	  
+	  // use Topology. no effect in PXB, essential in TID, TEC
+	  const Topology* theTopology = &(iTM->recHit()->detUnit()->topology() );
+	  
+	  // TODO: Use the measurementPosition(point, trackdir) version of this function in order to take bows into account!
+	  MeasurementPoint hitMeasurement = theTopology->measurementPosition( iTM->recHit()->localPosition() );
+	  
+	  // TID and TEC have trapezoidal detectors:
+	  // translation from channel number into local x depends on local y
+	  // track prediction has local x,y => can convert into proper channel number MeasurementPoint:
+	  // TODO: Use the measurementPosition(point, trackdir) version of this function in order to take bows into account!
+	  MeasurementPoint combinedPredictedMeasurement = theTopology->measurementPosition( combinedPredictedState.localPosition() );
+	  
+	  // Overwrite global coordinates (why?)
+	  DetId detId = iTM->recHit()->geographicalId();
+	  uint32_t subDet = detId.subdetId();
+	  MeasurementPoint mp( hitMeasurement.x(), (subDet<3) ? hitMeasurement.y() : combinedPredictedMeasurement.y() );      
+	  Surface::LocalPoint lp = theTopology->localPosition( mp );
+	  const GeomDet * myGeomDet = iTM->recHit()->det(); // makes no difference in TEC
+	  Surface::GlobalPoint gp = myGeomDet->toGlobal( lp );
+	  
+	  double gX = gp.x();
+	  double gY = gp.y();
+	  double gZ = gp.z();
+	  
+	  //2012: overwrite PXB global coordinates once more, using topology:
+	  if( subDet == PixelSubdetector::PixelBarrel ) {
+	    int ilay = PXBDetId(detId).layer();
+	    if( ilay == 1 ) {
+	      xPXB1 = gX;
+	      yPXB1 = gY;
+	      zPXB1 = gZ;
+	    } else if( ilay == 2 ) {
+	      xPXB2 = gX;
+	      yPXB2 = gY;
+	      zPXB2 = gZ;
+	    } else if( ilay == 3 ) {
+	      xPXB3 = gX;
+	      yPXB3 = gY;
+	      zPXB3 = gZ;
+	    }
+	  }//PXB
+	}
+      }
+      
+      float lev_l1 = NOVAL_F;
+      float lev_l2 = NOVAL_F;
+      float lev_l3 = NOVAL_F;
+      float res_dx_l1 = NOVAL_F;
+      float res_dz_l1 = NOVAL_F;
+      float res_dx_l2 = NOVAL_F;
+      float res_dz_l2 = NOVAL_F;
+      float res_dx_l3 = NOVAL_F;
+      float res_dz_l3 = NOVAL_F;
+      
+      if( n1*n2*n3 > 0 ) { // Only look at triplets
+	// Lever arms
+	// Layer 1
+	double ax = xPXB3 - xPXB2;
+	double ay = yPXB3 - yPXB2;
+	double aa = sqrt( ax*ax + ay*ay ); // from 2 to 3
+	
+	double xmid = 0.5 * ( xPXB2 + xPXB3 );
+	double ymid = 0.5 * ( yPXB2 + yPXB3 );
+	double bx = xPXB1 - xmid;
+	double by = yPXB1 - ymid;
+	double bb = sqrt( bx*bx + by*by ); // from mid point to point 1
+	
+	lev_l1 = bb/aa;
+	
+	// Layer 2
+	ax = xPXB3 - xPXB1;
+	ay = yPXB3 - yPXB1;
+	aa = sqrt( ax*ax + ay*ay ); // from 1 to 3
+
+	xmid = 0.5 * ( xPXB1 + xPXB3 );
+	ymid = 0.5 * ( yPXB1 + yPXB3 );
+	bx = xPXB2 - xmid;
+	by = yPXB2 - ymid;
+	bb = sqrt( bx*bx + by*by ); // from mid point to point 2
+	
+	lev_l2 = bb/aa;
+	
+	// Layer 3
+	ax = xPXB2 - xPXB1;
+	ay = yPXB2 - yPXB1;
+	aa = sqrt( ax*ax + ay*ay ); // from 1 to 2
+	
+	xmid = 0.5 * ( xPXB1 + xPXB2 );
+	ymid = 0.5 * ( yPXB1 + yPXB2 );
+	bx = xPXB3 - xmid;
+	by = yPXB3 - ymid;
+	bb = sqrt( bx*bx + by*by ); // from mid point to point 3
+	
+	lev_l3 = bb/aa;
+	
+	// Calculate the centre of the helix in xy-projection that
+	// transverses the two spacepoints. The points with the same
+	// distance from the two points are lying on a line.
+	// LAMBDA is the distance between the point in the middle of
+	// the two spacepoints and the centre of the helix.
+	
+	// Layer 1
+	double lam = sqrt( -0.25 + rho*rho / ( ( xPXB2 - xPXB3 )*( xPXB2 - xPXB3 ) + ( yPXB2 - yPXB3 )*( yPXB2 - yPXB3 ) ) );
+	
+	// There are two solutions, the sign of kap gives the information
+	// which of them is correct:
+	
+	if( kap > 0 ) lam = -lam;
+	
+	// ( X0, Y0 ) is the centre of the circle
+	// that describes the helix in xy-projection:
+	
+	double x0 =  0.5*( xPXB2 + xPXB3 ) + lam * ( -yPXB2 + yPXB3 );
+	double y0 =  0.5*( yPXB2 + yPXB3 ) + lam * (  xPXB2 - xPXB3 );
+	
+	// Calculate theta:
+	
+	double num = ( yPXB3 - y0 ) * ( xPXB2 - x0 ) - ( xPXB3 - x0 ) * ( yPXB2 - y0 );
+	double den = ( xPXB2 - x0 ) * ( xPXB3 - x0 ) + ( yPXB2 - y0 ) * ( yPXB3 - y0 );
+	double tandip = kap * ( zPXB3 - zPXB2 ) / atan( num / den );
+	
+	// To get phi0 in the right interval one must distinguish
+	// two cases with positve and negative kap:
+	
+	double uphi;
+	if( kap > 0 ) uphi = atan2( -x0,  y0 );
+	else          uphi = atan2(  x0, -y0 );
+	
+	// The distance of the closest approach DCA depends on the sign
+	// of kappa:
+	
+	double udca;
+	if( kap > 0 ) udca = rho - sqrt( x0*x0 + y0*y0 );
+	else          udca = rho + sqrt( x0*x0 + y0*y0 );
+	
+	// angle from first hit to dca point:
+	
+	double dphi = atan( ( ( xPXB2 - x0 ) * y0 - ( yPXB2 - y0 ) * x0 )
+			    / ( ( xPXB2 - x0 ) * x0 + ( yPXB2 - y0 ) * y0 ) );
+	
+	double uz0 = zPXB2 + tandip * dphi * rho;
+	
+	// extrapolate to inner hit:
+	// cirmov
+	// we already have rinv = -kap
+	
+	double cosphi = cos(uphi);
+	double sinphi = sin(uphi);
+	double dp = -xPXB1*sinphi + yPXB1*cosphi + udca;
+	double dl = -xPXB1*cosphi - yPXB1*sinphi;
+	double sa = 2*dp + rinv * ( dp*dp + dl*dl );
+	double dca1 = sa / ( 1 + sqrt(1 + rinv*sa) );// distance to hit 1
+	double ud = 1 + rinv*udca;
+	double phi1 = atan2( -rinv*xPXB1 + ud*sinphi, rinv*yPXB1 + ud*cosphi );//direction
+	
+	// arc length:
+	
+	double xx = xPXB1 + dca1 * sin(phi1); // point on track
+	double yy = yPXB1 - dca1 * cos(phi1);
+	
+	double f0 = uphi;//
+	double kx = kap*xx;
+	double ky = kap*yy;
+	double kd = kap*udca;
+	
+	// Solve track equation for s:
+	
+	double dx = kx - (kd-1)*sin(f0);
+	double dy = ky + (kd-1)*cos(f0);
+	double ks = atan2( dx, -dy ) - f0;// turn angle
+	
+	const double pi = 4*atan(1); // Geom::pi();
+        const double twopi = 2*pi;
+	if(      ks >  pi ) ks = ks - twopi;
+	else if( ks < -pi ) ks = ks + twopi;
+	
+	double s = ks*rho;// signed
+	double uz1 = uz0 + s*tandip; //track z at R1
+	double dz1 = zPXB1 - uz1;
+	
+	// Layer 2
+	lam = sqrt( -0.25 + rho*rho / ( ( xPXB1 - xPXB3 )*( xPXB1 - xPXB3 ) + ( yPXB1 - yPXB3 )*( yPXB1 - yPXB3 ) ) );
+	if( kap > 0 ) lam = -lam;
+	
+	x0 = 0.5*( xPXB1 + xPXB3 ) + lam * ( -yPXB1 + yPXB3 );
+	y0 = 0.5*( yPXB1 + yPXB3 ) + lam * ( xPXB1 - xPXB3 );
+	
+	num = ( yPXB3 - y0 ) * ( xPXB1 - x0 ) - ( xPXB3 - x0 ) * ( yPXB1 - y0 );
+        den = ( xPXB1 - x0 ) * ( xPXB3 - x0 ) + ( yPXB1 - y0 ) * ( yPXB3 - y0 );
+        tandip = kap * ( zPXB3 - zPXB1 ) / atan( num / den );
+        
+        uphi = ( kap > 0 ) ? atan2( -x0, y0 ) : atan2( x0, -y0 );
+        udca = ( kap > 0 ) ? rho - sqrt( x0*x0 + y0*y0 ) : rho + sqrt( x0*x0 + y0*y0 );
+	dphi = atan( ( ( xPXB1 - x0 ) * y0 - ( yPXB1 - y0 ) * x0 )
+		     / ( ( xPXB1 - x0 ) * x0 + ( yPXB1 - y0 ) * y0 ) );
+        
+        uz0 = zPXB1 + tandip * dphi * rho;
+        
+        cosphi = cos(uphi);
+        sinphi = sin(uphi);
+        dp = -xPXB2*sinphi + yPXB2*cosphi + udca;
+        dl = -xPXB2*cosphi - yPXB2*sinphi;
+        sa = 2*dp + rinv * ( dp*dp + dl*dl );
+        double dca2 = sa / ( 1 + sqrt(1 + rinv*sa) );// distance to hit 2
+        ud = 1 + rinv*udca;
+        double phi2 = atan2( -rinv*xPXB2 + ud*sinphi, rinv*yPXB2 + ud*cosphi );//direction
+        
+        xx = xPXB2 + dca2 * sin(phi2); // point on track
+        yy = yPXB2 - dca2 * cos(phi2);
+        
+        f0 = uphi;//
+        kx = kap*xx;
+        ky = kap*yy;
+        kd = kap*udca;
+        
+        dx = kx - (kd-1)*sin(f0);
+        dy = ky + (kd-1)*cos(f0);
+        ks = atan2( dx, -dy ) - f0;// turn angle
+        if( ks > pi ) ks = ks - twopi;
+        else if( ks < -pi ) ks = ks + twopi;
+        
+        s = ks*rho; // signed
+        double uz2 = uz0 + s*tandip; // track z at R2
+        double dz2 = zPXB2 - uz2;
+        
+	// Layer 3
+	lam = sqrt( -0.25 + rho*rho / ( ( xPXB1 - xPXB2 )*( xPXB1 - xPXB2 ) + ( yPXB1 - yPXB2 )*( yPXB1 - yPXB2 ) ) );
+	if( kap > 0 ) lam = -lam;
+	
+	x0 =  0.5*( xPXB1 + xPXB2 ) + lam * ( -yPXB1 + yPXB2 );
+	y0 =  0.5*( yPXB1 + yPXB2 ) + lam * (  xPXB1 - xPXB2 );
+	
+	num = ( yPXB2 - y0 ) * ( xPXB1 - x0 ) - ( xPXB2 - x0 ) * ( yPXB1 - y0 );
+	den = ( xPXB1 - x0 ) * ( xPXB2 - x0 ) + ( yPXB1 - y0 ) * ( yPXB2 - y0 );
+	tandip = kap * ( zPXB2 - zPXB1 ) / atan( num / den );
+	
+	if( kap > 0 ) uphi = atan2( -x0,  y0 );
+	else          uphi = atan2(  x0, -y0 );
+	
+	if( kap > 0 ) udca = rho - sqrt( x0*x0 + y0*y0 );
+	else          udca = rho + sqrt( x0*x0 + y0*y0 );
+	
+	dphi = atan( ( ( xPXB1 - x0 ) * y0 - ( yPXB1 - y0 ) * x0 )
+			  / ( ( xPXB1 - x0 ) * x0 + ( yPXB1 - y0 ) * y0 ) );
+	uz0 = zPXB1 + tandip * dphi * rho;
+	
+	cosphi = cos(uphi);
+	sinphi = sin(uphi);
+	dp = -xPXB3*sinphi + yPXB3*cosphi + udca;
+	dl = -xPXB3*cosphi - yPXB3*sinphi;
+	sa = 2*dp + rinv * ( dp*dp + dl*dl );
+	double dca3 = sa / ( 1 + sqrt(1 + rinv*sa) );// distance to hit 3
+	ud = 1 + rinv*udca;
+	double phi3 = atan2( -rinv*xPXB3 + ud*sinphi, rinv*yPXB3 + ud*cosphi );//track direction
+	
+	xx = xPXB3 + dca3 * sin(phi3); // point on track
+	yy = yPXB3 - dca3 * cos(phi3);
+	
+	f0 = uphi;
+	kx = kap*xx;
+	ky = kap*yy;
+	kd = kap*udca;
+	
+	dx = kx - (kd-1)*sin(f0);
+	dy = ky + (kd-1)*cos(f0);
+	ks = atan2( dx, -dy ) - f0;// turn angle
+	if(      ks >  pi ) ks = ks - twopi;
+	else if( ks < -pi ) ks = ks + twopi;
+	
+	s = ks*rho;// signed
+	double uz3 = uz0 + s*tandip; //track z at R3
+	double dz3 = zPXB3 - uz3;
+	
+        res_dx_l1 = dca1*1E4;
+        res_dz_l1 = dz1*1E4;
+        res_dx_l2 = dca2*1E4;
+        res_dz_l2 = dz2*1E4;
+        res_dx_l3 = dca3*1E4;
+        res_dz_l3 = dz3*1E4;
+	
+	//std::cout<<"Residual (layer 1) dx: "<<res_dx_l1<<" um  dz: "<<res_dz_l1<<" um"<<std::endl;
+        //std::cout<<"         (layer 2) dx: "<<res_dx_l2<<" um  dz: "<<res_dz_l2<<" um"<<std::endl;
+        //std::cout<<"         (layer 3) dx: "<<res_dx_l3<<" um  dz: "<<res_dz_l3<<" um"<<std::endl;
+      }
+      // End of Resolution stuff
+      //------------------------------------------------------------------------------------
+      
       TrackData track_;
       //trajmeas_.clear();
       std::vector<TrajMeasurement> trajmeas;
@@ -1329,7 +1790,18 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	float chky=chkPredTrajState.globalPosition().y();
 	float chkz=chkPredTrajState.globalPosition().z();
 	LocalPoint chklp=chkPredTrajState.localPosition();
-
+	
+	// Resolution
+	if (chkmod.det==0) {
+	  meas.res_dx = (chkmod.layer==1) ? res_dx_l1 : ( (chkmod.layer==2) ? res_dx_l2 : res_dx_l3 );
+	  meas.res_dz = (chkmod.layer==1) ? res_dz_l1 : ( (chkmod.layer==2) ? res_dz_l2 : res_dz_l3 );
+	  meas.lev = (chkmod.layer==1) ? lev_l1 : ( (chkmod.layer==2) ? lev_l2 : lev_l3 );
+	} else {
+	  meas.res_dx = NOVAL_F;
+	  meas.res_dz = NOVAL_F;
+	  meas.lev = NOVAL_F;
+	}
+	
 	if (chkmod.det==0&&chkmod.layer==extrapolateTo_) {
 	  if (DEBUG) w2.Start();
 	  if (JKDEBUG) std::cout<<"Layer "<<extrapolateTo_<<" hit found";
@@ -1445,7 +1917,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    std::cout<<"Valid L"<<extrapolateFrom_<<" hit found. Extrapolating to L"<<
 	      extrapolateTo_<<"\n";
 	  }
-	  std::vector< BarrelDetLayer*> pxbLayers = 
+	  std::vector<const BarrelDetLayer*> pxbLayers = 
 	    measurementTrackerHandle->geometricSearchTracker()->pixelBarrelLayers();
 	  const DetLayer* pxb1 = pxbLayers[extrapolateTo_-1];
 	  const MeasurementEstimator* estimator = est.product();
@@ -1462,8 +1934,9 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    }
 
 	    TrajectoryMeasurement pxb1TM(expTrajMeasurements.front());
-	    ConstReferenceCountingPointer<TransientTrackingRecHit> pxb1Hit;
-	    pxb1Hit = pxb1TM.recHit();
+	    //ConstReferenceCountingPointer<TransientTrackingRecHit> pxb1Hit;
+	    //pxb1Hit = pxb1TM.recHit();
+	    TransientTrackingRecHit::ConstRecHitPointer pxb1Hit = pxb1TM.recHit();
 	    
 	    if (pxb1Hit->geographicalId().rawId()!=0) {
 	      ModuleData pxbMod=getModuleData(pxb1Hit->geographicalId().rawId(), federrors, "offline");
@@ -2418,9 +2891,9 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
       //GlobalPoint gp;
       LocalPoint lp(itCluster->x(), itCluster->y(), 0.);
       if (usePixelCPE_) {
-	PixelClusterParameterEstimator::LocalValues params=cpe.localParameters(*itCluster,*pixdet);
+	PixelClusterParameterEstimator::ReturnType params=cpe.getParameters(*itCluster,*pixdet);
 	//gp = surface->toGlobal(params.first);
-	lp = params.first;
+	lp = std::get<0>(params);
       } 
       //else {
       //  LocalPoint lp(itCluster->x(), itCluster->y(), 0.);
