@@ -6,7 +6,7 @@
 //
 //
 // ------------------------------------------------------------------------------------------------
-
+//
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonTime.h"
@@ -45,7 +45,9 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "RecoTracker/MeasurementDet/interface/MeasurementTracker.h"
+#if CMSSW_VER != 53
 #include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
+#endif
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 #include "TrackingTools/KalmanUpdators/interface/Chi2MeasurementEstimator.h"
 #include "TrackingTools/DetLayers/interface/DetLayer.h"
@@ -85,8 +87,6 @@
 #include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHit.h"
 #include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHitBuilder.h"
 #include "RecoTracker/TransientTrackingRecHit/interface/TkTransientTrackingRecHitBuilder.h"
-#define NEW_TRACKINGRECHITS // For V710_pre7 and later
-
 
 //set to 1 in order to switch on logging of debug info - may create large log file 
 //(set to 0 for Grid runs)
@@ -957,7 +957,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //=========================================================================================
   //                      Resolution code from PixelTriplets (13 June 2014)
   //=========================================================================================
-#ifdef NEW_TRACKINGRECHITS
+#if CMSSW_VER >= 71
   
   // Fitter
   edm::ESHandle<TrajectoryFitter> aFitter;
@@ -1338,7 +1338,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	recHitVector.push_back( (*irecHit)->clone() );
 	
 	// build transient hit:
-#ifdef NEW_TRACKINGRECHITS
+#if CMSSW_VER >= 71
 	// for pre7
 	auto tmprh = (*irecHit)->cloneForFit(*builder->geometry()->idToDet((**irecHit).geographicalId()));
 	auto transRecHit = hitCloner.makeShared(tmprh, initialTSOS);
@@ -1357,7 +1357,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    
 	  TrajectoryStateOnSurface propTSOS = thePropagator->propagate( initialTSOS, transRecHit->det()->surface() );
 	  if( propTSOS.isValid() ){
-#ifdef NEW_TRACKINGRECHITS
+#if CMSSW_VER >= 71
 	    auto preciseHit = hitCloner.makeShared(tmprh,propTSOS); //pre7
 #else
 	    TransientTrackingRecHit::RecHitPointer preciseHit = transRecHit->clone(propTSOS);
@@ -1738,8 +1738,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       ESHandle<MeasurementTracker> measurementTrackerHandle;
       iSetup.get<CkfComponentsRecord>().get(measurementTrackerHandle);
       
+#if CMSSW_VER != 53
       Handle<MeasurementTrackerEvent> measurementTrackerEventHandle;
       iEvent.getByLabel("MeasurementTrackerEvent", measurementTrackerEventHandle);
+#endif
       
       edm::ESHandle<Chi2MeasurementEstimatorBase> est;
       iSetup.get<TrackingComponentsRecord>().get("Chi2",est);
@@ -1917,12 +1919,19 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    std::cout<<"Valid L"<<extrapolateFrom_<<" hit found. Extrapolating to L"<<
 	      extrapolateTo_<<"\n";
 	  }
+#if CMSSW_VER == 53
+	  const LayerMeasurements* theLayerMeasurements =
+	    new LayerMeasurements(&*measurementTrackerHandle);
+	  const std::vector<BarrelDetLayer*> pxbLayers = 
+	    measurementTrackerHandle->geometricSearchTracker()->pixelBarrelLayers();
+#else
+	  const LayerMeasurements* theLayerMeasurements =
+	    new LayerMeasurements(*measurementTrackerHandle, *measurementTrackerEventHandle);
 	  std::vector<const BarrelDetLayer*> pxbLayers = 
 	    measurementTrackerHandle->geometricSearchTracker()->pixelBarrelLayers();
+#endif
 	  const DetLayer* pxb1 = pxbLayers[extrapolateTo_-1];
 	  const MeasurementEstimator* estimator = est.product();
-	  const LayerMeasurements* theLayerMeasurements = 
-	    new LayerMeasurements(*measurementTrackerHandle, *measurementTrackerEventHandle);
 	  const TrajectoryStateOnSurface tsosPXB2 = itTraj->updatedState();
 	  expTrajMeasurements = 
 	    theLayerMeasurements->measurements(*pxb1, tsosPXB2, *thePropagator, *estimator);
@@ -2891,9 +2900,14 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
       //GlobalPoint gp;
       LocalPoint lp(itCluster->x(), itCluster->y(), 0.);
       if (usePixelCPE_) {
+#if CMSSW_VER >= 71
 	PixelClusterParameterEstimator::ReturnType params=cpe.getParameters(*itCluster,*pixdet);
-	//gp = surface->toGlobal(params.first);
 	lp = std::get<0>(params);
+#else
+	PixelClusterParameterEstimator::LocalValues params=cpe.localParameters(*itCluster,*pixdet);
+	lp = params.first;
+	//gp = surface->toGlobal(params.first);
+#endif
       } 
       //else {
       //  LocalPoint lp(itCluster->x(), itCluster->y(), 0.);

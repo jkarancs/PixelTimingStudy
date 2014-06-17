@@ -7,7 +7,16 @@
  ************************************************************/
 
 // ----------------------------------------------------------------------------------------
+// CMSSW Version:
+//#define CMSSW_VER 53 // CMSSW_5_3_X
+//#define CMSSW_VER 70 // CMSSW_7_0_X
+#define CMSSW_VER 71 // CMSSW_7_1_0_pre7 and later
+
+#if CMSSW_VER >= 71
 #include "FWCore/Framework/interface/EDAnalyzer.h"
+#else
+#include "DQM/TrackerMonitorTrack/interface/MonitorTrackResiduals.h"
+#endif
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
@@ -15,7 +24,6 @@
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
-//#include "DQM/TrackerMonitorTrack/interface/MonitorTrackResiduals.h"
 //#include "TrackingTools/PatternTools/interface/TrajectoryFitter.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryFitter.h"
 #include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
