@@ -8,6 +8,8 @@ class PostFixes {
   std::vector<std::string> federr_type;
   std::vector<std::string> federr;
   std::vector<std::string> il;
+  std::vector<std::string> instlumi;
+  std::vector<std::string> Instlumi;
   std::vector<std::string> inac;
   std::vector<std::string> effclu;
   std::vector<std::string> effcluch;
@@ -57,6 +59,9 @@ class PostFixes {
   std::vector<std::string> ineff;
   std::vector<std::string> Ineff;
   
+  std::vector<std::string> resol1;
+  std::vector<std::string> resol2;
+
   std::vector<std::string> Detshl;
   std::vector<std::string> detshl;
   std::vector<std::string> seclyrldr;
@@ -138,7 +143,7 @@ class PostFixes {
     federr_type.push_back("_dummyword");
     federr_type.push_back("_fifofull");
     federr_type.push_back("_timeout");
-    federr_type.push_back("_overflow");
+    federr_type.push_back("_tbmtrailer");
     federr_type.push_back("_eventnumber");
     federr_type.push_back("_slinkheader");
     federr_type.push_back("_slinktrailer");
@@ -148,6 +153,7 @@ class PostFixes {
     federr_type.push_back("_dcol");
     federr_type.push_back("_readotorder");
     federr_type.push_back("_crcerror");
+    federr_type.push_back("_overflow");
     federr_type.push_back("_errevt");
     federr_type.push_back("_noerrevt");
 
@@ -159,7 +165,7 @@ class PostFixes {
     Federr_type.push_back("Dummy word");
     Federr_type.push_back("FIFO full");
     Federr_type.push_back("Timeout");
-    Federr_type.push_back("Overflow");
+    Federr_type.push_back("TBM trailer");
     Federr_type.push_back("Event number");
     Federr_type.push_back("Slink header");
     Federr_type.push_back("Slink trailer");
@@ -169,9 +175,34 @@ class PostFixes {
     Federr_type.push_back("Dcol or pixel value");
     Federr_type.push_back("Readout order");
     Federr_type.push_back("CRC error");
+    Federr_type.push_back("Overflow");
 
     il.push_back("_il");
     il.push_back("_nls");
+
+    instlumi.push_back("");
+    instlumi.push_back("_0_1500");
+    instlumi.push_back("_1500_3000");
+    instlumi.push_back("_3000_4500");
+    instlumi.push_back("_4500_6000");
+    instlumi.push_back("_6000_7500");
+    instlumi.push_back("_7500_9000");
+    instlumi.push_back("_9000_10500");
+    instlumi.push_back("_10500_12000");
+    instlumi.push_back("_12000_13500");
+    instlumi.push_back("_13500_15000");
+    
+    Instlumi.push_back("All Data");
+    Instlumi.push_back("0-1500 #mub^{-1}s^{-1}");
+    Instlumi.push_back("1500-3000 #mub^{-1}s^{-1}");
+    Instlumi.push_back("3000-4500 #mub^{-1}s^{-1}");
+    Instlumi.push_back("4500-6000 #mub^{-1}s^{-1}");
+    Instlumi.push_back("6000-7500 #mub^{-1}s^{-1}");
+    Instlumi.push_back("7500-9000 #mub^{-1}s^{-1}");
+    Instlumi.push_back("9000-10500 #mub^{-1}s^{-1}");
+    Instlumi.push_back("10500-12000 #mub^{-1}s^{-1}");
+    Instlumi.push_back("12000-13500 #mub^{-1}s^{-1}");
+    Instlumi.push_back("13500-15000 #mub^{-1}s^{-1}");
 
     Cumeff.push_back("Efficiency");
     Cumeff.push_back("Hit Distribution");
@@ -266,8 +297,8 @@ class PostFixes {
     det.push_back("_dp2_out");
 
     Det.push_back("Pixel Detector");
-    Det.push_back("Barrel Pixel");
-    Det.push_back("Forward Pixel");
+    Det.push_back("Barrel Layers");
+    Det.push_back("Forward Disks");
     Det.push_back("Layer 1");
     Det.push_back("Layer 2");
     Det.push_back("Layer 3");
@@ -763,6 +794,8 @@ class PostFixes {
 
     occup.push_back("_npix");
     occup.push_back("_nclu");
+    occup.push_back("_nevt");
+    occup.push_back("_mod");
 
     spec.push_back("_Fill2807");
     spec.push_back("_Fill2816");
@@ -827,6 +860,7 @@ class PostFixes {
     dynamic.push_back("_module");
     dynamic.push_back("_l1rate");
     dynamic.push_back("_instlumi");
+    dynamic.push_back("_pileup");
     
     ineff.push_back("_Data");
     ineff.push_back("_MC");
@@ -835,6 +869,17 @@ class PostFixes {
     Ineff.push_back("Data");
     Ineff.push_back("MC");
     Ineff.push_back("MC Corr (Lad, Mod, Inst)");
+
+    resol1.push_back("_eta");
+    resol1.push_back("_phi");
+    resol1.push_back("_instlumi");
+    resol1.push_back("_intlumi");
+    
+    resol2.push_back("_dx");
+    resol2.push_back("_dz");
+    resol2.push_back("_lev");
+    resol2.push_back("_res_dx");
+    resol2.push_back("_mean_dz");
     
     hv.push_back("_eff");
     hv.push_back("_dist");

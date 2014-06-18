@@ -394,8 +394,8 @@ class TreeReader {
     
     /*     trajTree_->SetBranchStatus("track",0); */
     trajTree_->SetBranchStatus("track_ndofchi2",0);
-    /*     trajTree_->SetBranchStatus("track_eta",0); */
-    trajTree_->SetBranchStatus("track_phi",0);
+    // trajTree_->SetBranchStatus("track_eta",0);
+    // trajTree_->SetBranchStatus("track_phi",0);
 #ifdef COMPLETE
     trajTree_->SetBranchStatus("track_theta",0);
     trajTree_->SetBranchStatus("track_p",0);

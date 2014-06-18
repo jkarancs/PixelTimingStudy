@@ -21,19 +21,22 @@ class Histograms {
     marker_.push_back(21); // full square
     marker_.push_back(22); // full triangle up
     marker_.push_back(23); // full triangle down
+    marker_.push_back(29); // full star
     marker_.push_back(20); // full circle
     marker_.push_back(21); // full square
     marker_.push_back(22); // full triangle up
     marker_.push_back(23); // full triangle down
+    //marker_.push_back(29); // full star
     marker_.push_back(20); // full circle
     marker_.push_back(21); // full square
     marker_.push_back(22); // full triangle up
     marker_.push_back(23); // full triangle down
+    //marker_.push_back(29); // full star
     marker_.push_back(24); // open circle
     marker_.push_back(25); // open square
     marker_.push_back(26); // open triangle up
     marker_.push_back(28); // open cross
-
+    //marker_.push_back(30); // open star
     debug_=0;
   }
 
@@ -1231,6 +1234,18 @@ class Histograms {
 
   // 4 postfix
   // 1D
+  void det_fill_1d(const ModuleData &m, int p2, int p3, int p4, double x) {
+    h1d_4p_[0][p2][p3][p4]->Fill(x);
+    h1d_4p_[1+m.det][p2][p3][p4]->Fill(x);
+    h1d_4p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2][p3][p4]->Fill(x);
+  }
+
+  void det_fill_1d(int p1, const ModuleData &m, int p3, int p4, double x) {
+    h1d_4p_[p1][0][p3][p4]->Fill(x);
+    h1d_4p_[p1][1+m.det][p3][p4]->Fill(x);
+    h1d_4p_[p1][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p3][p4]->Fill(x);
+  }
+
   void det_fill_1d(int p1, int p2, const ModuleData &m, int p4, double x) {
     h1d_4p_[p1][p2][0][p4]->Fill(x);
     h1d_4p_[p1][p2][1+m.det][p4]->Fill(x);
@@ -1241,12 +1256,6 @@ class Histograms {
     h1d_4p_[p1][p2][0][p4]->Fill(x,w);
     h1d_4p_[p1][p2][1+m.det][p4]->Fill(x,w);
     h1d_4p_[p1][p2][(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p4]->Fill(x,w);
-  }
-
-  void det_fill_1d(const ModuleData &m, int p2, int p3, int p4, double x) {
-    h1d_4p_[0][p2][p3][p4]->Fill(x);
-    h1d_4p_[1+m.det][p2][p3][p4]->Fill(x);
-    h1d_4p_[(m.det==0) ? 2+m.layer : 7+m.disk+(m.disk<0)][p2][p3][p4]->Fill(x);
   }
   
   void det2_fill_1d(int p1, int p2, const ModuleData &m, int p4, double x) {
@@ -1496,7 +1505,21 @@ class Histograms {
   std::vector<const char*> binlabels_;
   
   TGraphAsymmErrors* asym_(TH1D* eff, TH1D* den) {
-    TGraphAsymmErrors* tgae = new TGraphAsymmErrors(eff);
+    bincoordx_.clear();
+    binlabels_.clear();
+    //TGraphAsymmErrors* tgae = new TGraphAsymmErrors(eff);
+    int n = 0;
+    for (Int_t i=0; i<eff->GetNbinsX(); ++i) if (eff->GetBinContent(i+1)>0) n++;
+    TGraphAsymmErrors* tgae = new TGraphAsymmErrors(n);
+    n = 0;
+    for (Int_t i=0; i<eff->GetNbinsX(); ++i) {
+      double y = eff->GetBinContent(i+1);
+      double x = eff->GetBinCenter(i+1);
+      if (y>0) {
+        n++;
+        tgae->SetPoint(n-1,x,y);
+      }
+    }
     // Calculate the asymmetric wilson score interval
     double z = 1; // 1 Sigma confidence
     for (Int_t bin=1; bin<=eff->GetNbinsX(); ++bin) {
@@ -1523,7 +1546,12 @@ class Histograms {
     tgae->GetYaxis()->SetTitleOffset(eff->GetYaxis()->GetTitleOffset());
     tgae->GetXaxis()->SetTitleFont(eff->GetXaxis()->GetTitleFont());
     tgae->GetYaxis()->SetTitleFont(eff->GetYaxis()->GetTitleFont());
+    tgae->GetXaxis()->SetNdivisions(eff->GetNdivisions("X"));
+    tgae->GetYaxis()->SetNdivisions(eff->GetNdivisions("Y"));
     tgae->GetYaxis()->SetDecimals(1);
+    tgae->SetMarkerStyle(eff->GetMarkerStyle());
+    tgae->SetMarkerColor(eff->GetMarkerColor());
+    tgae->SetMarkerSize(eff->GetMarkerSize());
     // If Bin Labels exist remove current X axis labels and draw similar bin labels but with TLatex
     for (Int_t bin=1; bin<=eff->GetNbinsX(); ++bin) {
       if (std::string(eff->GetXaxis()->GetBinLabel(bin)).size()) {
@@ -1534,6 +1562,22 @@ class Histograms {
     return tgae;
   }
 
+  void asym_labels_(TH1D *orig, TGraphAsymmErrors* tgae, int hor_vert_up_down = 1) {
+    int angle = hor_vert_up_down==0 ? 0 : hor_vert_up_down==1 ? 90 : hor_vert_up_down==2 ? 20 : -20 ;
+    int align = hor_vert_up_down==0 ? 23 : hor_vert_up_down==1 ? 32 : hor_vert_up_down==2 ? 33 : 13;
+    if (binlabels_.size()>0) tgae->GetXaxis()->SetLabelColor(0);
+    double labelsize = orig->GetXaxis()->GetLabelSize();
+    double offset = (gPad->GetY2()-gPad->GetY1()) * orig->GetXaxis()->GetLabelOffset();
+    for (size_t i=0; i<binlabels_.size(); ++i) {
+      TLatex *lat = new TLatex(bincoordx_[i], orig->GetMinimum()-offset, binlabels_[i]);
+      lat->SetTextAlign(align);
+      lat->SetTextAngle(angle);
+      lat->SetTextFont(orig->GetXaxis()->GetLabelFont());
+      lat->SetTextSize(labelsize);
+      lat->Draw();
+    }
+  }
+  
   TLegend* multidraw_(std::vector<TH1D*>& hvec, std::vector<TH1D*>& denvec, std::vector<int>& vec, std::string& opt, 
 		      std::vector<std::string> &p, std::string& colz,
 		      std::string& title, float x1, float x2, float y1, float y2) {
@@ -1574,25 +1618,24 @@ class Histograms {
       set_marker_(h,m,opt);
       if (stat) h->SetStats(1);
       if (asym) {
-	bincoordx_.clear();
-	binlabels_.clear();
-	TGraphAsymmErrors* tgae = asym_(hvec[i],denvec[i]);
+	TGraphAsymmErrors* tgae = asym_(h,denvec[i]);
 	std::string drawopt = opt;
 	if (!i) drawopt.append("A");
 	tgae->Draw(drawopt.c_str());
 	gPad->Update();
 	// Draw BinLabels if they exist
-	if (binlabels_.size()>0) tgae->GetXaxis()->SetLabelColor(0);
-	double labelsize = h->GetXaxis()->GetLabelSize();
-	double offset = (gPad->GetY2()-gPad->GetY1()) * h->GetXaxis()->GetLabelOffset();
-	if (!i) for (size_t i=0; i<binlabels_.size(); ++i) {
-	  TLatex *lat = new TLatex(bincoordx_[i], h->GetMinimum()-offset, binlabels_[i]);
-	  lat->SetTextAlign(32);
-	  lat->SetTextAngle(90);
-	  lat->SetTextFont(h->GetXaxis()->GetLabelFont());
-	  lat->SetTextSize(labelsize);
-	  lat->Draw();
-	}
+	if (!i) asym_labels_(h,tgae,1); // vertical up labels
+	//if (binlabels_.size()>0) tgae->GetXaxis()->SetLabelColor(0);
+	//double labelsize = h->GetXaxis()->GetLabelSize();
+	//double offset = (gPad->GetY2()-gPad->GetY1()) * h->GetXaxis()->GetLabelOffset();
+	//if (!i) for (size_t i=0; i<binlabels_.size(); ++i) {
+	//  TLatex *lat = new TLatex(bincoordx_[i], h->GetMinimum()-offset, binlabels_[i]);
+	//  lat->SetTextAlign(32);
+	//  lat->SetTextAngle(90);
+	//  lat->SetTextFont(h->GetXaxis()->GetLabelFont());
+	//  lat->SetTextSize(labelsize);
+	//  lat->Draw();
+	//}
       } else {
 	h->Draw(i ? same.c_str() : opt.c_str());
 	if (stat) set_stat_(h,c,i);
@@ -2169,6 +2212,16 @@ class Histograms {
     dist->Add(eff);
     eff->Divide(dist);
     error(eff,dist);
+  }
+
+  TGraphAsymmErrors* asym1d(int i) { 
+    return asym_(h1d_2p_[i][0],h1d_2p_[i][1]);
+  }
+  
+  void asym1d_draw(int i, const char* opt = "AP", int hor_vert_up_down = 0) { 
+    TGraphAsymmErrors* tgae = asym_(h1d_2p_[i][0],h1d_2p_[i][1]);
+    tgae->Draw(opt);
+    asym_labels_(h1d_2p_[i][0],tgae, hor_vert_up_down);
   }
 
 };

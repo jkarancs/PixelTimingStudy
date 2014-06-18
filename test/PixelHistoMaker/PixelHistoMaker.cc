@@ -5,15 +5,19 @@
   2 :   v3533 SPLIT 1 + alpha/beta              (2013 Apr28-May3     - by Viktor)
   3 :   v3734 SPLIT 1 + occupancy               (2013 May 13)
   4 :   v3735 SPLIT 1 + pileup reweighting      (2014 Feb 04)
+  5 :   v3836 SPLIT 1 + resolution              (2014 Jun 16)
 */
-#define VER 4
+#define VER 5
+#define NOTE 0
 //#define COMPLETE 0
-#define NONEFFPLOTS 0
+#define NONEFFPLOTS 1
 #define FEDERRPLOTS 0
-#define FILLS 1 // 0: For Express  1: Load Lumi tree  2: + Create Fill specific plots
-#define BADROC 0 // Find SEU Candidates, Bad rocs create lots of histograms (Do it once) - Set FILLS to 1/2!
-#define SCANPLOTS 0 // 1: HV Scans, 2: Delay Scans
+#if NOTE == 0
+#define FILLS 2 // 0: For Express  1: Load Lumi tree  2: + Create Fill specific plots
 #define NTHFILE 1
+#endif
+#define BADROC 0 // Find SEU Candidates, Bad rocs create lots of histograms (Do it once) - Set FILLS to 2!
+#define SCANPLOTS 0 // 1: HV Scans, 2: Delay Scans2
 #define DYNAMIC 2   // For Dynamic Inefficiency, 1: instlumi parametrization from all 2012 dataset, 2: just from 201278 run
 // #include "headers/DataStruct_v16.h"
 // #include "headers/DataStruct_v18.h"
@@ -40,25 +44,51 @@
 // #include "headers/TreeReader_v35.h" // Same as v30,v32,v34
 // #include "headers/TreeReader_v36.h"
 // #include "headers/TreeReader_v37.h" // Same as v36
-#if VER == 0
+#if VER == 0 && NOTE == 0
 #define SPLIT 0
 #include "headers/DataStruct_v31.h"
 #include "headers/TreeReader_v34.h"
-#elif VER == 1
+#elif VER == 1 && NOTE == 0
 #define SPLIT 0
 #include "headers/DataStruct_v33.h"
 #include "headers/TreeReader_v35.h"
-#elif VER == 2
+#elif VER == 2 && NOTE == 0
 #define SPLIT 1
 #include "headers/DataStruct_v33.h"
 #include "headers/TreeReader_v35.h"
-#elif VER == 3
+#elif VER == 3 && NOTE == 0
 #define SPLIT 1
 #include "headers/DataStruct_v34.h"
 #include "headers/TreeReader_v37.h"
-#elif VER == 4
+#elif VER == 4 && NOTE == 0
 #define SPLIT 1
 #include "headers/DataStruct_v35.h"
+#include "headers/TreeReader_v37.h"
+#elif VER == 5 && NOTE == 0
+#define SPLIT 1
+#include "headers/DataStruct_v36.h"
+#include "headers/TreeReader_v37.h"
+#endif
+#if NOTE == 1
+#define NTHFILE 1
+#define FILLS 2
+#define BADROC 0
+#define SPLIT 0
+#include "headers/DataStruct_v28.h"
+#include "headers/TreeReader_v29.h"
+#elif NOTE == 2
+#define NTHFILE 1
+#define FILLS 2
+#define BADROC 1
+#define SPLIT 0
+#include "headers/DataStruct_v31.h"
+#include "headers/TreeReader_v34.h"
+#elif NOTE == 3
+#define NTHFILE 1
+#define FILLS 2
+#define BADROC 0
+#define SPLIT 1
+#include "headers/DataStruct_v34.h"
 #include "headers/TreeReader_v37.h"
 #endif
 #include "TChain.h"
@@ -517,31 +547,14 @@ void getfiles(std::vector<std::string>& filelist, int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
 
-  std::vector<std::string> filelist;
-  getfiles(filelist, argc, argv);
-
-  std::string outputfile="";
-  if (filelist.size()) {
-    if (filelist[0][0]=='-' && filelist[0][1]=='o') {
-      if (filelist[0].size()==2) {
-	outputfile=filelist[1];
-	filelist.erase(filelist.begin(), filelist.begin()+2);
-      } else {
-	outputfile=filelist[0].substr(2);     
-	filelist.erase(filelist.begin(), filelist.begin()+1);
-      }
-    }
-  }
-  
   // eventloop, trajloop, clustloop (0: off, 1:on separate, 2: parallel - for pixel count)
-  PixelHistoMaker phm(FEDERRPLOTS*2, 1, 2); // loop on all trees
+  PixelHistoMaker phm(1+FEDERRPLOTS, 1, 2); // loop on all trees
 //   PixelHistoMaker phm(2, 0, 0); // loop only on event- and lumiTree
 //   PixelHistoMaker phm(0, 0, 1); // loop only on clustTree
   TreeReader tr(1,   1,    1,      1,   1,   0,              1,   1,      0,   1);
   AllHistos ah;
   PostFixes p;
   Variables v;
-
 
   // Declare histograms
   // Cumulative:  0: no 1: cumx or (cumx, cumy) -1: compcumx or  (compcumx, compcum1)
@@ -614,7 +627,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef COMPLETE
   ah.occup         = new Histograms("occup",          3,   1,   1,   2,   0,       0,      -1);
-  ah.occup_mod     = new Histograms("occup_mod",      3,   1,   1,   2,   0,       0,      -1);
+  ah.occup_mod     = new Histograms("occup_mod",      4,   1,   1,   2,   0,       0,      -1);
   ah.occup_roc     = new Histograms("occup_roc",      3,   1,   1,   2,   0,       0,      -1);
   ah.occup_dcol    = new Histograms("occup_dcol",     3,   1,   1,   2,   0,       0,      -1);
   ah.occup      ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1,  6, 0, p.cumeff, 1, 1, 4, 250,  0.0, 25000.0);
@@ -625,15 +638,21 @@ int main(int argc, char* argv[]) {
   ah.occup_dcol ->add(p.occup, 1, 1, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4,  50,  0.0,    50.0);
 #elif VERSION2 >= 34 && SPLIT > 0
   ah.occup         = new Histograms("occup",          3,   1,   1,   2,   0,       0,      -1);
-  ah.occup_mod     = new Histograms("occup_mod",      3,   1,   1,   2,   0,       0,      -1);
-  ah.occup_roc     = new Histograms("occup_roc",      3,   1,   1,   2,   0,       0,      -1);
+  ah.occup_mod     = new Histograms("occup_mod",      4,   1,   1,   2);
+  ah.occup_roc     = new Histograms("occup_roc",      4,   1,   1,   2);
   ah.occup_dcol    = new Histograms("occup_dcol",     3,   1,   1,   2,   0,       0,      -1);
   ah.occup      ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1,  6, 0, p.cumeff, 1, 1, 4,  50,  0.0, 25000.0); // 500 pix
   ah.occup      ->add(p.occup, 1, 2, 2, 0, p.det, 1, 1,  6, 0, p.cumeff, 1, 1, 4,  50,  0.0,  5000.0); // 100 clu
   ah.occup      ->add(p.occup, 0, 1, 2, 0, p.det, 1, 7, 10, 0, p.cumeff, 1, 1, 4, 250,  0.0,  5000.0);
-  ah.occup_mod  ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 200,  0.0,  1000.0); // 5 pix
-  ah.occup_mod  ->add(p.occup, 1, 2, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 250,  0.0,   250.0); // 1 clu
-  ah.occup_roc  ->add(p.occup, 1, 1, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 100,  0.0,   100.0); // 1 pix/clu
+  //ah.occup_mod  ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 200,  0.0,  1000.0); // 5 pix     
+  //ah.occup_mod  ->add(p.occup, 1, 2, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 250,  0.0,   250.0); // 1 clu     
+  //ah.occup_roc  ->add(p.occup, 1, 1, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4, 100,  0.0,   100.0); // 1 pix/clu 
+  ah.occup_mod  ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1, 10, 0, p.mod2, 1, 1, 5, 0, p.cumeff, 1, 1, 2, 100,  0.0,   200.0); // 2 pix
+  ah.occup_mod  ->add(p.occup, 1, 2, 2, 0, p.det, 1, 1, 10, 0, p.mod2, 1, 1, 5, 0, p.cumeff, 1, 1, 2, 100,  0.0,    50.0); // 0.5 clu
+  ah.occup_mod  ->add(p.occup, 0, 1, 2, 0, p.det, 0, 1, 10, 0, p.mod2, 0, 1, 1, 0, p.occup,  1, 3, 4,  4,0.5,4.5);
+  ah.occup_roc  ->add(p.occup, 1, 1, 1, 0, p.det, 1, 1, 10, 0, p.mod2, 1, 1, 5, 0, p.cumeff, 1, 1, 2, 400,  0.0,   40.0); // 0.1 pix
+  ah.occup_roc  ->add(p.occup, 1, 2, 2, 0, p.det, 1, 1, 10, 0, p.mod2, 1, 1, 5, 0, p.cumeff, 1, 1, 2, 400,  0.0,   10.0); // 0.025 clu
+  ah.occup_roc  ->add(p.occup, 0, 1, 2, 0, p.det, 0, 1, 10, 0, p.mod2, 0, 1, 1, 0, p.occup,  1, 3, 4,  4,0.5,4.5);
   ah.occup_dcol ->add(p.occup, 1, 1, 2, 0, p.det, 1, 1, 10, 0, p.cumeff, 1, 1, 4,  50,  0.0,    50.0); 
 #endif
 
@@ -657,13 +676,42 @@ int main(int argc, char* argv[]) {
   ah.dynamic_ineff ->add(p.dynamic, 1, 1, 1, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2,  45, -22.5, 22.5);
   ah.dynamic_ineff ->add(p.dynamic, 1, 2, 2, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2,   9, -4.5, 4.5);
   ah.dynamic_ineff ->add(p.dynamic, 1, 3, 3, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 120, 0, 120);
-  ah.dynamic_ineff ->add(p.dynamic, 1, 4, 4, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 100, 0, 10000);
+  ah.dynamic_ineff ->add(p.dynamic, 1, 4, 4, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 130, 0, 13000);
+  ah.dynamic_ineff ->add(p.dynamic, 0, 4, 4, 0, p.det, 0, 4, 6, 3, p.ineff, 0, 1, 3, 0, p.occup,  1, 1, 3, 130, 0, 13000);
+  ah.dynamic_ineff ->add(p.dynamic, 1, 5, 5, 0, p.det, 1, 4, 6, 3, p.ineff, 1, 1, 3, 0, p.cumeff, 1, 1, 2, 60, 0, 60);
+  ah.dynamic_ineff ->add(p.dynamic, 0, 5, 5, 0, p.det, 0, 4, 6, 3, p.ineff, 0, 1, 3, 0, p.occup,  1, 1, 3, 60, 0, 60);
   
   ah.rocmap         ->add(p.det,    1,  4, 4,  3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5,  42, -10.5,  10.5);
   ah.rocmap         ->add(p.det,    1,  5, 5,  3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5,  66, -16.5,  16.5);
   ah.rocmap         ->add(p.det,    1,  6, 6,  3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5,  90, -22.5,  22.5);
   ah.rocmap         ->add(p.fpixIO, 1,  1, 1, -3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5, 144,   0.5,  12.5);
   ah.rocmap         ->add(p.fpixIO, 1,  2, 2, -3, p.ineff, 1, 1, 3, 0, p.inac, 1, 1, 3,  72, -4.5, 4.5, 144, -12.5,  -0.5);
+  
+  // Resolution plots
+  ah.resid = new Histograms("resid", 3, 1);
+  ah.resol = new Histograms("resol", 4, 1);
+  
+  ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol2, 1, 1, 1, 100, -150, 150);
+  ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol2, 1, 2, 2, 100, -150, 150);
+  ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 4, 4, 3, p.resol2, 1, 3, 3, 100,    1, 2);
+  ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 5, 5, 3, p.resol2, 1, 3, 3, 100,    0, 1);
+  ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 6, 6, 3, p.resol2, 1, 3, 3, 100,    1, 2);
+  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 1, 1, 6, -3.0, 3.0, 100, -150, 150); // 2D plots
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 2, 2, 6, -3.0, 3.0, 100, -300, 300);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 1, 1, 6, -180, 180, 100, -150, 150);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 2, 2, 6, -180, 180, 100, -300, 300);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 1, 1, 200, 0, 20, 100, -150, 150);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 2, 2, 200, 0, 20, 100, -300, 300);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 4, 4, 0, p.resol2, 1, 1, 1, 100, 0, 50, 100, -150, 150);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 4, 4, 0, p.resol2, 1, 2, 2, 100, 0, 50, 100, -300, 300);
+  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 4, 4, 6, -3.0, 3.0); // 1D plots (made from 2D plots)
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 5, 5, 6, -3.0, 3.0);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 4, 4, 6, -180, 180);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 5, 5, 6, -180, 180);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 4, 4, 200, 0, 20);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 5, 5, 200, 0, 20);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 4, 4, 0, p.resol2, 1, 4, 4, 100, 0, 50);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 4, 4, 0, p.resol2, 1, 5, 5, 100, 0, 50);
   
   //________________________________________________________________________________________
   //                                Efficiency N-1 Cut Plots:
@@ -825,7 +873,7 @@ int main(int argc, char* argv[]) {
 #if SCANPLOTS == 1
   std::vector<std::string> HV_Scans;
   HV_Scans.push_back("10/04/05 - 0.00 fb^{-1}");
-  HV_Scans.push_back("10/10/28 - 0.04 fb^{-1}");
+  HV_Scans.push_back("10/10/28 - 0.04 fb^{-1}"); // Warning: Layer1-Disk1 conflict, only l3 good
   HV_Scans.push_back("11/03/18 - 0.05 fb^{-1}");
   HV_Scans.push_back("11/05/15 - 0.33 fb^{-1}");
   HV_Scans.push_back("11/07/14 - 1.44 fb^{-1}");
@@ -1048,6 +1096,23 @@ int main(int argc, char* argv[]) {
 
 #endif
 
+  std::vector<std::string> filelist;
+  getfiles(filelist, argc, argv);
+
+  std::string outputfile="";
+  if (filelist.size()) {
+    if (filelist[0][0]=='-' && filelist[0][1]=='o') {
+      if (filelist[0].size()==2) {
+	outputfile=filelist[1];
+	filelist.erase(filelist.begin(), filelist.begin()+2);
+      } else {
+	outputfile=filelist[0].substr(2);     
+	filelist.erase(filelist.begin(), filelist.begin()+1);
+      }
+    }
+    for (size_t i=0; i<filelist.size(); i++) phm.addfile(filelist[i].c_str());
+  } else {
+
   //________________________________________________________________________________________
   //                                          v2827
 
@@ -1259,7 +1324,6 @@ int main(int argc, char* argv[]) {
 
 //                                        201278 MC
   //phm.addfile("/home/common/DynamicIneff/PixelHistoMaker/test3.root");
-  for (size_t i=0; i<filelist.size(); i++) phm.addfile(filelist[i].c_str());
   //phm.addfile("/home/common/DynamicIneff/crab/veszpv__SiPixelDigitizer__MinBias_TuneZ2star_8TeV-pythia6_CustomPU1_pix95__SiPixelDigitizer_MinBias_PU1_pix95_9_2_pQk.root");
 
   
@@ -1367,6 +1431,170 @@ int main(int argc, char* argv[]) {
   
   //phm.addfile("/data/jkarancs/gridout/v3533/MinimumBias__Run2012D-PromptReco-v1__RECO/*.root");
 
+  //________________________________________________________________________________________
+  //                                   v3634
+
+  //phm.addfile("/home/common/CMSSW/TimingStudy/Latest_Version/CMSSW_5_3_7_patch5/src/DPGAnalysis/PixelTimingStudy/MB_RECO.root");
+
+  //phm.addfile("/home/jkarancs/gridout/v3634/MinimumBias__Run2012A-22Jan2013-v1__RECO/*.root");
+  
+  //________________________________________________________________________________________
+  //                                   NOTE DATA
+  
+#if NOTE == 1
+  // 2010/2011 - v2928 - INC, SPLIT0, Nstrip>0
+  // deb
+  phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2010A-Apr21ReReco-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2010B-Apr21ReReco-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2011A-08Nov2011-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2011B-19Nov2011-v1_RECO/*.root");
+#elif NOTE == 2
+  // 2012 - v3431 - INC, SPLIT0, Nstrip>10
+  // grid248
+  // phm.addfile("/data2/jkarancs/gridout/v3431/MinimumBias__Run2012A-13Jul2012-v1__RECO/*.root");
+  // phm.addfile("/data2/jkarancs/gridout/v3431/MinimumBias__Run2012A-recover-06Aug2012-v1__RECO/*.root");
+  // phm.addfile("/data2/jkarancs/gridout/v3431/MinimumBias__Run2012B-13Jul2012-v1__RECO/*.root");
+  // phm.addfile("/data2/jkarancs/gridout/v3431/MinimumBias__Run2012C-24Aug2012-v1__RECO/*.root");
+  // phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/*.root");  
+  // //phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012D-PromptReco-v1__RECO/*.root"); // EMPTY
+  // phm.addfile("/data2/jkarancs/gridout/v3431/MinimumBias__Run2012D-PromptReco-v1__RECO/*.root");
+  // //phm.addfile("/home/jkarancs/gridout/v3431/MinimumBias__Run2012D-PromptReco-v1__RECO/*.root"); // EMPTY
+  // deb
+  phm.addfile("/storage/jkarancs/gridout/v3431/MinimumBias/Run2012A-13Jul2012-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v3431/MinimumBias/Run2012B-13Jul2012-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v3431/MinimumBias/Run2012C-24Aug2012-v1_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v3431/MinimumBias/Run2012C-PromptReco-v2_RECO/*.root");
+  phm.addfile("/storage/jkarancs/gridout/v3431/MinimumBias/Run2012D-PromptReco-v1_RECO/*.root");
+
+  // Fill 2983 - for bx plot
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1234_1_WKp.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1235_2_KqR.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1236_2_m2w.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1237_2_BfR.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1238_2_xMu.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1239_1_pzP.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1240_2_oQp.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1241_2_8Er.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1242_2_pxQ.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1243_1_7WB.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1244_2_RvX.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1245_1_YM6.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1246_1_wKa.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1247_2_88a.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1248_1_VSi.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1249_1_2il.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1250_1_Fxg.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1251_1_4zy.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1251_2_4Qz.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1252_2_ZYM.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1253_1_VKF.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1254_2_4VK.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1255_1_cV2.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1256_1_4jG.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1257_1_cDT.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1258_2_71j.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1259_1_X8H.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1260_2_hCA.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1261_1_3cl.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1262_2_epE.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1263_1_Ttc.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1264_2_B3B.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1265_2_0bm.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1266_2_kgT.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1267_2_wmT.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1268_1_YlN.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1269_2_XDv.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1270_1_1Gk.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1271_1_ncS.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1272_2_6P2.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1273_1_qUp.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1274_2_TwU.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1275_2_6al.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1276_2_Sc6.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1277_2_biu.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1278_1_ukn.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1279_1_WSr.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1280_1_AW8.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1281_1_82r.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1282_1_Ofm.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1283_2_jdP.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1284_2_7J0.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1285_2_AR8.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1286_2_bC3.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1287_1_95Z.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1288_2_RG6.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1289_2_0o4.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1290_2_wJY.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1291_2_SnN.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1292_1_6Vw.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1293_2_sDA.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1294_1_ajF.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1295_1_ofj.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1296_2_vyn.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1297_2_M8U.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1297_3_cP4.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1298_2_fXy.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1299_1_UgM.root");
+  phm.addfile("/data/jkarancs/gridout/v3431/MinimumBias__Run2012C-PromptReco-v2__RECO/MB_RECO_1300_2_WpL.root");
+#elif NOTE == 3
+  // 2012 - v3734 - INC, SPLIT1, Nstrip>0
+  phm.addfile("/data2/jkarancs/gridout/v3734/MinimumBias__Run2012ABCD-v1__RAW/*.root");
+#endif
+  
+  //phm.addfile("/home/jkarancs/gridout/v2928/RECO/MinimumBias_Run2011B-08Nov2011-v1/*.root");
+  
+  // 11B PromptReco (42X), SPL2, ns0 Files - For nstrip plots - Obsolete?
+  
+  //phm.addfile("/home/jkarancs/gridout/v2928/RECO/MinimumBias_Run2011B-PromptReco-v1/SPL2/*.root");
+  
+  // 11B RAW (42X), SPL1 - For FED Errors, For hit-hit distance, hit-clu distance, angle of incidence plots
+  //phm.addfile("/data/jkarancs/gridout/v2928/RAW/MinimumBias_Run2011B-v1_RAW/*.root");
+
+
+  //   Files on Debrecen: ui.grid.atomki.hu
+  // phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2010A-Apr21ReReco-v1_RECO/*.root");
+  // phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2010B-Apr21ReReco-v1_RECO/*.root");
+  // phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2011A-08Nov2011-v1_RECO/*.root");
+  // phm.addfile("/storage/jkarancs/gridout/v2928/MinimumBias/Run2011B-19Nov2011-v1_RECO/*.root");
+  
+//   phm.addfile("/data2/jkarancs/gridout/v2928/RECO/Run2011A-PromptReco-v6/MinimumBias/",416,476); //Fill 2040
+  //   phm.addfile("/data2/jkarancs/gridout/v2928/RECO/Run2011B-PromptReco-v1/MinimumBias/",113,153); //Fill 2103
+  //   phm.addfile("/data2/jkarancs/gridout/v2928/RECO/Run2011B-PromptReco-v1/MinimumBias/",172,242); //Fill 2105
+  //   phm.addfile("/data2/jkarancs/gridout/v2928/RECO/Run2011B-PromptReco-v1/MinimumBias/",1103,1157); //Fill 2208
+  
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2010A-Apr21ReReco-v1/MinimumBias/",1,1);
+  
+  // NOTE DATA - for N-1 Plots
+  // MinimumBias RECO samples for 2011 - INC, SPLIT2, Nstrip>0
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011A-May10ReReco-v2/MinimumBias/SPLIT2/*.root");
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011A-PromptReco-v5/MinimumBias/SPLIT2/*.root");
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011A-PromptReco-v6/MinimumBias/SPLIT2/*.root");
+  //   phm.addfile("/home/jkarancs/gridout/v2928/RECO/Run2011B-PromptReco-v1/MinimumBias/SPLIT2/*.root");
+  
+  // phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011A-May10ReReco-v2/MinimumBias/SPLIT2/",1,1);
+  
+  
+  // MinimumBias RECO - 4 long runs 2011 - COMPLETE, SPLIT2
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011A-08Nov2011-v1/MinimumBias/COMP_SPL2/*.root");
+  //   phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011B-19Nov2011-v1/MinimumBias/COMP_SPL2/*.root");
+  
+  // phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011B-19Nov2011-v1/MinimumBias/COMP_SPL2/",1,265); // Fill 2178
+  // phm.addfile("/data/jkarancs/gridout/v2928/RECO/Run2011B-19Nov2011-v1/MinimumBias/COMP_SPL2/",1,1);
+  
+  
+  
+  //________________________________________________________________________________________
+  //                                   v3735
+  phm.addfile("/data/gridout/TimingStudy/v3735_INC_SPL2_ns11_5315p1_MB_2012A_22JanRR_RECO_ZB_13may07JSON/*.root");
+  phm.addfile("/data/gridout/TimingStudy/v3735_INC_SPL2_ns11_5315p1_MB_2012B_22JanRR_RECO_ZB_13may07JSON/*.root");
+  phm.addfile("/data/gridout/TimingStudy/v3735_INC_SPL2_ns11_5315p1_MB_2012C_22JanRR_RECO_ZB_13may07JSON/*.root");
+  phm.addfile("/data/gridout/TimingStudy/v3735_INC_SPL2_ns11_5315p1_MB_2012D_22JanRR_RECO_ZB_13may07JSON/*.root");
+  
+  // cluster/pixel occupancy - layerenként vs instlumi plot kell
+  // 13 TeV MC
+  
+  } // end of if (!filelist.size())
+  
   // Run on lumiTree to get run and lumi information
   phm.preprocess(tr, v, ah, p);
   
@@ -1390,7 +1618,8 @@ int main(int argc, char* argv[]) {
   ah.mod                = new Histograms("mod",                 3,   2,   1,   2);
   ah.roc                = new Histograms("roc",                 3,   2,   1,   2);
   ah.time               = new Histograms("time",                3,   1,   1,   2);
-  ah.bx                 = new Histograms("bx",                  3,   1,   1,   2);
+  //ah.bx                 = new Histograms("bx",                  3,   1,   1,   2);
+  ah.bx                 = new Histograms("bx",                  4,   1,   1,   2);
   ah.instlumi           = new Histograms("instlumi",            3,   1,   1,   2);
   ah.instlumi_raw       = new Histograms("instlumi_raw",        4,   1,   1,   2);
   ah.il_l1rate          = new Histograms("il_l1rate",           3,   2,   1,   2);
@@ -1419,26 +1648,28 @@ int main(int argc, char* argv[]) {
   ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.fpixIO, 1,  1, 1, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144,   0.5,  12.5);
   ah.roc           ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.fpixIO, 1,  2, 2, -3, p.inac,   1, 1, 3, 72, -4.5, 4.5, 144, -12.5,  -0.5);
   ah.time          ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  96,   0,  24);
-  ah.bx            ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  120,    0, 3600);
+  //ah.bx            ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  120,    0, 3600);
+  ah.bx            ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.instlumi, 1, 1, 11, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  60,    0, 3600);
   ah.instlumi      ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
   ah.instlumi_raw  ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.year,   1, 1,  1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
-  ah.instlumi_raw  ->add(p.fill,  0, 1,              1, 0, p.year,   1, 2,  4, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
-  ah.instlumi_raw  ->add(p.fill,  0, 1,              1, 0, p.year,   0, 2,  4, 0, p.det,    0, 1, 24, 0, p.avg,    1, 3, 4, 1000,    0, 10000);
+  ah.instlumi_raw  ->add(p.fill,  0, 1,             1, 0, p.year,   1, 2,  4, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000);
+  ah.instlumi_raw  ->add(p.fill,  0, 1,             1, 0, p.year,   0, 2,  4, 0, p.det,    0, 1, 24, 0, p.avg,    1, 3, 4, 1000,    0, 10000);
   ah.il_l1rate     ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,  100,    0, 10000, 20,  0, 100);
   ah.trigger       ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 10, 0, p.cumeff, 1, 1, 2,   32, -0.5, 31.5);
   ah.l1rate        ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.det,    1, 1, 24, 0, p.cumeff, 1, 1, 2,   50,    0, 100);
 
+
 #if BADROC != 0
-  ah.roceff_time  ->add(p.fill,  1, 1, v.run_nfill+1, 0, p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  48, -0.5, 47.5,  64, -0.5, 63.5);
-  ah.roceff_time  ->add(p.fill,  0, 1, v.run_nfill+1, 0, p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  24, -0.5, 23.5,  45, -0.5, 44.5);
+  ah.roceff_time  ->add(p.fill,  1, 1, nfill+1, 0, p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  48, -0.5, 47.5,  64, -0.5, 63.5);
+  ah.roceff_time  ->add(p.fill,  0, 1, nfill+1, 0, p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,   48,    0,    24,  24, -0.5, 23.5,  45, -0.5, 44.5);
 #if BADROC == 2
-  ah.roceff_fill  ->add(p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5,  48, -0.5, 47.5,  64, -0.5, 63.5);
-  ah.roceff_fill  ->add(p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5,  24, -0.5, 23.5,  45, -0.5, 44.5);
-  ah.fill_stat    ->add(p.cumeff, 1, 1, 2,  v.run_nfill, 0.5, v.run_nfill+0.5);
+  ah.roceff_fill  ->add(p.detshl, 1, 1,  4, 0, p.cumeff, 1, 1, 2,  nfill, 0.5, nfill+0.5,  48, -0.5, 47.5,  64, -0.5, 63.5);
+  ah.roceff_fill  ->add(p.detshl, 1, 5,  8, 0, p.cumeff, 1, 1, 2,  nfill, 0.5, nfill+0.5,  24, -0.5, 23.5,  45, -0.5, 44.5);
+  ah.fill_stat    ->add(p.cumeff, 1, 1, 2,  nfill, 0.5, nfill+0.5);
 #endif
-  ah.badroc       ->add(p.fill,  1, 2, v.run_nfill+1, 1, p.det,    1, 3,  6,    48, 0, 24,  100, 0, 100);
-  ah.nbadroc      ->add(p.fill,  1, 2, v.run_nfill+1, 1, p.det,    1, 1,  6,    48, 0, 24);
-  ah.roceff_dist  ->add(p.fill,  1, 2, v.run_nfill+1,    1000, 0,  1);
+  ah.badroc       ->add(p.fill,  1, 2, nfill+1, 1, p.det,    1, 3,  6,    48, 0, 24,  100, 0, 100);
+  ah.nbadroc      ->add(p.fill,  1, 2, nfill+1, 1, p.det,    1, 1,  6,    48, 0, 24);
+  ah.roceff_dist  ->add(p.fill,  1, 2, nfill+1,    1000, 0,  1);
 #endif
 
 #if FEDERRPLOTS == 1
@@ -1484,32 +1715,47 @@ int main(int argc, char* argv[]) {
   std::cout<<" --> Done"<<std::endl;
 #endif
   // ah.load_totlumi();
+
+  // Load Previous lx/ly plots to merge with 2012 data
+  //TFile f_in("/home/jkarancs/ROOT_output/Note_histos_2010_2011_INC_SPL0_ns0.root");
+  //ah.fid_lx->load(f_in);
+  //ah.fid_ly->load(f_in);
+  //ah.fid_lxly->load(f_in);
+  //ah.fid_lx->revert_eff();
+  //ah.fid_ly->revert_eff();
+  //ah.fid_lxly->revert_eff();
+  //f_in.Close();
   
   CanvasMaker canvasmaker(NONEFFPLOTS, 1, SCANPLOTS);
 
   phm.process(tr, v, ah);
   phm.postprocess(tr, v, ah, p);
   
-  std::string workdir = "ROOT_output/";
+  std::string workdir = "/data/jkarancs/CMSSW/TimingStudy/ROOT_output/";
   
-//   phm.write_output(workdir+"v3029/TEST/","Note_histos","test", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","instlumi_raw","Fill_2040_2103_2105_2208_INC_SPL0", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Note_histos_pt1GeV","test_del", ah, v);
-//   phm.write_output(workdir+"v3029/","Note_histos_pt1GeV_lx4_ly5","2010_2011_MinimumBias_RECO_428p3", ah, v);
-//   phm.write_output(workdir+"v3029/","Note_histos_pt1GeV","2010_2011_MinimumBias_RECO_428p3_SPL2_allNstrip", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Performance_plots","2010_2011_MinimumBias_RECO_SPL2_allNstrip_test", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Performance_plots","2010_2011_MinimumBias_RECO_428p3_001", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","MPV_fix","HV8", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","nclu_corr","2011_longruns_COMP_SPL2", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","FEDerr_validation","520_MB_RAW", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","new_cuts","test_del2", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","nclu_corr","2011_Fill2178_COMP_SPL2", ah, v);
-//   phm.write_output(workdir+"v3029/","roc_dcol_occupancy","2011_Fill2178_COMP_SPL2", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Timing_scan11_12","INC_SPL0_nstrip0", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","HV1-12_newplots","INC_SPL0_nstrip0", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","HV12","ZBN_RAW_INC_SPL0_nstrip0", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Fill2533","ZB1_RAW_INC_SPL2_nstrip0", ah, v);
-//   phm.write_output(workdir+"v3029/TEST/","Run2012A_May11JSON","MB_RECO_INC_SPL0_nstrip11", ah, v);
+
+  if (outputfile.size()) {
+    phm.write_output(outputfile, ah, v);
+    canvasmaker.run(ah, phm.outfile().insert(phm.outfile().find(".root"),"_can"),v,p);
+  } else {
+  //phm.write_output(workdir+"v3029/TEST/","Note_histos","test", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","instlumi_raw","Fill_2040_2103_2105_2208_INC_SPL0", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Note_histos_pt1GeV","test_del", ah, v);
+  //phm.write_output(workdir+"v3029/","Note_histos_pt1GeV_lx4_ly5","2010_2011_MinimumBias_RECO_428p3", ah, v);
+  //phm.write_output(workdir+"v3029/","Note_histos_pt1GeV","2010_2011_MinimumBias_RECO_428p3_SPL2_allNstrip", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Performance_plots","2010_2011_MinimumBias_RECO_SPL2_allNstrip_test", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Performance_plots","2010_2011_MinimumBias_RECO_428p3_001", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","MPV_fix","HV8", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","nclu_corr","2011_longruns_COMP_SPL2", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","FEDerr_validation","520_MB_RAW", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","new_cuts","test_del2", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","nclu_corr","2011_Fill2178_COMP_SPL2", ah, v);
+  //phm.write_output(workdir+"v3029/","roc_dcol_occupancy","2011_Fill2178_COMP_SPL2", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Timing_scan11_12","INC_SPL0_nstrip0", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","HV1-12_newplots","INC_SPL0_nstrip0", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","HV12","ZBN_RAW_INC_SPL0_nstrip0", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Fill2533","ZB1_RAW_INC_SPL2_nstrip0", ah, v);
+  //phm.write_output(workdir+"v3029/TEST/","Run2012A_May11JSON","MB_RECO_INC_SPL0_nstrip11", ah, v);
   //phm.write_output(workdir+"v3029/TEST/","HV1-15","ZB1_PR_RECO_INC_SPL0_nstrip11", ah, v);
   //phm.write_output(workdir+"v3029/TEST/","Timing_scan1-4","ZBN_RAW_INC_SPL0_nstrip0", ah, v);
   //phm.write_output(workdir+"v3029/TEST/","Latency_Change","EP_FEVT_INC_SPL2_nstrip0", ah, v);
@@ -1524,27 +1770,27 @@ int main(int argc, char* argv[]) {
   //phm.write_output(workdir+"v3431/","Fill_3286","2012D_MB_RECO_INC_SPL0_ns11", ah, v);
   //phm.write_output(workdir+"v3431/","disk1_inner_debug","2012D_MB_RECO_INC_SPL0_ns11", ah, v);
   //phm.write_output(workdir+"v3533/","efficiency_strip_variables","2012D_MB_RECO_INC_SPL0", ah, v);
+  //phm.write_output(workdir+"v3533/","Note_histos","INC_SPL0_ns0_537p5_MB_2012D_RAW", ah, v);
+  //phm.write_output(workdir+"v3533/","Angle_of_indicence","INC_SPL2_ns0_536_MB_2012D_RECO", ah, v);
+  //phm.write_output(workdir+"v3634/","occupancy_lsavg","INC_SPL1_ns0_537p6_MB_2012A_RECO", ah, v);
+  //phm.write_output(workdir,"badroc_test","MB_2012_RECO_INC_SPL0_ns11", ah, v);
+  //phm.write_output(workdir+"","Note_histos_bx","Fill2983_INC_SPL0_ns11_537p5_MB_2012C_RECO", ah, v);
+  //phm.write_output(workdir+"","Note_histos_withFederr","MB_2012ABCD_RAW_INC_SPL1_ns0", ah, v);
+    
+    phm.write_output(workdir+"v3735/"+"data_2012ABCD_22JanRR.root", ah, v);
+    //canvasmaker.run(ah, phm.outfile().insert(phm.outfile().find(".root"),"_can"),v,p);
 
-  if (outputfile.size()) {
-    phm.write_output(outputfile, ah, v);
-  } else {
-    phm.write_output(workdir+"","dynamic_effloss_plots","MC_pix90", ah, v);
-  }
- 
-  canvasmaker.run(ah, phm.outfile().insert(phm.outfile().find(".root"),"_can"),v,p);
-  
-  //canvasmaker.load_from_file(ah,workdir+"v3431/dynamic_effloss_plots_for_APPROVAL_2012ABCD_MB_RECO_INC_SPL0_ns11.root");
-  //canvasmaker.run(ah,workdir+"v3431/dynamic_effloss_plots_for_APPROVAL_2012ABCD_MB_RECO_INC_SPL0_ns11_can.root",v,p);
+  // APPROVAL
+  //canvasmaker.load_from_file(ah,workdir+"v3431/dynamic_effloss_plots_for_APPROVAL_FINAL_2012ABCD_MB_RECO_INC_SPL0_ns11.root");
+  //canvasmaker.run(ah,workdir+"v3431/dynamic_effloss_plots_for_APPROVAL_FINAL_2012ABCD_MB_RECO_INC_SPL0_ns11_can.root",v,p);
   
   //canvasmaker.load_from_file(ah,workdir+"v3029/HV1-17_PAMBUPC_PR_RECO_INC_SPL0_nstrip11.root");
-  //canvasmaker.run(ah,workdir+"v3029/HV1-17_APPROVAL_PAMBUPC_PR_RECO_INC_SPL0_nstrip11_can.root",v,p);
+  //canvasmaker.run(ah,workdir+"v3029/HV1-17_CONF_PROC_PAMBUPC_PR_RECO_INC_SPL0_nstrip11_can.root",v,p);
   
   //canvasmaker.load_from_file(ah,workdir+"v3431/dynamic_effloss_plots_201278_Data_100th.root");
   //canvasmaker.run(ah,workdir+"v3431/dynamic_effloss_plots_201278_Data_100th_can.root",v,p);
 
-  
 
-  
 //   canvasmaker.load_from_file(ah,workdir+"v2928/TEST/Instlumi_withSEU_withFEDerr_test_v2928.root");
 //   canvasmaker.run(ah,workdir+"v2928/TEST/CANVASES/Instlumi_withSEU_withFEDerr_test_can.root",v,p);
 //   canvasmaker.load_from_file(ah,workdir+"v2928/TEST/instlumi_raw_Fill_2040_2103_2105_2208_INC_SPL0_v2928.root");
@@ -1647,5 +1893,8 @@ int main(int argc, char* argv[]) {
 //   canvasmaker.run(ah,workdir+"v2625/CANVASES/federror_evtsel_Fill_2040_2103_2105_RAW_can.root",v,p);
 //   canvasmaker.load_from_file(ah,workdir+"v2827/scan_mpv_HV9-11_v2827.root");
 //   canvasmaker.run(ah,workdir+"v2827/CANVASES/scan_mpv_HV9-11_can.root",v,p);
+
+  }
+
   return 1;
 }

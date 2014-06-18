@@ -1,3 +1,50 @@
+#include "TMath.h"
+
+class Function {
+
+ public:
+
+  Function() {}
+  ~Function() {}
+  
+  // Student's t function:
+  Double_t tp0Fit( Double_t *x, Double_t *par5 ) {
+    
+    static int nn = 0;
+    nn++;
+    static double dx = 0.1;
+    static double b1 = 0;
+    if( nn == 1 ) b1 = x[0];
+    if( nn == 2 ) dx = x[0] - b1;
+    //
+    //--  Mean and width:
+    //
+    double xm = par5[0];
+    double t = ( x[0] - xm ) / par5[1];
+    double tt = t*t;
+    //
+    //--  exponent:
+    //
+    double rn = par5[2];
+    double xn = 0.5 * ( rn + 1.0 );
+    //
+    //--  Normalization needs Gamma function:
+    //
+    double pk = 0.0;
+    
+    if( rn > 0.0 ) {
+      
+      double pi = 3.14159265358979323846;
+      double aa = dx / par5[1] / sqrt(rn*pi) * TMath::Gamma(xn) / TMath::Gamma(0.5*rn);
+      
+      pk = par5[3] * aa * exp( -xn * log( 1.0 + tt/rn ) );
+    }
+    
+    return pk + par5[4];
+  }
+
+};
+
 class AllHistos {
 
  public:
@@ -89,6 +136,10 @@ class AllHistos {
   Histograms* dynamic_ineff;
   Histograms* rocmap;
   TH2D* l1rate_vs_instlumi;
+
+  // Resolution
+  Histograms* resid;
+  Histograms* resol;
   
   // Scans
   Histograms* delay11;
@@ -121,6 +172,19 @@ class AllHistos {
   Histograms* vturnon_totlumi;
   Histograms* vturnon_fpix;
   Histograms* vturnon_bpix;
+
+  // Variables for occup plots - for lumisection average
+  std::map<int, int> mod_lssum_nclu;
+  std::map<int, int> mod_lssum_npix;
+  std::map<int, int> mod_evt_nclu;
+  std::map<int, int> mod_evt_npix;
+  std::map<int, int> mod_valmis[2];
+  std::map<int, int> roc_lssum_nclu;
+  std::map<int, int> roc_lssum_npix;
+  std::map<int, int> roc_evt_nclu;
+  std::map<int, int> roc_evt_npix;
+  std::map<int, int> roc_valmis[2];
+  int nevt_ls;
   
   
   //__________________________________________________________________________________________
@@ -176,6 +240,26 @@ class AllHistos {
     nvtx->h1d(0,2)->Fill(e.nvtx, e.instlumi_ext);
     nvtx->h1d(0,3)->Fill(e.nvtx);
     l1rate_vs_instlumi->Fill(e.instlumi_ext, e.l1_rate);
+    if (e.run!=1) { // Data
+      for (int lay=1; lay<=3; lay++) {
+	dynamic_ineff ->h1d(3, lay-1,  0, 2)->Fill(221.995*(e.pileup-1), e.npix[lay]);
+	dynamic_ineff ->h1d(3, lay-1,  0, 3)->Fill(221.995*(e.pileup-1), e.nclu[lay]);
+	dynamic_ineff ->h1d(3, lay-1,  0, 4)->Fill(221.995*(e.pileup-1));
+	dynamic_ineff ->h1d(4, lay-1,  0, 2)->Fill(e.pileup-1, e.npix[lay]);
+	dynamic_ineff ->h1d(4, lay-1,  0, 3)->Fill(e.pileup-1, e.nclu[lay]);
+	dynamic_ineff ->h1d(4, lay-1,  0, 4)->Fill(e.pileup-1);
+      }
+    } else {
+      for (int lay=1; lay<=3; lay++) {
+	dynamic_ineff ->h1d(3, lay-1,  1, 2)->Fill(221.995*(e.pileup-1), e.npix[lay]);
+	dynamic_ineff ->h1d(3, lay-1,  1, 3)->Fill(221.995*(e.pileup-1), e.nclu[lay]);
+	dynamic_ineff ->h1d(3, lay-1,  1, 4)->Fill(221.995*(e.pileup-1));
+	dynamic_ineff ->h1d(4, lay-1,  0, 2)->Fill(e.pileup-1, e.npix[lay]);
+	dynamic_ineff ->h1d(4, lay-1,  0, 3)->Fill(e.pileup-1, e.nclu[lay]);
+	dynamic_ineff ->h1d(4, lay-1,  0, 4)->Fill(e.pileup-1);
+      }
+    }
+
 #endif
   }
   
@@ -189,6 +273,7 @@ class AllHistos {
     //                                  Not Efficiency Plots:
     //  Nclu plots: nclu/npix_corr, bx_ls, ls_fill, totlumi_ratio, time/instlumi (nclu part)
     //                   Performance plots: pcd, ncd, clu_size, alpha, beta
+    //                             Resolution plots: resid, resol
 #ifdef COMPLETE
     // Nclu plots
     if (v.traj_newevt&&v.traj_p1_fill!=NOVAL_I&&(e.trig&1)) {
@@ -249,6 +334,25 @@ class AllHistos {
       alpha   ->det_fill_1d(v.p1_totlumi, t.mod_on, fabs(t.alpha));
       beta    ->det_fill_1d(v.p1_totlumi, t.mod_on, fabs(t.beta));
     }
+    // Resolution plots
+    if (t.mod_on.det==0&&t.trk.pt>12) {
+      int isMC = (e.run==1);
+      if (t.lev>0) resid->h1d(isMC, t.mod_on.layer-1, 2)->Fill(t.lev);
+      if ( (t.mod_on.layer==1 && t.lev>1.43 && t.lev<1.57) ||
+	   (t.mod_on.layer==2 && t.lev>0 && t.lev<0.015) ||
+	   (t.mod_on.layer==3 && t.lev>1.43 && t.lev<1.57)) {
+	resid->h1d(isMC, t.mod_on.layer-1, 0)->Fill(t.res_dx);
+	resid->h1d(isMC, t.mod_on.layer-1, 1)->Fill(t.res_dz);
+	resol->h2d(isMC, t.mod_on.layer-1, 0, 0)->Fill(t.trk.eta, t.res_dx);
+	resol->h2d(isMC, t.mod_on.layer-1, 0, 1)->Fill(t.trk.eta, t.res_dz);
+	resol->h2d(isMC, t.mod_on.layer-1, 1, 0)->Fill(t.trk.phi/3.14159*180, t.res_dx);
+	resol->h2d(isMC, t.mod_on.layer-1, 1, 1)->Fill(t.trk.phi/3.14159*180, t.res_dz);
+	resol->h2d(isMC, t.mod_on.layer-1, 2, 0)->Fill(v.traj_instlumi/1000, t.res_dx);
+	resol->h2d(isMC, t.mod_on.layer-1, 2, 1)->Fill(v.traj_instlumi/1000, t.res_dz);
+	resol->h2d(isMC, t.mod_on.layer-1, 3, 0)->Fill(v.lumi_totlumi_2012, t.res_dx);
+	resol->h2d(isMC, t.mod_on.layer-1, 3, 1)->Fill(v.lumi_totlumi_2012, t.res_dz);
+      }
+    }
   }
   
   void efficiency_fill_(Variables &v, const TrajMeasurement &t, const EventData &e) {
@@ -306,7 +410,7 @@ class AllHistos {
         if (t.mod_on.det==1)
           roc->  increasebin_2d(0,              v.traj_roc_p1, 2, v.traj_roc_binx, v.traj_roc_biny+1);
         if (v.traj_p1_fill!=NOVAL_I) {
-            roc->increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, 2, v.traj_roc_binx, v.traj_roc_biny);
+	  roc->increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, 2, v.traj_roc_binx, v.traj_roc_biny);
           if (t.mod_on.det==1)
             roc->increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, 2, v.traj_roc_binx, v.traj_roc_biny+1);
         }
@@ -316,20 +420,21 @@ class AllHistos {
     //                            Dynamic Efficiency Loss Plots
     //                                 (By Jozsef Krizsan)
     
+
     if (v.effcut_all&&v.zb) {
       if (e.run!=1) { // Data
 	//"201278": [[62, 163], [166, 229], [232, 256], [259, 316], [318, 595], [598, 938], [942, 974], [976, 1160], [1163, 1304], [1306, 1793], [1796, 1802], [1805, 1906], [1909, 1929], [1932, 2174]]
-	if (e.run==201278&&!(e.ls<62||(e.ls>163&&e.ls<166)||(e.ls>229&&e.ls<232)||(e.ls>256&&e.ls<259)||(e.ls>316&&e.ls<318)||(e.ls>595&&e.ls<598)||(e.ls>938&&e.ls<942)||(e.ls>974&&e.ls<976)||(e.ls>1160&&e.ls<1163)||(e.ls>1304&&e.ls<1306)||(e.ls>1793&&e.ls<1796)||(e.ls>1802&&e.ls<1805)||(e.ls>1906&&e.ls<1909)||(e.ls>1929&&e.ls<1932)||e.ls>2174)) {
-	  if (!t.mod_on.det) {
-	    dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
-	    dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
-	    dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
-	    dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
-	  }
-	  rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
-	  if (t.mod_on.det==1)
-	    rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
+	//if (e.run==201278&&!(e.ls<62||(e.ls>163&&e.ls<166)||(e.ls>229&&e.ls<232)||(e.ls>256&&e.ls<259)||(e.ls>316&&e.ls<318)||(e.ls>595&&e.ls<598)||(e.ls>938&&e.ls<942)||(e.ls>974&&e.ls<976)||(e.ls>1160&&e.ls<1163)||(e.ls>1304&&e.ls<1306)||(e.ls>1793&&e.ls<1796)||(e.ls>1802&&e.ls<1805)||(e.ls>1906&&e.ls<1909)||(e.ls>1929&&e.ls<1932)||e.ls>2174)) {
+	if (!t.mod_on.det) {
+	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.ladder);
+	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  0, t.missing)->Fill(t.mod_on.module);
+	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_l1rate);
+	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi);
+	  dynamic_ineff ->h1d(4, t.mod_on.layer-1,  0, t.missing)->Fill(v.traj_instlumi/221.95);
 	}
+	rocmap->   increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny);
+	if (t.mod_on.det==1)
+	  rocmap-> increasebin_2d(v.traj_roc_p1, 0, t.missing, v.traj_roc_binx, v.traj_roc_biny+1);
       } else { // MC
 	if (!t.mod_on.det) {
 #if VERSION2 >= 35
@@ -337,11 +442,13 @@ class AllHistos {
 	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module, e.weight);
 	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate, e.weight);
 	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi, e.weight);
+	  dynamic_ineff ->h1d(4, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi/221.95, e.weight);
 #else
 	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.ladder);
 	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  1, t.missing)->Fill(t.mod_on.module);
 	  dynamic_ineff ->h1d(2, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_l1rate);
 	  dynamic_ineff ->h1d(3, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi);
+	  dynamic_ineff ->h1d(4, t.mod_on.layer-1,  1, t.missing)->Fill(v.traj_instlumi/221.95);
 #endif
 	  dynamic_ineff ->h1d(0, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.ladder);
 	  dynamic_ineff ->h1d(1, t.mod_on.layer-1,  2, v.gen_missing)->Fill(t.mod_on.module);
@@ -467,6 +574,128 @@ class AllHistos {
     //                            Plots without FED errors, SEUs:
     //                                    ls, occup, nvtx
     //     Fill-by-Fill plots: det, mod, roc (eff part), time, bx, instlumi, il_l1rate
+    if (v.traj_newevt) {
+      if (v.traj_newls) {
+	// In the beginning of each lumisection loop on the ls counters
+	// and fill occupancy plots (from info from previous ls)
+	// Module Occupancy
+        for(std::map<int, int>::iterator it=mod_lssum_nclu.begin(); it!=mod_lssum_nclu.end(); ++it) {
+          //int modnum = it->first;
+          //int nclu = it->second;
+          //int npix = mod_lssum_npix[modnum];
+          //int val = mod_valmis[0][modnum];
+          //int mis = mod_valmis[1][modnum];
+          //double avg_npix = double(npix)/nevt_ls;
+          //double avg_nclu = double(nclu)/nevt_ls;
+          //int lay_index = (modnum>30000) ? 2 : (int(modnum/100)%100<10) ? 3 : (int(modnum/100)%100<26) ? 4 : 5;
+          //int mod_index = (modnum>30000) ? -1 : modnum%100;
+          //if (val) {
+	  //  occup_mod->h1d(0, lay_index, 0)->Fill(avg_npix, val);
+	  //  occup_mod->h1d(1, lay_index, 0)->Fill(avg_nclu, val);
+	  //}
+	  //if (mis) {
+	  //  occup_mod->h1d(0, lay_index, 1)->Fill(avg_npix, mis);
+	  //  occup_mod->h1d(1, lay_index, 1)->Fill(avg_nclu, mis);
+	  //}
+	  //if (mod_index!=-1) {
+	  //  occup_mod->h1d(0, lay_index, 2)->Fill(mod_index+1);
+	  //  occup_mod->h1d(1, lay_index, 2)->Fill(mod_index+1);
+	  //  occup_mod->h1d(0, lay_index, 3)->Fill(mod_index+1, avg_npix);
+	  //  occup_mod->h1d(1, lay_index, 3)->Fill(mod_index+1, avg_nclu);
+	  //}
+        }
+	// Roc Occupancy
+        for(std::map<int, int>::iterator it=roc_lssum_nclu.begin(); it!=roc_lssum_nclu.end(); ++it) {
+          //int rocnum = it->first;
+          //int nclu = it->second;
+          //int npix = roc_lssum_npix[rocnum];
+          //int val = roc_valmis[0][rocnum];
+          //int mis = roc_valmis[1][rocnum];
+          //double avg_npix = double(npix)/nevt_ls;
+          //double avg_nclu = double(nclu)/nevt_ls;
+          //int lay_index = (rocnum>30000) ? 2 : (int(rocnum/100)%100<10) ? 3 : (int(rocnum/100)%100<26) ? 4 : 5;
+          //int mod_index = (rocnum>30000) ? -1 : (rocnum%100)/16;
+          //if (val) {
+	  //  occup_roc->h1d(0, lay_index, 0)->Fill(avg_npix, val);
+	  //  occup_roc->h1d(1, lay_index, 0)->Fill(avg_nclu, val);
+	  //}
+	  //if (mis) {
+	  //  occup_roc->h1d(0, lay_index, 1)->Fill(avg_npix, mis);
+	  //  occup_roc->h1d(1, lay_index, 1)->Fill(avg_nclu, mis);
+	  //}
+	  //if (mod_index!=-1) {
+	  //  occup_roc->h1d(0, lay_index, 2)->Fill(mod_index+1);
+	  //  occup_roc->h1d(1, lay_index, 2)->Fill(mod_index+1);
+	  //  occup_roc->h1d(0, lay_index, 3)->Fill(mod_index+1, avg_npix);
+	  //  occup_roc->h1d(1, lay_index, 3)->Fill(mod_index+1, avg_nclu);
+	  //}
+        } 
+	mod_lssum_nclu.clear();
+        mod_valmis[0].clear();
+        mod_valmis[1].clear();
+	roc_lssum_nclu.clear();
+        roc_valmis[0].clear();
+        roc_valmis[1].clear();
+        nevt_ls = 0;
+      } // end new ls
+      // In the beginning of each event fill ls counters
+      // Then reset the event counters
+      for(std::map<int, int>::iterator it=mod_evt_nclu.begin(); it!=mod_evt_nclu.end(); ++it) {
+        int modnum = it->first;
+        int nclu = it->second;
+        int npix = mod_evt_npix[modnum];
+        if (!mod_lssum_nclu.count(modnum)) mod_lssum_nclu[modnum]=mod_lssum_npix[modnum]=0;
+        mod_lssum_npix[modnum]+=npix;
+        mod_lssum_nclu[modnum]+=nclu;
+	int lay_index = (modnum>30000) ? 2 : (int(modnum/100)%100<10) ? 3 : (int(modnum/100)%100<26) ? 4 : 5;
+	int mod_index = (modnum>30000) ? -1 : modnum%100;
+	if (lay_index>2) {
+	  occup_mod->h1d(0, lay_index, 0, 2)->Fill(mod_index+1);
+	  occup_mod->h1d(1, lay_index, 0, 2)->Fill(mod_index+1);
+	  occup_mod->h1d(0, lay_index, 0, 3)->Fill(mod_index+1, npix);
+	  occup_mod->h1d(1, lay_index, 0, 3)->Fill(mod_index+1, nclu);
+	}
+      }
+      for(std::map<int, int>::iterator it=roc_evt_nclu.begin(); it!=roc_evt_nclu.end(); ++it) {
+        int rocnum = it->first;
+        int nclu = it->second;
+        int npix = roc_evt_npix[rocnum];
+        if (!roc_lssum_nclu.count(rocnum)) roc_lssum_nclu[rocnum]=roc_lssum_npix[rocnum]=0;
+        roc_lssum_npix[rocnum]+=npix;
+        roc_lssum_nclu[rocnum]+=nclu;
+	int lay_index = (rocnum>30000) ? 2 : (int(rocnum/100)%100<10) ? 3 : (int(rocnum/100)%100<26) ? 4 : 5;
+	int mod_index = (rocnum>30000) ? -1 : (rocnum%100)/16;
+	if (lay_index>2) {
+	  occup_roc->h1d(0, lay_index, 0, 2)->Fill(mod_index+1);
+	  occup_roc->h1d(1, lay_index, 0, 2)->Fill(mod_index+1);
+	  occup_roc->h1d(0, lay_index, 0, 3)->Fill(mod_index+1, npix);
+	  occup_roc->h1d(1, lay_index, 0, 3)->Fill(mod_index+1, nclu);
+	}
+      }
+      mod_evt_npix.clear();
+      mod_evt_nclu.clear();
+      roc_evt_npix.clear();
+      roc_evt_nclu.clear();
+      nevt_ls++;
+    } // end new event
+    // Fill event counters
+    int modnum = v.p1_modid*10000 + v.p2_modid*100 + v.p3_modid;
+    if (!mod_evt_nclu.count(modnum)) {
+      mod_evt_nclu[modnum]=t.nclu_mod;
+      mod_evt_npix[modnum]=t.npix_mod;
+    }
+    int rocnum = v.p1_rocid*10000 + v.p2_rocid*100 + v.p3_rocid;
+    if (!roc_evt_nclu.count(rocnum)) {
+      roc_evt_nclu[rocnum]=t.nclu_roc;
+      roc_evt_npix[rocnum]=t.npix_roc;
+    }
+    if (!mod_valmis[0].count(modnum)) mod_valmis[0][modnum]=mod_valmis[1][modnum]=0;
+    if (!roc_valmis[0].count(rocnum)) roc_valmis[0][rocnum]=roc_valmis[1][rocnum]=0;
+    if (v.effcut_all) {
+      mod_valmis[t.missing][modnum]++;
+      roc_valmis[t.missing][rocnum]++;
+    }
+
     if (v.effcut_all) {
       ls->det_fill_1d(t.mod_on, t.missing, e.ls);
       float spectime = (e.run>=198268 && e.run<=198272) ? e.ls*0.0064754 + (e.run==198269)*0.45361 
@@ -491,30 +720,37 @@ class AllHistos {
       occup->h1d(0, 0, t.missing)->Fill(e.npix[0]+e.npix[1]+e.npix[2]+e.npix[3]);
       if (t.mod_on.det==0) occup->h1d(0, 1, t.missing)->Fill(e.npix[1]+e.npix[2]+e.npix[3]);
       occup->h1d(0, 2+(t.mod_on.det==0)*t.mod_on.layer, t.missing)->Fill(e.npix[(t.mod_on.det==0)*t.mod_on.layer]);
-      occup_mod->det_fill_1d(0, t.mod_on, t.missing, t.npix_mod);
-      occup_roc->det_fill_1d(0, t.mod_on, t.missing, t.npix_roc);
+      occup_mod->det_fill_1d(0, t.mod_on, 0,                    t.missing, t.npix_mod);
+      occup_mod->det_fill_1d(0, t.mod_on, abs(t.mod_on.module), t.missing, t.npix_mod);
+      occup_roc->det_fill_1d(0, t.mod_on, 0,                    t.missing, t.npix_roc);
+      occup_roc->det_fill_1d(0, t.mod_on, abs(t.mod_on.module), t.missing, t.npix_roc);
       // nclu
       occup->h1d(1, 0, t.missing)->Fill(e.nclu[0]+e.nclu[1]+e.nclu[2]+e.nclu[3]);
       if (t.mod_on.det==0) occup->h1d(1, 1, t.missing)->Fill(e.nclu[1]+e.nclu[2]+e.nclu[3]);
       occup->h1d(1, 2+(t.mod_on.det==0)*t.mod_on.layer, t.missing)->Fill(e.nclu[(t.mod_on.det==0)*t.mod_on.layer]);
-      occup_mod->det_fill_1d(1, t.mod_on, t.missing, t.nclu_mod);
-      occup_roc->det_fill_1d(1, t.mod_on, t.missing, t.nclu_roc);
+      occup_mod->det_fill_1d(1, t.mod_on, 0,                    t.missing, t.nclu_mod);
+      occup_mod->det_fill_1d(1, t.mod_on, abs(t.mod_on.module), t.missing, t.nclu_mod);
+      occup_roc->det_fill_1d(1, t.mod_on, 0,                    t.missing, t.nclu_roc);
+      occup_roc->det_fill_1d(1, t.mod_on, abs(t.mod_on.module), t.missing, t.nclu_roc);
 #endif
       nvtx->det_fill_1d(t.mod_on, t.missing, e.nvtx);
       // Fill-by-Fill plots
       if (!(abs(t.mod_on.disk)==1&&(t.mod_on.panel+t.mod_on.module)<4))
-	det->              h1d(0,                t.missing)->Fill(v.traj_lay_x);
 #if VERSION2 >= 35
-      mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y, e.weight);
+	det->              h1d(0,                t.missing)->Fill(v.traj_lay_x, e.weight);
+        mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y, e.weight);
 #else
-      mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y);
+	det->              h1d(0,                t.missing)->Fill(v.traj_lay_x);
+        mod->              h2d(0, v.traj_mod_p1, t.missing)->Fill(v.traj_mod_x, v.traj_mod_y);
 #endif
       roc->   increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny);
       if (t.mod_on.det==1)
 	roc-> increasebin_2d(0, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1); // fpix
       time->    det2_fill_1d(0, t.mod_on,      t.missing, v.lumi_time);
       if (v.main_filling_scheme) {
-	bx->      det2_fill_1d(0, t.mod_on,      t.missing, e.bx);
+	bx->  det2_fill_1d(0, 0,             t.mod_on,      t.missing, e.bx);
+	if (v.instlumi_p1!=NOVAL_I)
+	  bx->det2_fill_1d(0, v.instlumi_p1, t.mod_on,      t.missing, e.bx);
 	instlumi->det2_fill_1d(0, t.mod_on,      t.missing, v.lumi_instlumi);
 	l1rate  ->det2_fill_1d(0, t.mod_on,      t.missing, e.l1_rate/1000.0);
 #if VERSION2 >=27
@@ -529,7 +765,9 @@ class AllHistos {
 	if (t.mod_on.det==1)
 	  roc-> increasebin_2d(v.traj_p1_fill, v.traj_roc_p1, t.missing, v.traj_roc_binx, v.traj_roc_biny+1); // fpix
 	time->    det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_time);
-	bx->      det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, e.bx);
+	bx->      det2_fill_1d(v.traj_p1_fill, 0,             t.mod_on,      t.missing, e.bx);
+	if (v.instlumi_p1!=NOVAL_I)
+	  bx->det2_fill_1d(v.traj_p1_fill, v.instlumi_p1, t.mod_on,      t.missing, e.bx);
 	instlumi->det2_fill_1d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi);
 #if VERSION2 >=27
 	il_l1rate->det_fill_2d(v.traj_p1_fill, t.mod_on,      t.missing, v.lumi_instlumi, e.l1_rate/1000.0);
@@ -858,7 +1096,7 @@ class AllHistos {
   }
   
   void federr_calc_(Variables &v) {
-    for (int p1=0; p1<=v.lumi_nfill; p1++) {
+    for (int p1=0; p1<=v.run_nfill; p1++) {
       for (int p3=0; p3<10; p3++) {
 	// copy: num of 3 -> num of 2
 	for (int n=0; n<19; n++) time_federr->h1d(p1,n,p3,3)->Add(time_federr->h1d(p1,n,p3,2));
@@ -887,14 +1125,14 @@ class AllHistos {
 
   void run_label_reorder_(Variables &var) {
     int last = 0;
-    for (size_t k=0; k<var.lumi_run.size(); k++) if (run->h1d(0,0,1)->GetBinContent(k+1)>0) {
+    for (size_t k=0; k<var.run_list.size(); k++) if (run->h1d(0,0,1)->GetBinContent(k+1)>0) {
       // check for previous empty bins
       size_t prev = k;
       // find skippable bins (nhit==0)
       while (prev!=0&&run->h1d(0,0,1)->GetBinContent(prev)==0) prev--;
       prev++;
       std::stringstream sstr;
-      sstr<<var.lumi_run[k];
+      sstr<<var.run_list[k];
       for (int i=0; i<10; i++) for (int mod=0; mod<5; mod++) for (int j=0; j<11; j++) {
 	// remove skippable bins
 	if (prev!=k+1) {
@@ -986,7 +1224,7 @@ class AllHistos {
   }
 
   void calc_nclu_plots_(Variables &v) {
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       for (int det=0; det<10; det++) {
 	for (int binx=1; binx<bx_ls->h2d(fill,det,0)->GetNbinsX(); binx++) {
 	  int nbx = 0;
@@ -1020,7 +1258,7 @@ class AllHistos {
 	//ls_fill->h1d(fill,det,0)->Divide(ls_fill->h1d(fill,det,2),ls_fill->h1d(fill,det,1));
       }
     }
-    for (int fill=0; fill<=v.lumi_nfill; fill++) {
+    for (int fill=0; fill<=v.run_nfill; fill++) {
       for (int det=1; det<24; det++) {
 	if (det<10) {
 	  if (fill==0) totlumi_ratio->h1d(det)->Divide(totlumi_ratio->h1d(0));
@@ -1306,8 +1544,10 @@ class AllHistos {
       f->SetParLimits(2,0,70);
       f->SetParLimits(3,0,50);
       mpv->Fit("mpvturnon","RMQ0");
-      vturnon_totlumi->h1d(det,0)->Fill(v.totlumi_scan[det][i], vturnon);
-      if (!(det==3&&(i>=0&&i<=4))) {
+      // Removing Disk1 - Layer 1 conflict points for the 2010 october scan
+      if (!((det==0&&i==0)||(det==3&&i==1)))
+	vturnon_totlumi->h1d(det,0)->Fill(v.totlumi_scan[det][i], vturnon);
+      if (!(det==3&&(i>=0&&i<=4))) { // MPV unreliable
 	vturnon_totlumi->h1d(det,1)->Fill(v.totlumi_scan[det][i], f->Eval(vturnon)*maximum);
 	vturnon_totlumi->h1d(det,2)->Fill(v.totlumi_scan[det][i], f->Eval(vturnon));
       }
@@ -1455,6 +1695,125 @@ class AllHistos {
       }
     }
   }
+  // Resolution fitting
+  // Taken from:
+  // Daniel Pitzl, Dec 2010
+  // fit Student's t + p0
+  // .x fittp0.C("h012")
+  //
+
+  //
+  //----------------------------------------------------------------------
+  //
+  float fittp0( TH1D *h, bool save_fit=false) {
+    h->SetMarkerStyle(21);
+    h->SetMarkerSize(0.8);
+    h->SetStats(1);
+    gStyle->SetOptFit(101);
+    
+    gROOT->ForceStyle();
+    
+    double dx = h->GetBinWidth(1);
+    double nmax = h->GetBinContent(h->GetMaximumBin());
+    double xmax = h->GetBinCenter(h->GetMaximumBin());
+    double nn = 7*nmax;
+    
+    int nb = h->GetNbinsX();
+    double n1 = h->GetBinContent(1);
+    double n9 = h->GetBinContent(nb);
+    double bg = 0.5*(n1+n9);
+    
+    double x1 = h->GetBinCenter(1);
+    double x9 = h->GetBinCenter(nb);
+    //cout << h->GetName() << ": " << x1 << " - " << x9 << endl;
+    
+    // create a TF1 with the range from x1 to x9 and 5 parameters
+    
+    //TF1 *tp0Fcn = new TF1( "tp0Fcn", "tp0Fit", x1, x9, 5 );
+    
+    Function *func = new Function();
+    TF1 *tp0Fcn = new TF1("tp0Fcn",func,&Function::tp0Fit,x1,x9,5,"Function","tp0Fit");
+    
+    tp0Fcn->SetParName( 0, "mean" );
+    tp0Fcn->SetParName( 1, "sigma" );
+    tp0Fcn->SetParName( 2, "nu" );
+    tp0Fcn->SetParName( 3, "area" );
+    tp0Fcn->SetParName( 4, "BG" );
+    
+    tp0Fcn->SetNpx(500);
+    tp0Fcn->SetLineWidth(4);
+    tp0Fcn->SetLineColor(kMagenta);
+    tp0Fcn->SetLineColor(kGreen);
+    
+    // set start values for some parameters:
+    
+    //cout << h->GetName() << " " << dx << ", " << nn << ", " << xmax << endl;
+    
+    tp0Fcn->SetParameter( 0, xmax ); // peak position
+    tp0Fcn->SetParameter( 1, 4*dx ); // width
+    tp0Fcn->SetParameter( 2, 2.2 ); // nu
+    tp0Fcn->SetParameter( 3, nn ); // N
+    tp0Fcn->SetParameter( 4, bg );
+    
+    if (save_fit) {
+      TCanvas c("c");
+      h->Fit( "tp0Fcn", "QR", "ep" );
+      h->Draw("histepsame");  // data again on top
+      c.SaveAs((std::string(h->GetName())+".png").c_str());
+    } else {
+      h->Fit( "tp0Fcn", "Q0R", "ep" );
+    }
+    
+    // h->Fit("tp0Fcn","Q0V+","ep");
+    
+    //std::cout<<"Sigma, "<<h->GetName()<<": "<<tp0Fcn->GetParameter(1)<<std::endl;
+    return tp0Fcn->GetParameter(1);
+  }
+
+  void calc_resol_(TH2D *l1_2d, TH2D *l2_2d, TH2D *l3_2d, TH1D *l1_1d, TH1D *l2_1d, TH1D *l3_1d) {
+    if (l1_2d->GetEntries()>0&&l2_2d->GetEntries()>0&&l3_2d->GetEntries()>0) {
+      Int_t ny = l1_2d->GetNbinsY();
+      Double_t ymin = l1_2d->GetYaxis()->GetXmin();
+      Double_t ymax = l1_2d->GetYaxis()->GetXmax();
+      for (int binx=1; binx<=l1_2d->GetNbinsX(); binx++) {
+        TH1D *l1_xbin_slice = new TH1D("l1_xbin_slice","l1_xbin_slice", ny, ymin, ymax);
+        TH1D *l2_xbin_slice = new TH1D("l2_xbin_slice","l2_xbin_slice", ny, ymin, ymax);
+        TH1D *l3_xbin_slice = new TH1D("l3_xbin_slice","l3_xbin_slice", ny, ymin, ymax);
+        double entries_l1 = 0;
+	double entries_l2 = 0;
+	double entries_l3 = 0;
+        for (int biny=1; biny<=l1_2d->GetNbinsY(); biny++) {
+          double bincont_l1 = l1_2d->GetBinContent(binx,biny);
+          double bincont_l2 = l2_2d->GetBinContent(binx,biny);
+          double bincont_l3 = l3_2d->GetBinContent(binx,biny);
+          if (bincont_l1>0) l1_xbin_slice->SetBinContent(biny, bincont_l1);
+          if (bincont_l2>0) l2_xbin_slice->SetBinContent(biny, bincont_l2);
+          if (bincont_l3>0) l3_xbin_slice->SetBinContent(biny, bincont_l3);
+          entries_l1 += bincont_l1;
+          entries_l2 += bincont_l2;
+          entries_l3 += bincont_l3;
+        }
+	std::cout<<l1_2d->GetName()<<" bin["<<binx<<"] entries - l1: "<<entries_l1<<" l2: "<<entries_l2<<" l3: "<<entries_l3<<std::endl;
+        if (entries_l1>100&&entries_l2>100&&entries_l3>100) {
+	  bool save_fit_to_png = false;
+          double sig_dx_l1 = fittp0(l1_xbin_slice, save_fit_to_png);
+          double sig_dx_l2 = fittp0(l2_xbin_slice, save_fit_to_png);
+          double sig_dx_l3 = fittp0(l3_xbin_slice, save_fit_to_png);
+	  double res_dx_l1=sqrt((-sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2+5*sig_dx_l3*sig_dx_l3))/3;
+          double res_dx_l2=sqrt((-sig_dx_l1*sig_dx_l1+14*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3))/3;
+          double res_dx_l3=sqrt((5*sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3))/3;
+	  std::cout<<"Sigma      dx: Lay1 = "<<sig_dx_l1<<" Lay2 = "<<sig_dx_l2<<" Lay3 = "<<sig_dx_l3<<std::endl;
+	  std::cout<<"Resolution dx: Lay1 = "<<res_dx_l1<<" Lay2 = "<<res_dx_l2<<" Lay3 = "<<res_dx_l3<<std::endl;
+          l1_1d->SetBinContent(binx, res_dx_l1);
+          l2_1d->SetBinContent(binx, res_dx_l2);
+          l3_1d->SetBinContent(binx, res_dx_l3);
+        }
+        delete l1_xbin_slice;
+        delete l2_xbin_slice;
+        delete l3_xbin_slice;
+      }
+    }
+  }
   
   void load_delay_scans_() {
     TFile f_in("/home/jkarancs/Prev_scans_data/Timing_scan11_12_INC_SPL0_nstrip0.root");
@@ -1535,7 +1894,7 @@ public:
     Double_t low = roceff_time->h3d(0,0,0)->GetXaxis()->GetXmin();
     Double_t up = roceff_time->h3d(0,0,0)->GetXaxis()->GetXmax();
     // Filling ROC efficiency Distributions for each fill
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       if (debug) std::cout<<"Starting Fill "<<p.Fill[fill]<<std::endl;
       for (int p1=0; p1<8; p1++)
         for (int p2=0; p2<roceff_time->h3d(fill,p1,0)->GetNbinsY(); p2++)
@@ -1731,7 +2090,7 @@ public:
     std::cout<<"---------------------------------------------------------"<<std::endl;
     std::cout<<"Starting to Create Persistent BAD ROC LIST"<<std::endl;
     std::cout<<"Total statistics is: "<<remaining_stat<<std::endl;
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       if (fill_high==0) fill_high = fill;
       double fillstat = fill_stat->h1d(1)->GetBinContent(fill);
       if (fillstat>0) {
@@ -1873,6 +2232,33 @@ public:
     // Average L1 trigger rate
     for (int i=1; i<=3; i++) for (int j=0; j<24; j++)
       instlumi_raw->h1d(0,i,j,2)->Divide(instlumi_raw->h1d(0,i,j,3));
+
+    // Average npix/nclu in instlumi bins
+    for (int lay=0; lay<3; lay++) for (int mc=0; mc<=1; mc++) {
+      dynamic_ineff->h1d(3,lay,mc,2)->Divide(dynamic_ineff->h1d(3,lay,mc,4));
+      dynamic_ineff->h1d(3,lay,mc,3)->Divide(dynamic_ineff->h1d(3,lay,mc,4));
+      dynamic_ineff->h1d(4,lay,mc,2)->Divide(dynamic_ineff->h1d(4,lay,mc,4));
+      dynamic_ineff->h1d(4,lay,mc,3)->Divide(dynamic_ineff->h1d(4,lay,mc,4));
+    }
+
+    for (int lay=0; lay<10; lay++) {
+      occup_mod->h1d(0,lay,0,3)->Divide(occup_roc->h1d(0,lay,0,2));
+      occup_mod->h1d(1,lay,0,3)->Divide(occup_roc->h1d(0,lay,0,2));
+      occup_roc->h1d(0,lay,0,3)->Divide(occup_roc->h1d(0,lay,0,2));
+      occup_roc->h1d(1,lay,0,3)->Divide(occup_roc->h1d(0,lay,0,2));
+    }
+
+    // Calculate resolution
+    for (int MC=0; MC<3; MC++){
+      for (int lay=0; lay<3; lay++) {
+	fittp0(resid->h1d(MC,lay,0));
+	fittp0(resid->h1d(MC,lay,1));
+      }
+      for (int resol1=0; resol1<4; resol1++) {
+	calc_resol_(resol->h2d(MC,0,resol1,0),resol->h2d(MC,1,resol1,0),resol->h2d(MC,2,resol1,0),
+		    resol->h1d(MC,0,resol1,0),resol->h1d(MC,1,resol1,0),resol->h1d(MC,2,resol1,0));
+      }
+    }
   }
 
   void calc_write(Variables &var) {
@@ -1910,18 +2296,21 @@ public:
     time_federr->finish();
 #endif
 #if BADROC ==1
-    // roceff_time->finish(); // File too large to write out
+    roceff_time->finish(); // File too large to write out
     // roceff_fill->finish(); // Do not need to write out
     // fill_stat->finish(); // Do not need to write out
     roceff_dist->finish();
     badroc->finish();
     nbadroc->finish();
 #endif
-
+    
     l1rate_vs_instlumi->Write();
     dynamic_ineff->finish();
     rocmap->finish();
-
+    
+    resid->finish();
+    resol->finish();
+    
     // N-1
     pt->finish();
     nstrip->finish();

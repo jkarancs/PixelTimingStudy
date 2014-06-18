@@ -269,7 +269,7 @@ class CanvasMaker {
   
   TCanvas* custom_can_(TH1D* h, std::string canname, std::string title,
 		       std::string xtitle, std::string ytitle, int gx = 0, int gy = 0, 
-		       int histosize_x = 480, int histosize_y = 480,
+		       int histosize_x = 500, int histosize_y = 500,
 		       int mar_left = 80, int mar_right = 20, int mar_top = 20, int mar_bottom = 60) {
     mar_top = mar_top + (title.size()>0)*20;
     int titlefontsize = 32;
@@ -313,7 +313,7 @@ class CanvasMaker {
   
   TCanvas* custom_can_(TH2D* h, std::string canname, std::string title,
 		       std::string xtitle, std::string ytitle, std::string ztitle, int gx = 0, int gy = 0, 
-		       int histosize_x = 480, int histosize_y = 480, int mar_left = 80, int mar_right = 120) {
+		       int histosize_x = 500, int histosize_y = 500, int mar_left = 80, int mar_right = 120) {
     int mar_top = 20 + (title.size()>0)*20;
     int mar_bottom = 60;
     int titlefontsize = 32;
@@ -469,11 +469,47 @@ class CanvasMaker {
   }
 
   void save_canvas_(TCanvas* can, std::string out) {
+    
     std::string title = can->GetName();
     out += title + ".png";
     can->SaveAs(out.c_str());
   }
   
+  TGraph* tg_(TH1D* h) {
+    TGraph* tg = new TGraph(h);
+    int n = 0;
+    tg->Set(n);
+    for (Int_t i=0; i<h->GetNbinsX(); ++i) {
+      double y = h->GetBinContent(i+1);
+      double x = h->GetBinCenter(i+1);
+      if (y>0) {
+	n++;
+	tg->Set(n);
+	tg->SetPoint(n-1,x,y);
+      }
+    }
+    // Set same ranges/settings etc
+    double xlow = h->GetXaxis()->GetBinLowEdge(h->GetXaxis()->GetFirst());
+    double xup  = h->GetXaxis()->GetBinUpEdge(h->GetXaxis()->GetLast());
+    double ylow = h->GetMinimum();
+    double yup  = h->GetMaximum();
+    tg->GetXaxis()->SetRangeUser(xlow,xup);
+    tg->GetYaxis()->SetRangeUser(ylow,yup);
+    tg->SetTitle(h->GetTitle());
+    tg->GetXaxis()->SetTitle(h->GetXaxis()->GetTitle());
+    tg->GetYaxis()->SetTitle(h->GetYaxis()->GetTitle());
+    tg->GetXaxis()->SetTitleSize(h->GetXaxis()->GetTitleSize());
+    tg->GetYaxis()->SetTitleSize(h->GetYaxis()->GetTitleSize());
+    tg->GetXaxis()->SetTitleOffset(h->GetXaxis()->GetTitleOffset());
+    tg->GetYaxis()->SetTitleOffset(h->GetYaxis()->GetTitleOffset());
+    tg->GetXaxis()->SetTitleFont(h->GetXaxis()->GetTitleFont());
+    tg->GetYaxis()->SetTitleFont(h->GetYaxis()->GetTitleFont());
+    tg->GetXaxis()->SetNdivisions(h->GetNdivisions("X"));
+    tg->GetYaxis()->SetNdivisions(h->GetNdivisions("Y"));
+    tg->GetYaxis()->SetDecimals(1);
+    return tg;
+  }
+
   
   TCanvas* default_can_(std::string name, std::string title, int xsize, int ysize, float l, float r, float t, float b, int tx, int ty, int gx, int gy) {
     gStyle->SetErrorX(0);
@@ -574,7 +610,7 @@ class CanvasMaker {
     canvas->SetGrid(gx,gy);
     return canvas;
   }
-    
+  
   void year_lat_(double xmax, double ymin, double ymax) {
     std::string year = year_ + " Data";
     TLatex* year_lat= new TLatex(xmax,  ymax+(ymax-ymin)/40.0, year.c_str()); 
@@ -587,7 +623,13 @@ class CanvasMaker {
     if (in) { TLatex* cms_lat = new TLatex(xmin+(xmax-xmin)/20.0, ymax-(ymax-ymin)/10.0, prelim.c_str()); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
     else { TLatex* cms_lat = new TLatex(xmin, ymax+(ymax-ymin)/40.0, prelim.c_str()); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
   }
-
+  
+  void cms_lat_(double xmin, double xmax, double ymin, double ymax, bool in = false) {
+    std::string prelim = "CMS";
+    if (in) { TLatex* cms_lat = new TLatex(xmin+(xmax-xmin)/20.0, ymax-(ymax-ymin)/10.0, prelim.c_str()); cms_lat->SetTextFont(42); cms_lat->Draw(); }
+    else { TLatex* cms_lat = new TLatex(xmin, ymax+(ymax-ymin)/40.0, prelim.c_str()); cms_lat->SetTextFont(42); cms_lat->Draw(); }
+  }
+  
   std::vector<int> string_to_vector_(std::string val) {
     std::vector<int> vec;
     // Reading values from string separated by commas, (ranges x-y can be specified too)
@@ -856,7 +898,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   //_________________________________________________________________________________________________________
 
   void ncd_can_(std::vector<TCanvas*>& c, Histograms* h) {
-    TCanvas* can = custom_can_(h->h1d(0,2), h->histoname()+"_lay", "2012 April Data", "Normalized Cluster Charge [ke]", "Arbitrary", 0,0, 480,480, 90);
+    TCanvas* can = custom_can_(h->h1d(0,2), h->histoname()+"_lay", "2012 April Data", "Normalized Cluster Charge [ke]", "Arbitrary", 0,0, 500,500, 90);
     h->multidraw_with_legend_(0, "2-5", "NORM", postfix_.Det, "1,2,4,3", "Fill 2469", 0.5,0.7, 0.6,0.8); 
     
     //for (int i=0; i<4; i++) setstyle_(h->h1d(i,0),"Normalized Cluster Charge [ke]","Arbitrary",1.0,1.3);
@@ -960,7 +1002,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 
   void nclu_plots_can_(std::vector<TCanvas*>& c, AllHistos& ah, Variables& v, PostFixes& p) {
     // Plot 1 - Nclu/Npix Correllation
-    for (int fill=0; fill<=v.lumi_nfill; fill++) {
+    for (int fill=0; fill<=v.run_nfill; fill++) {
       for (int i=0; i<2; i++) {
 	// Nclu
 	setstyle_(ah.nclu_corr->h2d(fill,i),"N_{Cluster} - Layer 1","N_{Cluster} - "+p.Det[4+i],"",0.9,1.4,1.0);
@@ -977,17 +1019,17 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       }
     }
     // Plot 1 Alternative - Nclu/Npix Correllation Fitted Slopes:
-    for (int fill=0; fill<=v.lumi_nfill; fill++) {
+    for (int fill=0; fill<=v.run_nfill; fill++) {
       ah.instlumi_corr->h1d(fill,0)->GetXaxis()->SetRangeUser(1250,3450);
       ah.instlumi_corr->h1d(fill,0)->GetYaxis()->SetRangeUser(0.55,0.9);
       setstyle_(ah.instlumi_corr->h1d(fill,0),"Instantaneous Luminosity [#mub^{-1}s^{-1}]","L_{N}/L_{1} Correlation Slope",0.9,1.4);
       TCanvas* can = square_can2_1d_(ah.instlumi_corr->histoname()+p.fill[fill], "Nclu/Npix Correllation Slopes vs Inst Lumi - Fill"+p.Fill[fill]);
-      ah.instlumi_corr->multidraw_with_legend_(fill, "0-3", "PE1", postfix_.Corr2, "1,2,4,3","Fill "+p.Fill[fill], 0.6, 0.8, 0.3, 0.5);
+      ah.instlumi_corr->multidraw_with_legend(fill, "0-3", "PE1", postfix_.Corr2, "1,2,4,3","Fill "+p.Fill[fill], 0.6, 0.8, 0.3, 0.5);
       c.push_back(can);
     }
     // Plot 2 - N_cluster/N_Event vs LS (Bx Avg/100LS, Avg/1LS)
     ah.ls_fill->dress_all_1d("LumiSection","N_{cluster}/N_{Event}");
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       int maxbin = 0;
       for (int binx=1; binx<=ah.ls_fill->h1d(fill,0,1)->GetNbinsX(); binx++)
 	if (ah.ls_fill->h1d(fill,0,1)->GetBinContent(binx)>0&&binx>maxbin) maxbin = binx;
@@ -1013,7 +1055,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	ah.ls_fill->h1d(fill,det,2)->SetMarkerSize(0.5);
 	//TCanvas* can = rectangle_can2_1d_(ah.ls_fill->histoname()+p.fill[fill], " N_Cluster/N_Event - Fill"+p.Fill[fill]);
 	TCanvas* can = square_can2_1d_(ah.ls_fill->histoname()+p.fill[fill]+p.det[det], " N_Cluster/N_Event - Fill"+p.Fill[fill]+" "+p.Det[det]);
-	ah.ls_fill->multidraw_with_legend_(fill, det, "2,1", "P9", postfix_.Avg, "2,1","Fill "+p.Fill[fill]+" - "+postfix_.Det[det], 0.5,0.7, 0.75,0.95);
+	ah.ls_fill->multidraw_with_legend(fill, det, "2,1", "P9", postfix_.Avg, "2,1","Fill "+p.Fill[fill]+" - "+postfix_.Det[det], 0.5,0.7, 0.75,0.95);
 	draw_error_range_lines_(ah.ls_fill->h1d(fill, det, 1));
 	c.push_back(can);
       }
@@ -1042,9 +1084,9 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     }
     std::stringstream ytitle;
     ytitle<<"N_{cluster}/N_{Event} [/"<<nmergey<<" BX]";
-    bx_nclu->add(p.fill, 1, 1, v.lumi_nfill+1, 0, p.det, 1, 1, 10, 0, pf_ls, 1, 1, nbinsx,  nbinsy, 0, 3600);
+    bx_nclu->add(p.fill, 1, 1, v.run_nfill+1, 0, p.det, 1, 1, 10, 0, pf_ls, 1, 1, nbinsx,  nbinsy, 0, 3600);
     bx_nclu->dress_all_1d("Bunch Crossing",ytitle.str());
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       for (int det=0; det<10; det++) {
 	std::map<int, int> has_enough_stat;
 	for (int binx=1; binx<=nbinsx; binx++) {
@@ -1080,7 +1122,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	  if (i!=last) plot_these<<",";
 	}
 	TCanvas* can = square_can2_1d_(bx_nclu->histoname()+p.fill[fill]+p.det[det], "N_Cluster/N_Event vs BX - LS - Fill"+p.Fill[fill]+" "+p.Det[det]);
-	bx_nclu->multidraw_with_legend_(fill, det, plot_these.str(), "P9", Pf_ls, "800,2,616,4,3","Fill "+p.Fill[fill]+" - "+postfix_.Det[det], 0.53,0.73, 0.12,0.32);
+	bx_nclu->multidraw_with_legend(fill, det, plot_these.str(), "P9", Pf_ls, "800,2,616,4,3","Fill "+p.Fill[fill]+" - "+postfix_.Det[det], 0.53,0.73, 0.12,0.32);
 	for (int i=0; i<nbinsx; i++) {
 	  bx_nclu->h1d(fill,det,i)->SetMarkerStyle(20);
 	}
@@ -1092,8 +1134,8 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     ah.totlumi_ratio->h1d(2)->GetYaxis()->SetRangeUser(0.18,0.3);
     setstyle_(ah.totlumi_ratio->h1d(2),"Total Int. Luminosity - 2011 [pb^{-1}]","N_{Cluster} Ratio",0.9,1.4);
     TCanvas* can = square_can2_1d_(ah.totlumi_ratio->histoname(), "N_Cluster Ratio vs Total Int Lumi - Layers", 1,1);
-    ah.totlumi_ratio->multidraw_with_legend_("2-5", "P", postfix_.Det, "1,2,4,3"); c.push_back(can);
-    for (int fill=1; fill<=v.lumi_nfill; fill++) {
+    ah.totlumi_ratio->multidraw_with_legend("2-5", "P", postfix_.Det, "1,2,4,3"); c.push_back(can);
+    for (int fill=1; fill<=v.run_nfill; fill++) {
       // time (fill)
       int nbin= ah.time->h1d(fill,0,2)->GetNbinsX();
       int max = nbin;
@@ -1105,7 +1147,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       setstyle_(ah.time->h1d(fill, 2, 2),"Time Since Start of Fill [h]","N_{Cluster} Ratio",0.9,1.4);
       ah.time->h1d(fill, 2, 2)->GetYaxis()->SetRangeUser(0.18,0.3);
       TCanvas* can = square_can2_1d_(ah.time->histoname()+"_ratio"+p.fill[fill], "N_Cluster Ratio vs Time - Layers - Fill "+p.Fill[fill], 1,1);
-      ah.time->multidraw_with_legend_(fill, "2-5", 2, "P", postfix_.Det, "1,2,4,3", p.Fill2[fill]); c.push_back(can);
+      ah.time->multidraw_with_legend(fill, "2-5", 2, "P", postfix_.Det, "1,2,4,3", p.Fill2[fill]); c.push_back(can);
       // instlumi (fill)
       int min = 1;
       nbin= ah.instlumi->h1d(fill,0,2)->GetNbinsX();
@@ -1119,7 +1161,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       setstyle_(ah.instlumi->h1d(fill, 2, 2),"Instantaneous Luminosity [#mub^{-1}s^{-1}]","N_{Cluster} Ratio",0.9,1.4);
       ah.instlumi->h1d(fill, 2, 2)->GetYaxis()->SetRangeUser(0.18,0.3);
       can = square_can2_1d_(ah.instlumi->histoname()+"_ratio"+p.fill[fill], "N_Cluster Ratio vs Time - Layers - Fill "+p.Fill[fill], 1,1);
-      ah.instlumi->multidraw_with_legend_(fill, "2-5", 2, "P", postfix_.Det, "1,2,4,3", "Fill "+p.Fill[fill]); c.push_back(can);
+      ah.instlumi->multidraw_with_legend(fill, "2-5", 2, "P", postfix_.Det, "1,2,4,3", "Fill "+p.Fill[fill]); c.push_back(can);
     }
   }
 
@@ -1131,8 +1173,8 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   void lay_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill) {
     //setstyle_(h, "", "Efficiency", 1.0, 1.4);
     //TCanvas* can = default_can_("lay"+fill, "Eff - Layer - Fill "+Fill, 800,750, 15,10,10,10, 1,1, 0,0);
-    bool APPROVAL = true;
-    c.push_back(custom_can_(h->h1d(f,0), "lay"+fill, "2012 Collisions Data, #sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 480,480, 90));
+    bool APPROVAL = false;
+    c.push_back(custom_can_(h->h1d(f,0), "lay"+fill, "#sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 490,500, 90));
     h->h1d(f,0)->SetMarkerStyle(8);
     h->h1d(f,0)->SetMarkerSize(1.3);
     h->h1d(f,0)->GetXaxis()->SetBinLabel(1, "Layer 1");
@@ -1147,7 +1189,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     h->h1d(f,0)->GetYaxis()->SetRangeUser(0.98,1.005);
     gStyle->SetErrorX(0);
     h->h1d(f,0)->Draw("PE1X0");
-    if (APPROVAL&&!f) prelim_lat_(0.5, 7.5, 0.98, 1.005, 1, 0);
+    if (APPROVAL&&!f) prelim_lat_(0.5, 7.5, 0.98, 1.005, 1, 1);
     //TLatex lat(4.0, 0.97667, "2011 Collision Data"); lat.SetLineWidth(2); lat.SetTextSize(0.04); lat.Draw();
     //prelim_lat_(0.5,7.5,0.96,1.005, true, false);
     //year_lat_(7.5, 0.96, 1.01);
@@ -1191,14 +1233,9 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   }
   
   void roc_can_(std::vector<TCanvas*>& c, TH2D* h, TH2D* h1, TH2D* h2, int i, std::string& fill, std::string& Fill) {
-    std::string name, title;
-    if (i<3) { name = "roc" + postfix_.det[i+3]; title = "Eff - ROC - " + postfix_.Det[i+3] + " - Fill "; }
-    else { name = "roc" + postfix_.fpixIO[i-3]; title = "Eff - ROC - " + postfix_.FpixIO[i-3] + " - Fill "; }
-    TCanvas* can = default_can_(name+fill, title+Fill, 800,750, 12,17,10,10, 0,0, 0,0);
-    if (i<3) setstyle_(h,"Modules","Ladders","Efficiency",0.9,1.0,1.2);
-    else {
-      setstyle_(h,"","Blades","Efficiency",1.0,1.0,1.2);
-      gStyle->SetPadRightMargin(0.2);
+    std::string name = i<3 ? "roc"+postfix_.det[i+3]+fill : "roc"+postfix_.fpixIO[i-3]+fill;
+    c.push_back(custom_can_(h, name, "", i<3?"Module":"",i<3?"Ladder":"Blade", "Efficiency"));
+    if (i>=3) {
       h->GetXaxis()->SetBinLabel(1, "Disk-2 Pnl2");
       h->GetXaxis()->SetBinLabel(9, "Disk-2 Pnl1");
       h->GetXaxis()->SetBinLabel(19, "Disk-1 Pnl2");
@@ -1211,7 +1248,28 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     }
     h->GetXaxis()->SetTickLength(0.0);
     h->GetYaxis()->SetTickLength(0.0);
-    h->Draw("COLZ");
+
+    //std::string name, title;
+    //if (i<3) { name = "roc" + postfix_.det[i+3]; title = "Eff - ROC - " + postfix_.Det[i+3] + " - Fill "; }
+    //else { name = "roc" + postfix_.fpixIO[i-3]; title = "Eff - ROC - " + postfix_.FpixIO[i-3] + " - Fill "; }
+    //TCanvas* can = default_can_(name+fill, "", 800,750, 12,17,10,10, 0,0, 0,0);
+    //if (i<3) setstyle_(h,"Modules","Ladders","Efficiency",0.9,1.0,1.2);
+    //else {
+    //  setstyle_(h,"","Blades","Efficiency",1.0,1.0,1.2);
+    //  gStyle->SetPadRightMargin(0.2);
+    //  h->GetXaxis()->SetBinLabel(1, "Disk-2 Pnl2");
+    //  h->GetXaxis()->SetBinLabel(9, "Disk-2 Pnl1");
+    //  h->GetXaxis()->SetBinLabel(19, "Disk-1 Pnl2");
+    //  h->GetXaxis()->SetBinLabel(27, "Disk-1 Pnl1");
+    //  h->GetXaxis()->SetBinLabel(41, "Disk+1 Pnl1");
+    //  h->GetXaxis()->SetBinLabel(49, "Disk+1 Pnl2");
+    //  h->GetXaxis()->SetBinLabel(59, "Disk+2 Pnl1");
+    //  h->GetXaxis()->SetBinLabel(67, "Disk+2 Pnl2");
+    //  h->GetXaxis()->LabelsOption("d");
+    //}
+    //h->GetXaxis()->SetTickLength(0.0);
+    //h->GetYaxis()->SetTickLength(0.0);
+    //h->Draw("COLZ");
     // Inactive modules - create hatched areas
     int ybins[5] = { 42, 66, 90, 144, 144 };
     float ylow[5] = { -10.5, -16.5, -22.5, 0.5, -12.5 };
@@ -1303,7 +1361,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     }
     //year_lat_(4.5, ylow[i], yhigh[i]);
     /*       prelim_lat_(-4.5,4.5,ylow[i],yhigh[i],false,false); */
-    c.push_back(can);
+    //c.push_back(can);
   }
   
   void run_can_(std::vector<TCanvas*>& c, Histograms* h) {
@@ -1311,27 +1369,60 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     double ymin = 0.95, ymax = 1.01;
     h->h1d(3,0,0)->GetYaxis()->SetRangeUser(ymin,ymax);
     h->h1d(6,0,0)->GetYaxis()->SetRangeUser(ymin,ymax);
-    for (int l=1; l<=h->h1d(3,0,0)->GetNbinsX(); l++) if (l%10!=1) {
-      h->h1d(3,0,0)->GetXaxis()->SetBinLabel(l, "");
-      h->h1d(6,0,0)->GetXaxis()->SetBinLabel(l, "");
+    for (int l=1; l<=h->h1d(3,0,0)->GetNbinsX(); l++) {
+      if (APPROVAL) {
+	if (l%53==1||l==527) {
+	  for (int i=0; i<2; ++i) {
+	    TAxis *a = h->h1d(3+i*3,0,0)->GetXaxis();
+	    if      (strcmp(a->GetBinLabel(l),"190645")==0) a->SetBinLabel(l,"07/04");
+	    else if (strcmp(a->GetBinLabel(l),"194117")==0) a->SetBinLabel(l,"14/05");
+	    else if (strcmp(a->GetBinLabel(l),"195112")==0) a->SetBinLabel(l,"28/05");
+	    else if (strcmp(a->GetBinLabel(l),"196047")==0) a->SetBinLabel(l,"11/06");
+	    else if (strcmp(a->GetBinLabel(l),"199319")==0) a->SetBinLabel(l,"20/07");
+	    else if (strcmp(a->GetBinLabel(l),"200466")==0) a->SetBinLabel(l,"07/08");
+	    else if (strcmp(a->GetBinLabel(l),"201819")==0) a->SetBinLabel(l,"28/08");
+	    else if (strcmp(a->GetBinLabel(l),"204552")==0) a->SetBinLabel(l,"06/10");
+	    else if (strcmp(a->GetBinLabel(l),"206208")==0) a->SetBinLabel(l,"27/10");
+	    else if (strcmp(a->GetBinLabel(l),"207233")==0) a->SetBinLabel(l,"14/11");
+	    else if (strcmp(a->GetBinLabel(l),"208686")==0) a->SetBinLabel(l,"06/12");
+	  }
+	} else {
+	  h->h1d(3,0,0)->GetXaxis()->SetBinLabel(l, "");
+	  h->h1d(6,0,0)->GetXaxis()->SetBinLabel(l, "");
+	}
+      } else if (l%20!=1) {
+	h->h1d(3,0,0)->GetXaxis()->SetBinLabel(l, "");
+	h->h1d(6,0,0)->GetXaxis()->SetBinLabel(l, "");
+      }
     }
+    float labelsize = 0.04;
+    float labeloffset = 0.01;
     // BPix
-    c.push_back(custom_can_(h->h1d(3,0,0), h->histoname()+"_bpix", "2012 Collisions Data, #sqrt{s} = 8 TeV", "Run number","Efficiency", 0,1, 960,480, 90,20,20,100));
-    h->multidraw_with_legend_("3-5", 0, 0, "PE1", postfix_.Det, "2,4,3", "", 0.1, 0.3, 0.2, 0.35);
+    c.push_back(custom_can_(h->h1d(3,0,0), h->histoname()+"_bpix", "#sqrt{s} = 8 TeV", "Date of Runs","Efficiency", 0,1, 500,460, 80,20,20,100));
+    //h->multidraw_with_legend("3-5", 0, 0, "AsymmErrPE1", postfix_.Det, "2,4,3", "", 0.15, 0.35, 0.2, 0.35);
+    h->h1d(3,0,0)->GetXaxis()->SetLabelSize(labelsize);
+    h->h1d(3,0,0)->GetXaxis()->SetLabelOffset(labeloffset);
+    h->multidraw_with_legend("3-5", 0, 0, "AsymmErrP", postfix_.Det, "2,4,3", "", 0.2, 0.4, 0.2, 0.35);
     if (APPROVAL) { 
-      TLatex* cms_lat = new TLatex(h->h1d(3,0,0)->GetXaxis()->GetXmax()/40.0, (ymax+1.0)/2.0, "CMS preliminary"); 
+      TLatex* cms_lat = new TLatex(h->h1d(3,0,0)->GetXaxis()->GetXmax()/20.0, (ymax+1.0)/2.0, "CMS preliminary 2012");
       cms_lat->SetLineWidth(2); cms_lat->SetTextAlign(12); cms_lat->Draw(); 
     }
     // FPix
-    c.push_back(custom_can_(h->h1d(6,0,0), h->histoname()+"_fpix", "2012 Collisions Data, #sqrt{s} = 8 TeV", "Run number","Efficiency", 0,1, 960,480, 90,20,20,100));
-    h->multidraw_with_legend_("6-9", 0, 0, "PE1", postfix_.Det, "3,4,6,2", "", 0.1, 0.3, 0.2, 0.4);
+    // Exclude Disk 1 Inner
+    postfix_.Det[19] = "Disk -1";
+    postfix_.Det[21] = "Disk +1";
+    c.push_back(custom_can_(h->h1d(6,0,0), h->histoname()+"_fpix", "#sqrt{s} = 8 TeV", "Date of Runs","Efficiency", 0,1, 500,460, 80,20,20,100));
+    //h->multidraw_with_legend("6,19,21,9", 0, 0, "AsymmErrPE1", postfix_.Det, "3,4,6,2", "", 0.15, 0.35, 0.2, 0.4);
+    h->h1d(6,0,0)->GetXaxis()->SetLabelSize(labelsize);
+    h->h1d(6,0,0)->GetXaxis()->SetLabelOffset(labeloffset);
+    h->multidraw_with_legend("6,19,21,9", 0, 0, "AsymmErrP", postfix_.Det, "3,4,6,2", "", 0.2, 0.4, 0.2, 0.4);
+    postfix_.Det[19] = "Disk -1 Outer";
+    postfix_.Det[21] = "Disk +1 Outer";
     if (APPROVAL) { 
-      TLatex* cms_lat = new TLatex(h->h1d(6,0,0)->GetXaxis()->GetXmax()/40.0, (ymax+1.0)/2.0, "CMS preliminary"); 
+      TLatex* cms_lat = new TLatex(h->h1d(6,0,0)->GetXaxis()->GetXmax()/20.0, (ymax+1.0)/2.0, "CMS preliminary 2012");
       cms_lat->SetLineWidth(2); cms_lat->SetTextAlign(12); cms_lat->Draw(); 
     }
     //prelim_lat_(0, double(h->h1d(6,0,0)->GetXaxis()->GetXmax()), ymin,ymax, 1, 0);
-    h->h1d(3,0,0)->GetXaxis()->SetLabelSize(0.04);
-    h->h1d(6,0,0)->GetXaxis()->SetLabelSize(0.04);
   }
 
   // void totlumi_can_(std::vector<TCanvas*>& c, Histograms* h) {
@@ -1510,38 +1601,46 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     int min=0; int max=h->h1d(f,0,0)->GetNbinsX();
     for (int binx=1; binx<=h->h1d(f,0,0)->GetNbinsX(); binx++) {
       double stat = h->h1d(f,0,1)->GetBinContent(binx);
-      if (stat>0) { max = binx;	if (min==0) min=binx; } }
+      if (stat>0) {
+	if (binx<h->h1d(f,0,0)->GetNbinsX()) max = binx+1;
+	if (min==0&&binx>1) min=binx-1;
+      }
+    }
     if (min!=0) {
       if (!f) min = (1000) / 100 + 1;
-      h->h1d(f,2,0)->GetXaxis()->SetRange(min,max+1);
-      h->h1d(f,3,0)->GetXaxis()->SetRange(min,max+1);
-      h->h1d(f,12,0)->GetXaxis()->SetRange(min,max+1);
+      h->h1d(f,2,0)->GetXaxis()->SetRange(min,max);
+      h->h1d(f,3,0)->GetXaxis()->SetRange(min,max);
+      h->h1d(f,12,0)->GetXaxis()->SetRange(min,max);
     }
     double ymin = 0.9501, ymax=1.01;
-    bool APPROVAL = true;
+    bool APPROVAL = false;
     h->h1d(f,2,0)->GetYaxis()->SetRangeUser(ymin,ymax);
     h->h1d(f,3,0)->GetYaxis()->SetRangeUser(ymin,ymax);
     h->h1d(f,12,0)->GetYaxis()->SetRangeUser(0.98,1.005);
+
+    if (!Fill.find("2736")) Fill = Fill + " -  16 June 2012";
+    if (!Fill.find("3236")) Fill = Fill + " -  28 Oct 2012";
+
     // All layers/Fpix
-    c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill, "2012 Collisions Data, #sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
-    h->multidraw_with_legend_(f, "2-5", 0, "PE1", postfix_.Det, "1,2,4,3", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill, "#sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
+    h->multidraw_with_legend(f, "2-5", 0, "AsymmErrP", postfix_.Det, "1,2,4,3", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
     
     // All layers/Fpix (2)
-    c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_all", "2012 Collisions Data, #sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
-    //h->multidraw_with_legend_(f, "3-5,10,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_all", "#sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
+    //h->multidraw_with_legend(f, "3-5,10,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
     // Exlcuded Disk1 Inner
     postfix_.Det[13] = "Disk 1";
-    h->multidraw_with_legend_(f, "3-5,13,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
-    if (APPROVAL&&!f) prelim_lat_((min-1)*100, 7700, ymin, ymax, 1, 0);
+    h->multidraw_with_legend(f, "3-5,13,11", 0, "AsymmErrP", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    if (APPROVAL) prelim_lat_(f? min*100 : 1000, max*100, ymin, ymax, 1, 1);
     
     // // BPix
-    // c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill+"_bpix", "2012 Collisions Data, #sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
-    // h->multidraw_with_legend_(f, "3-5", 0, "PE1", postfix_.Det, "2,3,4", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
+    // c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill+"_bpix", "#sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
+    // h->multidraw_with_legend(f, "3-5", 0, "PE1", postfix_.Det, "2,3,4", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
     //   
     // // FPix
     // postfix_.Det[13] = "Disk 1 Outer";
-    // c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill+"_fpix", "2012 Collisions Data, #sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
-    // h->multidraw_with_legend_(f, "12-15", 0, "PE1", postfix_.Det, "3,4,6,2", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
+    // c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill+"_fpix", "#sqrt{s} = 8 TeV", "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
+    // h->multidraw_with_legend(f, "12-15", 0, "PE1", postfix_.Det, "3,4,6,2", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
 
     // Additionally RAW layer efficiency plot
     if (std::string(h->histoname()).find("_raw")!=std::string::npos) {
@@ -1563,7 +1662,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	lay_raw->SetBinError(i,err);
       }
       lay_raw->SetEntries(h->h1d(f,0,1)->GetEntries());
-      c.push_back(custom_can_(lay_raw, "lay_raw"+fill, "2012 Collisions Data, #sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 480,480, 90));
+      c.push_back(custom_can_(lay_raw, "lay_raw"+fill, "#sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 490,500, 90));
       lay_raw->SetMarkerStyle(8); lay_raw->SetMarkerSize(1.3);
       lay_raw->GetXaxis()->SetBinLabel(1, "Layer 1");
       lay_raw->GetXaxis()->SetBinLabel(2, "Layer 2");
@@ -1580,7 +1679,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   }
 
   void l1rate_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill) {
-    bool APPROVAL = true;
+    bool APPROVAL = false;
     double xmin = 20, xmax=100;
     double ymin = 0.9501, ymax=1.01;
     h->h1d(f,2,0)->GetYaxis()->SetRangeUser(ymin,ymax);
@@ -1588,38 +1687,56 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     h->h1d(f,3,0)->GetXaxis()->SetRangeUser(xmin,xmax);
     h->h1d(f,12,0)->GetYaxis()->SetRangeUser(0.98,1.005);
     // All layers/Fpix
-    c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill, "2012 Collisions Data, #sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
-    h->multidraw_with_legend_(f, "2-5", 0, "PE1", postfix_.Det, "1,2,4,3", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    c.push_back(custom_can_(h->h1d(f,2,0), h->histoname()+fill, "#sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
+    h->multidraw_with_legend(f, "2-5", 0, "AsymmErrP", postfix_.Det, "1,2,4,3", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
     
     // All layers/Fpix (2)
-    c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_all", "2012 Collisions Data, #sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
-    //h->multidraw_with_legend_(f, "3-5,10,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_all", "#sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
+    //h->multidraw_with_legend(f, "3-5,10,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
     // Exlcuded Disk1 Inner
     postfix_.Det[13] = "Disk 1";
-    h->multidraw_with_legend_(f, "3-5,13,11", 0, "PE1", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
-    if (APPROVAL&&!f) prelim_lat_(20, 100, ymin, ymax, 1, 0);
+    h->multidraw_with_legend(f, "3-5,13,11", 0, "AsymmErrP", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    if (APPROVAL&&!f) prelim_lat_(20, 100, ymin, ymax, 1, 1);
 
     // // BPix
-    // c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_bpix", "2012 Collisions Data, #sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
-    // h->multidraw_with_legend_(f, "3-5", 0, "PE1", postfix_.Det, "2,4,3", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
+    // c.push_back(custom_can_(h->h1d(f,3,0), h->histoname()+fill+"_bpix", "#sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
+    // h->multidraw_with_legend(f, "3-5", 0, "PE1", postfix_.Det, "2,4,3", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
     // 
     // // FPix
-    // c.push_back(custom_can_(h->h1d(f,12,0), h->histoname()+fill+"_fpix", "2012 Collisions Data, #sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
+    // c.push_back(custom_can_(h->h1d(f,12,0), h->histoname()+fill+"_fpix", "#sqrt{s} = 8 TeV","L1 Trigger Rate [kHz]", "Efficiency", 1,1));
     // postfix_.Det[13] = "Disk 1 Outer";
-    // h->multidraw_with_legend_(f, "12-15", 0, "PE1", postfix_.Det, "3,4,6,2", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
+    // h->multidraw_with_legend(f, "12-15", 0, "PE1", postfix_.Det, "3,4,6,2", "Fill "+Fill, 0.2, 0.4, 0.15, 0.35);
   }
 
   void il_raw_can_(std::vector<TCanvas*>& c, AllHistos& ah, Variables& v, PostFixes& p) {
     for (int year=1; year<=3; year++) {
-      int min=0; int max=ah.instlumi_raw->h1d(0,year,2,0)->GetNbinsX();
-      for (int binx=1; binx<=ah.instlumi_raw->h1d(0,year,2,0)->GetNbinsX(); binx++) {
-        double stat = ah.instlumi_raw->h1d(0,year,2,1)->GetBinContent(binx);
-        if (stat>0) { max = binx;	if (min==0) min=binx; } }
-      if (min!=0) ah.instlumi_raw->h1d(0,year,2,0)->GetXaxis()->SetRange(min,max+1);
-      ah.instlumi_raw->h1d(0,year,2,0)->GetYaxis()->SetRangeUser(0.97,1.005);
-      c.push_back(custom_can_(ah.instlumi_raw->h1d(0,year,2,0), ah.instlumi_raw->histoname()+p.year[year], p.Year[year]+" Collisions Data, #sqrt{s} = "+(year<3?"7":"8")+" TeV",
+      int min=0; int max=ah.instlumi_raw->h1d(0,year,0,0)->GetNbinsX();
+      for (int binx=1; binx<=ah.instlumi_raw->h1d(0,year,0,0)->GetNbinsX(); binx++) {
+	double stat = ah.instlumi_raw->h1d(0,year,0,1)->GetBinContent(binx);
+	if (stat>0) {
+	  if (binx<ah.instlumi_raw->h1d(0,year,0,0)->GetNbinsX()) max = binx+1;
+	  if (min==0&&binx>1) min=binx-1;
+	}
+      }
+      if (min!=0) {
+	ah.instlumi_raw->h1d(0,year,2,0)->GetXaxis()->SetRange(min,max);
+	ah.instlumi_raw->h1d(0,year,3,0)->GetXaxis()->SetRange(min,max);
+	ah.instlumi_raw->h1d(0,year,12,0)->GetXaxis()->SetRange(min,max);
+      }
+      double ymin = 0.98, ymax=1.00;
+      bool APPROVAL = true;
+      ah.instlumi_raw->h1d(0,year,2,0)->GetYaxis()->SetRange(ymin,ymax);
+      ah.instlumi_raw->h1d(0,year,3,0)->GetYaxis()->SetRange(ymin,ymax);
+      ah.instlumi_raw->h1d(0,year,12,0)->GetYaxis()->SetRange(ymin,ymax);
+      
+      //c.push_back(custom_can_(ah.instlumi_raw->h1d(0,year,3,0), ah.instlumi_raw->histoname()+p.year[year], "#sqrt{s} = "+(year<3?"7":"8")+" TeV",
+      //  		      "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
+      //ah.instlumi_raw->multidraw_with_legend(0, year, "3-5,13,11", 0, "AsymmErrP", postfix_.Det, "2,4,3,1,6", "", 0.2, 0.4, 0.15, 0.35);
+      c.push_back(custom_can_(ah.instlumi_raw->h1d(0,year,2,0), ah.instlumi_raw->histoname()+p.year[year], year<3?"#sqrt{s} = 7 TeV":"#sqrt{s} = 8 TeV",
 			      "Instantaneous Luminosity [#mub^{-1}s^{-1}]","Efficiency", 1,1));
-      ah.instlumi_raw->multidraw_with_legend_(0, year, "2-5", 0, "PE1", postfix_.Det, "1,2,4,3", "", 0.2, 0.4, 0.15, 0.35);
+      ah.instlumi_raw->multidraw_with_legend(0, year, "2-5", 0, "AsymmErrPE1", postfix_.Det, "1,2,4,3", "", 0.2, 0.4, 0.15, 0.35);
+      if (APPROVAL) cms_lat_(min*100, max*100, ymin, ymax);
+
       // Additionally RAW layer efficiency plot
       if (std::string(ah.instlumi_raw->histoname()).find("_raw")!=std::string::npos) {
         TH1D* lay_raw = new TH1D(std::string("lay_raw"+p.year[year]).c_str(),std::string("lay_raw"+p.year[year]).c_str(),7,0.5,7.5);
@@ -1640,7 +1757,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
           lay_raw->SetBinError(i,err);
         }
         lay_raw->SetEntries(ah.instlumi_raw->h1d(0,year,0,1)->GetEntries());
-        c.push_back(custom_can_(lay_raw, "lay_raw"+p.year[year], p.Year[year]+" Collisions Data, #sqrt{s} = "+(year<3?"7":"8")+" TeV", "", "Efficiency", 0, 0, 480,480, 90));
+        c.push_back(custom_can_(lay_raw, "lay_raw"+p.year[year], year<3?"#sqrt{s} = 7 TeV":"#sqrt{s} = 8 TeV", "", "Efficiency", 0, 0, 490,500, 90));
         lay_raw->SetMarkerStyle(8); lay_raw->SetMarkerSize(1.3);
         lay_raw->GetXaxis()->SetBinLabel(1, "Layer 1");
         lay_raw->GetXaxis()->SetBinLabel(2, "Layer 2");
@@ -1651,8 +1768,9 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
         lay_raw->GetXaxis()->SetBinLabel(7, "Disk +2");
         lay_raw->GetXaxis()->LabelsOption("h");
         lay_raw->GetXaxis()->SetLabelSize(0.045);
-        lay_raw->GetYaxis()->SetRangeUser(0.98,1.005);
+        lay_raw->GetYaxis()->SetRangeUser(ymin,ymax);
         lay_raw->Draw("PE1X0");
+	if (APPROVAL) cms_lat_(0.5,7.5, ymin,ymax);
       }
     }
   }
@@ -1700,15 +1818,13 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   }
 
   void bx_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill) {
-    for (int i=0; i<10; i++) {
-      setstyle_(h->h1d(f,i,0),"Bunch crossing","Efficiency",0.9,1.0);
-      h->h1d(f,i,0)->GetYaxis()->SetRangeUser(0.99,1.002);
-      h->h1d(f,i,0)->GetYaxis()->SetTitle("Efficiency / 60 bunch");
-      h->h1d(f,i,0)->SetMarkerStyle(8);
-      h->h1d(f,i,0)->SetMarkerSize(1.0);
-    }
-    TCanvas* can = default_can_(h->histoname()+fill, "Effloss - Bx - Fill "+Fill, 1030,600, 10,3,10,10, 1,0, 1,1);
-    multidraw_with_legend_(h, f, "2-5,", 0, "PE1", "", postfix_.Det, defcol_, 0.2,0.4, 0.225,0.425); c.push_back(can);
+    // All layers/Fpix (2)
+    h->h1d(f,2,3,0)->GetYaxis()->SetRangeUser(0.95,1.01);
+    c.push_back(custom_can_(h->h1d(f,2,3,0), h->histoname()+fill, "#sqrt{s} = 8 TeV", "Bunch Crossing","Efficiency / 60 Bunch", 1,1));
+    postfix_.Det[13] = "Disk 1";// Exlcuded Disk1 Inner
+    //h->multidraw_with_legend(f, 0, "3-5,13,11", 0, "AsymmErrP", postfix_.Det, "2,4,3,1,6", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    h->multidraw_with_legend(f, "2-5", 3, 0, "AsymmErrP", postfix_.Instlumi, "3,4,6,2", f ? "Fill "+Fill : "", 0.2, 0.4, 0.15, 0.35);
+    postfix_.Det[13] = "Disk 1 Outer";
   }
   
   void time_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill) {
@@ -1740,9 +1856,9 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 
   void federr_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill, int norm) {
     h->h1d(f,0)->SetLineColor(1);
-    if (norm) h->h1d(f,0)->Scale(1/(h->h1d(f,0)->GetBinContent(1)));
+    if (norm) h->h1d(f,0)->Scale(1/(h->h1d(f,0)->GetBinContent(1))); // Divide by the number of events
     else {
-      h->h1d(f,0)->GetYaxis()->SetRangeUser(0.0,1.2);
+      h->h1d(f,0)->GetYaxis()->SetRangeUser(0.00001,1.2); // Remove 0% points (for TGAE)
       h->h1d(f,0)->SetMarkerStyle(20);
     }
     h->h1d(f,0)->GetXaxis()->SetBinLabel(27, "ROC of 25");
@@ -1750,8 +1866,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     h->h1d(f,0)->GetXaxis()->SetBinLabel(29, "Dummy word");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(30, "FIFO full");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(31, "Timeout");
-//  h->h1d(f,0)->GetXaxis()->SetBinLabel(32, "TBM Trailer");
-    h->h1d(f,0)->GetXaxis()->SetBinLabel(32, "Overflow *");
+    h->h1d(f,0)->GetXaxis()->SetBinLabel(32, "TBM Trailer");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(33, "Event number");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(34, "Slink header");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(35, "Slink trailer");
@@ -1762,11 +1877,19 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     h->h1d(f,0)->GetXaxis()->SetBinLabel(40, "Readout order");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(41, "CRC error");
     h->h1d(f,0)->GetXaxis()->SetBinLabel(42, "Overflow");
-    h->h1d(f,0)->GetXaxis()->SetRange(27,41);
-//  h->h1d(f,0)->GetXaxis()->SetRange(27,42);
-    c.push_back(custom_can_(h->h1d(f,0), (norm ? "federr_evt": "federr")+fill , f ? "Fill "+Fill  : "", "Error Type", norm ? "N_{FED Error}/N_{Event}" : "Efficiency", 
-			    0,0, 480, 480, norm ? 100: 80 , 40, 20, 90));
-    h->h1d(f,0)->Draw(norm ? "" : "PE1");
+    h->h1d(f,0)->GetXaxis()->SetRange(27,42);
+    TCanvas* can = custom_can_(h->h1d(f,0), (norm ? "federr_evt": "federr")+fill , f ? "Fill "+Fill  : "", "Error Type", norm ? "N_{FED Error}/N_{Event}" : "Efficiency", 
+			       0,0, 500, 500, norm ? 100: 80 , 40, 20, 90);
+    if (norm) {
+      h->h1d(f,0)->GetYaxis()->SetRangeUser(0.0000001,10);
+      can->SetLogy(1);
+      h->h1d(f,0)->Draw();
+    } else {
+      h->h1d(f,0)->GetXaxis()->SetLabelSize(0.02);
+      h->h1d(f,0)->GetXaxis()->SetNdivisions(505);
+      h->asym1d_draw(f,"AP",3);
+    }
+    c.push_back(can);
   }
   
   void time_federr_can_(std::vector<TCanvas*>& c, Histograms* h, int f, std::string& fill, std::string& Fill) {
@@ -1872,7 +1995,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   }
 
   void fill_multican_(std::vector<TCanvas*>& c, AllHistos& ah, Variables& v, PostFixes& p) {
-    for (int fill=0; fill<=v.lumi_nfill; fill++) {
+    for (int fill=0; fill<=v.run_nfill; fill++) {
       lay_can_        (c, ah.det,          fill, p.fill[fill], p.Fill[fill]);
       for (int i=0; i<4; i++) mod_can_(c, ah.mod->h2d(fill,i,0), i, p.fill[fill], p.Fill[fill]);
       for (int i=0; i<5; i++) roc_can_(c, ah.roc->h2d(fill,i,0), ah.roc->h2d(fill,i,1), ah.roc->h2d(fill,i,2), i, p.fill[fill], p.Fill[fill]);
@@ -1890,32 +2013,61 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
   }
 
   void instlumi_compare_can_(std::vector<TCanvas*>& c, Histograms* h, Variables& v, PostFixes& p) {
-    for (int fill=1; fill<=v.lumi_nfill; fill++) for (int i=0; i<10; i++) {
+    for (int fill=1; fill<=v.run_nfill; fill++) for (int i=0; i<10; i++) {
       h->h1d(fill,i,0)->GetYaxis()->SetRangeUser(0.988,1.000);
       h->h1d(fill,i,0)->GetXaxis()->SetRangeUser(500,3600); 
     }
     for (int i=2; i<=5; i++) {
       TCanvas* can = square_can_1d_(h, "Instantaneous Luminosity [#mub^{-1}s^{-1}]", h->histoname()+"_fills"+p.det[i], "Effloss - Inst Lumi - Fill 2040,2103,2105,2208 - "+p.Det[i], 1, 1);
-      h->multidraw_with_legend_("1,2,4,5", i, 0, "PE1", p.Fill2, "1,2,3,4", p.Det[i], 0.2,0.4, 0.2,0.4); c.push_back(can); 
+      h->multidraw_with_legend("1,2,4,5", i, 0, "PE1", p.Fill2, "1,2,3,4", p.Det[i], 0.2,0.4, 0.2,0.4); c.push_back(can); 
     }
   }
 
   void occup_can_(std::vector<TCanvas*>& c, AllHistos& ah, Variables& v, PostFixes& p) {
-    // Roc Occupancy
-    //  - Npix
-    ah.occup_roc->h1d(0, 2,0)->GetXaxis()->SetRange(2,30);
-    ah.occup_roc->h1d(0, 2,0)->GetYaxis()->SetRangeUser(0.8,1.1);
-    TCanvas* can = custom_can_(ah.occup_roc->h1d(0, 2,0), ah.occup_roc->histoname(), "", "ROC occupancy [pixel]", "Efficiency", 1,1);
-    ah.occup_roc->multidraw_with_legend_(0, "2-5", 0, "PE1", p.Det, "1,2,4,3", "Fill 2178", 0.2, 0.4, 0.15, 0.35);
-    c.push_back(can);
+    ah.occup    ->h1d(0, 2, 0)->GetXaxis()->SetRangeUser(0,10000);
+    ah.occup    ->h1d(0, 2, 0)->GetYaxis()->SetRangeUser(0.8,1.05);
+    ah.occup    ->h1d(1, 2, 0)->GetXaxis()->SetRangeUser(0,2000);
+    ah.occup    ->h1d(1, 2, 0)->GetYaxis()->SetRangeUser(0.8,1.05);
+
+    //ah.occup_mod->h1d(0, 2, 0)->GetXaxis()->SetRangeUser(0,200);
+    //ah.occup_mod->h1d(0, 2, 0)->GetYaxis()->SetRangeUser(0.8,1.05);
+    //ah.occup_mod->h1d(1, 2, 0)->GetXaxis()->SetRangeUser(0,40);
+    //ah.occup_mod->h1d(1, 2, 0)->GetYaxis()->SetRangeUser(0.8,1.05);
+    //ah.occup_roc->h1d(0, 2, 0)->GetXaxis()->SetRangeUser(0,40);
+    //ah.occup_roc->h1d(0, 2, 0)->GetYaxis()->SetRangeUser(0.0,1.25);
+    //ah.occup_roc->h1d(1, 2, 0)->GetXaxis()->SetRangeUser(0,15);
+    //ah.occup_roc->h1d(1, 2, 0)->GetYaxis()->SetRangeUser(0.8,1.05);
+
+    ah.occup_mod->h1d(0, 2, 0, 0)->GetXaxis()->SetRangeUser(0,50);
+    ah.occup_mod->h1d(0, 2, 0, 0)->GetYaxis()->SetRangeUser(0.95,1.01);
+    ah.occup_mod->h1d(1, 2, 0, 0)->GetXaxis()->SetRangeUser(0,15);
+    ah.occup_mod->h1d(1, 2, 0, 0)->GetYaxis()->SetRangeUser(0.95,1.01);
+    ah.occup_roc->h1d(0, 2, 0, 0)->GetXaxis()->SetRangeUser(0,4);
+    ah.occup_roc->h1d(0, 2, 0, 0)->GetYaxis()->SetRangeUser(0.9,1.02);
+    ah.occup_roc->h1d(1, 2, 0, 0)->GetXaxis()->SetRangeUser(0,1);
+    ah.occup_roc->h1d(1, 2, 0, 0)->GetYaxis()->SetRangeUser(0.9,1.02);
+
+    for (int i=0; i<2; ++i) {
+      std::string name = i?"nclu":"npix";
+      std::string unit = i?"[Cluster]":"[Pixel]";
+      // Layer/FPix
+      c.push_back(custom_can_(ah.occup->h1d(i, 2, 0), name, "", "Occupancy "+unit, "Efficiency", 1,1));
+      ah.occup->multidraw_with_legend(i, "2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.2, 0.4, 0.15, 0.35);
+      // Module
+      c.push_back(custom_can_(ah.occup_mod->h1d(i, 2, 0, 0), name+"_mod", "", "LS Average Module occupancy "+unit, "Efficiency", 1,1));
+      ah.occup_mod->multidraw_with_legend(i, "2-5", 0, 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.2, 0.4, 0.15, 0.35);
+      // ROC
+      c.push_back(custom_can_(ah.occup_roc->h1d(i, 2, 0, 0), name+"_roc", "", "LS Average ROC occupancy "+unit, "Efficiency", 1,1));
+      ah.occup_roc->multidraw_with_legend(i, "2-5", 0, 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.2, 0.4, 0.15, 0.35);
+    }
   }
 
   void nbadroc_can_(std::vector<TCanvas*>& c, Histograms* h, Variables& v, PostFixes& p) {
 //     c.push_back(custom_can_(h->h1d(6,0),h->histoname(), "", "Time Since Start of Fill [h]", "No of ROCs under 10% Eff",  1,1));
 //     h->multidraw_with_legend("6,7,9", 0, "P", p.Fill, "1,2,4,3", "Fill Number", 0.2,0.4, 0.6,0.8);
     // N_BadROC plot
-    for (int fill=0; fill<v.lumi_nfill; fill++) {
-      c.push_back(custom_can_(h->h1d(fill,0),h->histoname()+p.fill[fill+1], "2012 Data", "Time Since Start of Fill [h]", "No of ROCs under 10% Eff",  0,0));
+    for (int fill=0; fill<v.run_nfill; fill++) {
+      c.push_back(custom_can_(h->h1d(fill,0),h->histoname()+p.fill[fill+1], "", "Time Since Start of Fill [h]", "No of ROCs under 10% Eff",  0,0));
       h->multidraw_with_legend(fill, "0", "P", p.Det, "1,2,4,3", "Fill "+p.Fill[fill+1], 0.2,0.4, 0.6,0.8);
       // // 2040
       // draw_line_(2.46, 0.0, 2.46, max, 1, 3);
@@ -1941,13 +2093,14 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 
   void roceff_dist_can_(std::vector<TCanvas*>& c, Histograms* h, Variables& v, PostFixes& p) {
     // ROCeff Dist
-    for (int fill=0; fill<v.lumi_nfill; fill++) {
-      setstyle_(h->h1d(fill), "Efficiency", "Number of ROCs",1.0,1.0);
-      TCanvas* can = default_can_(h->histoname()+p.fill[fill+1], "Effloss - ROCeff Distribution"+p.Fill[fill+1], 900,600, 10,10,9,11, 0,0, 0,0);
+    for (int fill=0; fill<v.run_nfill; fill++) {
+      //setstyle_(h->h1d(fill), "Efficiency", "Number of ROCs",1.0,1.0);
+      //TCanvas* can = default_can_(h->histoname()+p.fill[fill+1], "Effloss - ROCeff Distribution"+p.Fill[fill+1], 900,600, 10,10,9,11, 0,0, 0,0);
+      c.push_back(custom_can_(h->h1d(fill),h->histoname()+p.fill[fill+1], p.Fill2[fill+1], "Efficiency", "Number of ROCs",  0,0));
       // Fitting data
       std::string fname = "f"+p.fill[fill+1];
       TF1* f = h->h1d(fill)->GetFunction(fname.c_str());
-      float cut=0.95;
+      double cut=0.95;
       if (f!=0) {
 	double mean = f->GetParameter(1);
 	double sigma = f->GetParameter(2);
@@ -1965,23 +2118,28 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       draw_lat_(cut-0.0002, max/2.0, "EXCLUDE", 2, 0.04, 90.0, 21);
       draw_lat_(cut+0.0002, max/2.0, "INCLUDE", 1, 0.04, 90.0, 23);
       if (f!=0) f->Draw("same");
-      c.push_back(can);
+      //c.push_back(can);
     }
   }
 
   void badroc_can_(std::vector<TCanvas*>& c, Histograms* h, Variables& v, PostFixes& p) {
     // BAD ROC List
-    for (int fill=0; fill<v.lumi_nfill; fill++) {
+    for (int fill=0; fill<v.run_nfill; fill++) {
       for (int lay=0; lay<=3; lay++) {
-	setstyle_(h->h2d(fill,lay),"Time Since Start of Fill [h]","","Efficiency",0.9,1.0,0.6);
+	int x = h->h2d(fill,lay)->GetXaxis()->GetLast();
+	int y = h->h2d(fill,lay)->GetYaxis()->GetLast();
+	x = x*25;
+	y = y<32 ? y*25 : 800;
+	c.push_back(custom_can_(h->h2d(fill,lay), h->histoname()+p.fill[fill+1]+p.det[lay+2], "Low Efficiency ROCs - "+p.Det[lay+2], "Time Since Start of Fill [h]", "", "Efficiency", 0,1, x,y, 300,100));
 	h->h2d(fill,lay)->GetYaxis()->SetLabelFont(100);
-	TCanvas* can = default_can_(h->histoname()+p.fill[fill+1]+p.det[lay+2],"Effloss - Bad ROC List - "+p.Fill[fill+1]+" "+p.Det[lay+2], 1100,600, 30,10,10,10, 0,1, 0,1);
-	h->h2d(fill,lay)->Draw("COLZ");
-	if (h->h2d(fill,lay)->GetEntries()>0) {
-	  gPad->Update();
-	  TPaletteAxis* palette = (TPaletteAxis*)h->h2d(fill,lay)->GetListOfFunctions()->FindObject("palette");
-	  palette->SetX2NDC(0.93);
-	}
+	// setstyle_(h->h2d(fill,lay),"Time Since Start of Fill [h]","","Efficiency",0.9,1.0,0.6);
+	// TCanvas* can = default_can_(h->histoname()+p.fill[fill+1]+p.det[lay+2],"Effloss - Bad ROC List - "+p.Fill[fill+1]+" "+p.Det[lay+2], 1100,600, 30,10,10,10, 0,1, 0,1);
+	// h->h2d(fill,lay)->Draw("COLZ");
+	// if (h->h2d(fill,lay)->GetEntries()>0) {
+	//   gPad->Update();
+	//   TPaletteAxis* palette = (TPaletteAxis*)h->h2d(fill,lay)->GetListOfFunctions()->FindObject("palette");
+	//   palette->SetX2NDC(0.93);
+	// }
 	// // 2040
 	// if (fill==1) {
 	//   draw_line_(2.46, 0.0, 2.46, max);
@@ -1989,13 +2147,13 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	// }
 	// // 2103
 	// else if (fill==2) {
-	/* 	double max = h->h2d(fill,lay)->GetYaxis()->GetXmax(); */
-	/* 	draw_line_(4.31, 0.0, 4.31, max); */
-	/* 	draw_lat_(4.31, max/2.0, "176202", 0, 0.03, 90.0, 12); */
-	/* 	draw_line_(6.26, 0.0, 6.26, max); */
-	/* 	draw_lat_(6.26, max/2.0, "176206", 0, 0.03, 90.0, 12); */
-	/* 	draw_line_(6.97, 0.0, 6.97, max); */
-	/* 	draw_lat_(6.97, max/2.0, "176207", 0, 0.03, 90.0, 12); */
+	//   double max = h->h2d(fill,lay)->GetYaxis()->GetXmax();
+	//   draw_line_(4.31, 0.0, 4.31, max);
+	//   draw_lat_(4.31, max/2.0, "176202", 0, 0.03, 90.0, 12);
+	//   draw_line_(6.26, 0.0, 6.26, max);
+	//   draw_lat_(6.26, max/2.0, "176206", 0, 0.03, 90.0, 12);
+	//   draw_line_(6.97, 0.0, 6.97, max);
+	//   draw_lat_(6.97, max/2.0, "176207", 0, 0.03, 90.0, 12);
 	// }
 	// // 2105
 	// else if (fill==3) {
@@ -2004,7 +2162,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	//   draw_line_(6.0, 0.0, 6.0, max);
 	//   draw_lat_(6.0, max/2.0, "176309", 0, 0.03, 90.0, 12);
 	// }
-	c.push_back(can);
+	// c.push_back(can);
       }
     }
   }
@@ -2052,75 +2210,83 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 
   void note_plots_(std::vector<TCanvas*>& c, AllHistos& ah, Variables& v, PostFixes& p) {
     // Nstrip
-    ah.nstrip->h1d(2,0)->GetYaxis()->SetRangeUser(0.97,1.01);
+    ah.nstrip->h1d(2,0)->GetXaxis()->SetRange(1,30);
+    ah.nstrip->h1d(2,0)->GetYaxis()->SetRangeUser(0.99,1.002);
     c.push_back(custom_can_(ah.nstrip->h1d(2,0),"nstrip", "", "N_{Strip Hits}", "Efficiency", 1,1));
-    ah.nstrip->multidraw_with_legend("2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+    ah.nstrip->multidraw_with_legend("2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
     TCanvas* can = custom_can_(ah.nstrip->h1d(2,1),"nstrip_dist", "", "N_{Strip Hits}", "Arbitrary", 1,1);
     ah.nstrip->multidraw_with_legend("2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.5,0.7, 0.25,0.45);
-    ah.nstrip->h1d(2,1)->GetYaxis()->SetRangeUser(0.00001,1.0); can->SetLogy(1); c.push_back(can);
+    ah.nstrip->h1d(2,1)->GetXaxis()->SetRange(1,30);
+    ah.nstrip->h1d(2,1)->GetYaxis()->SetRangeUser(0.00001,1.0);
+    can->SetLogy(1); c.push_back(can);
     
     // PT
-    ah.pt->h1d(2,0)->GetYaxis()->SetRangeUser(0.99,1.002);
+    ah.pt->h1d(2,0)->GetYaxis()->SetRangeUser(0.98,1.005);
     c.push_back(custom_can_(ah.pt->h1d(2,0),"pt", "", "P_{T} [GeV/c]", "Efficiency", 1,1));
-    ah.pt->multidraw_with_legend("2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+    ah.pt->multidraw_with_legend("2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
     can = custom_can_(ah.pt->h1d(2,1),"pt_dist", "", "P_{T} [GeV/c]", "Arbitrary", 1,1);
     ah.pt->multidraw_with_legend("2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.65,0.85, 0.65,0.85);
     ah.pt->h1d(2,1)->GetYaxis()->SetRangeUser(0.00001,1.0); can->SetLogy(1); c.push_back(can);
     
     // D0
-    ah.d0->h1d(2,0)->GetYaxis()->SetRangeUser(0.97,1.01);
+    ah.d0->h1d(2,0)->GetYaxis()->SetRangeUser(0.95,1.01);
     c.push_back(custom_can_(ah.d0->h1d(2,0),"d0", "", "|D0| [cm]", "Efficiency", 1,1));
-    ah.d0->multidraw_with_legend("2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+    ah.d0->multidraw_with_legend("2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
     can = custom_can_(ah.d0->h1d(2,1),"d0_dist", "", "|D0| [cm]", "Arbitrary", 1,1);
     ah.d0->multidraw_with_legend("2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.65,0.85, 0.65,0.85);
     ah.d0->h1d(2,1)->GetYaxis()->SetRangeUser(0.00001,1.0); can->SetLogy(1); c.push_back(can);
     
     // DZ
-    ah.dz->h1d(2,0)->GetYaxis()->SetRangeUser(0.97,1.01);
+    ah.dz->h1d(2,0)->GetYaxis()->SetRangeUser(0.95,1.01);
     c.push_back(custom_can_(ah.dz->h1d(2,0),"dz", "", "|DZ| [cm]", "Efficiency", 1,1));
-    ah.dz->multidraw_with_legend("2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+    ah.dz->multidraw_with_legend("2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
     can = custom_can_(ah.dz->h1d(2,1),"dz_dist", "", "|DZ| [cm]", "Arbitrary", 1,1);
     ah.dz->multidraw_with_legend("2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.65,0.85, 0.65,0.85);
-    ah.dz->h1d(2,1)->GetYaxis()->SetRangeUser(0.00001,1.0); can->SetLogy(1); c.push_back(can);
+    ah.dz->h1d(2,1)->GetYaxis()->SetRangeUser(0.0001,1.0); can->SetLogy(1); c.push_back(can);
     
+
     for (int i=0; i<3; ++i) {
       // Hit-Hit Distance
-      c.push_back(custom_can_(ah.hithit->h1d(2,i,0),"hithit"+p.Valmis[i], "", "Hit to Nearest Hit Distance[cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
-      ah.hithit->multidraw_with_legend_("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
-      c.push_back(custom_can_(ah.hithit->h1d(2,i,1),"hithit"+p.Valmis[i]+"_dist", "", "Hit to Nearest Hit Distance[cm]", p.Valmis[i], 1,1));
-      ah.hithit->multidraw_with_legend_("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.hithit->h1d(2,i,0),"hithit"+p.valmis[i], "", "Hit to Nearest Hit Distance[cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
+      ah.hithit->multidraw_with_legend("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.hithit->h1d(2,i,1),"hithit"+p.valmis[i]+"_dist", "", "Hit to Nearest Hit Distance[cm]", p.Valmis[i], 1,1));
+      ah.hithit->multidraw_with_legend("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
       
       // Hit-Clu Distance
-      c.push_back(custom_can_(ah.hitclu->h1d(2,i,0),"hitclu"+p.Valmis[i], "", "Hit to Associated Cluster Distance [cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
-      ah.hitclu->multidraw_with_legend_("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
-      c.push_back(custom_can_(ah.hitclu->h1d(2,i,1),"hitclu"+p.Valmis[i]+"_dist", "", "Hit to Associated Cluster Distance [cm]", p.Valmis[i], 1,1));
-      ah.hitclu->multidraw_with_legend_("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.hitclu->h1d(2,i,0),"hitclu"+p.valmis[i], "", "Hit to Associated Cluster Distance [cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
+      ah.hitclu->multidraw_with_legend("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.hitclu->h1d(2,i,1),"hitclu"+p.valmis[i]+"_dist", "", "Hit to Associated Cluster Distance [cm]", p.Valmis[i], 1,1));
+      ah.hitclu->multidraw_with_legend("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
       
       // Clu-Clu Distance
-      c.push_back(custom_can_(ah.cluclu->h1d(2,i,0),"cluclu"+p.Valmis[i], "", "Associated Cluster to Nearest Cluster Distance [cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
-      ah.cluclu->multidraw_with_legend_("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
-      c.push_back(custom_can_(ah.cluclu->h1d(2,i,1),"cluclu"+p.Valmis[i]+"_dist", "", "Associated Cluster to Nearest Cluster Distance [cm]", p.Valmis[i], 1,1));
-      ah.cluclu->multidraw_with_legend_("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.cluclu->h1d(2,i,0),"cluclu"+p.valmis[i], "", "Associated Cluster to Nearest Cluster Distance [cm]", p.Valmis[i]+" (Eff. Cuts)", 1,1));
+      ah.cluclu->multidraw_with_legend("2-5", i, 0, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
+      c.push_back(custom_can_(ah.cluclu->h1d(2,i,1),"cluclu"+p.valmis[i]+"_dist", "", "Associated Cluster to Nearest Cluster Distance [cm]", p.Valmis[i], 1,1));
+      ah.cluclu->multidraw_with_legend("2-5", i, 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.3,0.5);
     }
-    
+    ah.hithit->h1d(2,0,1)->GetYaxis()->SetRangeUser(0,0.01);
+    ah.cluclu->h1d(2,0,1)->GetYaxis()->SetRangeUser(0,0.012);
+    ah.cluclu->h1d(2,0,0)->GetYaxis()->SetRangeUser(0,0.015);
+
     // Incidence Angle
     for (int i=0; i<5; i++) {
       // Efficiency
       if (i==0) for (int j=0; j<2; j++) ah.angle->h1d(i,2,j)->GetXaxis()->SetRangeUser(0, 30);
       ah.angle->h1d(i,2,0)->GetYaxis()->SetRangeUser(0.95, 1.01);
-      c.push_back(custom_can_(ah.angle->h1d(i,2,0),"angle"+p.angle[i], "", p.Angle[i], "Hit Finding Efficiency", 1,1));
-      ah.angle->multidraw_with_legend_(i, "2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+      c.push_back(custom_can_(ah.angle->h1d(i,2,0),"angle"+p.angle[i], "", p.Angle[i], "Efficiency", 1,1));
+      ah.angle->multidraw_with_legend(i, "2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
       // Distribution
       //ah.angle->h1d(i,2,1)->GetYaxis()->SetRangeUser(0, i==0 ? 0.25 : (i==1 ? 0.35 : 0.3));
       c.push_back(custom_can_(ah.angle->h1d(i,2,1),"angle"+p.angle[i]+"_dist", "", p.Angle[i], "Arbitrary", 1,1));
-      ah.angle->multidraw_with_legend_(i, "2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.5,0.7);
+      ah.angle->multidraw_with_legend(i, "2-5", 1, "NORM", p.Det, "1,2,4,3", "", 0.6,0.8, 0.5,0.7);
       // Avg Norm Charge
       c.push_back(custom_can_(ah.angle->h1d(i,2,3),"angle"+p.angle[i]+"_avgnormch", "", p.Angle[i], "Average Normalised Charge [ke]", 1,1));
-      ah.angle->multidraw_with_legend_(i, "2-5", 3, "P", p.Det, "1,2,4,3", "", 0.6,0.8, 0.5,0.7);
+      ah.angle->multidraw_with_legend(i, "2-5", 3, "P", p.Det, "1,2,4,3", "", 0.6,0.8, 0.5,0.7);
     }
+
     for (int det = 2; det<=5; ++det) {
       ah.angle2d->h2d(0,det,0)->GetZaxis()->SetRangeUser(0.95, 1);
-      c.push_back(custom_can_(ah.angle2d->h2d(0,det,0),"angle"+p.angle[5]+p.det[det], p.Det[det], p.Angle[3], p.Angle[4], "Hit Finding Efficiency"));
+      c.push_back(custom_can_(ah.angle2d->h2d(0,det,0),"angle"+p.angle[5]+p.det[det], p.Det[det], p.Angle[3], p.Angle[4], "Efficiency"));
       ah.angle2d->h2d(0,det,0)->Draw("COLZ");
       // Dist
       c.push_back(custom_can_(ah.angle2d->h2d(0,det,1),"angle"+p.angle[5]+p.det[det]+"_dist", p.Det[det], p.Angle[3], p.Angle[4], "Denumerator"));
@@ -2129,12 +2295,12 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       c.push_back(custom_can_(ah.angle2d->h2d(0,det,3),"angle"+p.angle[5]+p.det[det]+"_avgnormch", p.Det[det], p.Angle[3], p.Angle[4], "Average Normalized Charge [ke]"));
       ah.angle2d->h2d(0,det,3)->Draw("COLZ");
     }
-    
+
     // Nstrip
     for (int i=0; i<6; ++i) {
       ah.nstrip_new->h1d(i,2,0)->GetYaxis()->SetRangeUser(0.97,1.01);
       c.push_back(custom_can_(ah.nstrip_new->h1d(i,2,0),ah.nstrip_new->histoname()+p.nstrip[i], "", "N_{Strip Hits}", "Efficiency", 1,1));
-      ah.nstrip_new->multidraw_with_legend(i, "2-5", 0, "PE1", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
+      ah.nstrip_new->multidraw_with_legend(i, "2-5", 0, "AsymmErrP", p.Det, "1,2,4,3", "", 0.6,0.8, 0.15,0.35);
     }
   }
   
@@ -2700,7 +2866,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	//   // Float_t lymin[10] = { 2.4,  2.5,  1.6,   4.7,   3.85,  3.3,   1.5,   1.5,   1.5,   1.5 };
 	//   // Float_t lymax[10] = { 4.4,  5.0,  2.1,   5.3,   4.15,  3.6,   2.1,   2.1,   2.1,   2.1 };
 	//   // Float_t rymin[10] = { 0.3, 0.25,  0.6,  0.96,   0.96, 0.96,  0.25,  0.25,  0.25,  0.25 };
-	//   // c.push_back(custom_can_(delay->h1d(det,2), "delay_clusize"+p.det[det], "2012 April Data - "+p.Det[det], "Delay [ns]", "On-Track Cluster Size [pixel]", 1, 1, 480, 480, 80,80));
+	//   // c.push_back(custom_can_(delay->h1d(det,2), "delay_clusize"+p.det[det], "2012 April Data - "+p.Det[det], "Delay [ns]", "On-Track Cluster Size [pixel]", 1, 1, 500, 500, 80,80));
 	//   // draw_with_right_yaxis_(delay->h1d(det,2), delay->h1d(det,0), "P", "Efficiency", xmin[det],xmax[det], lymin[det],lymax[det], rymin[det], NOVAL_F, localmax, 1.005); 
 	//   // save_canvas_(can,"/home/common/Plotok_Viktornak/TimingScan12/");
 	//   // save_canvas_(can,"/afs/kfki.hu/home/jkarancs/public/Scans/TimingScan12/");
@@ -2712,7 +2878,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	//   Float_t rymin[10]    = { 0.75, 0.75, 0.65,  0.97,   0.97, 0.97,  0.94,  0.98,  0.98,  0.98 };
 	//   Float_t localmax[10] = {   15,   14,   13,    14,     14,   14,    12,    13,    16,    17 };
 	//   // Float_t rymax = det==2||det>5 ? 1.1 : NOVAL_F; 
-	//   c.push_back(custom_can_(delay->h1d(det,4), delay->histoname()+p.det[det], "2012 April Data - "+p.Det[det], "Delay [ns]", "Normalized Cluster Charge MPV [ke]", 1, 1, 480, 480, 80,80));
+	//   c.push_back(custom_can_(delay->h1d(det,4), delay->histoname()+p.det[det], "2012 April Data - "+p.Det[det], "Delay [ns]", "Normalized Cluster Charge MPV [ke]", 1, 1, 500, 500, 80,80));
 	//   draw_with_right_yaxis_(delay->h1d(det,4), delay->h1d(det,0), "P", "Efficiency", xmin[det],xmax[det], lymin[det],lymax[det], rymin[det], NOVAL_F, localmax[det], 1.005);
 	//   // save_canvas_(can,"/home/common/Plotok_Viktornak/TimingScan12/");
 	//   // save_canvas_(can,"/afs/kfki.hu/home/jkarancs/public/Scans/TimingScan12/");
@@ -2846,7 +3012,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	  delay_rog->h1d(shl,0,chn_dsk,0)->GetXaxis()->SetRangeUser(8,21);
 	  delay_rog->h1d(shl,0,chn_dsk,0)->GetYaxis()->SetRangeUser(0.9,1.02);
 	  TCanvas* can = custom_can_(delay_rog->h1d(shl,0,chn_dsk,0),"eff_vs_"+delay_rog->histoname()+p.shl[shl]+p.chn[chn_dsk], "2012 April Data", "Delay [ns]", "Efficiency", 1,1);
-	  delay_rog->multidraw_with_legend_(shl, "0-7", chn_dsk, 0, "PE1", p.Sec, "1,2,4,3,1,2,4,3", p.Shl[shl]+" "+p.Chn[chn_dsk], 0.15,0.35, 0.15,0.5);
+	  delay_rog->multidraw_with_legend(shl, "0-7", chn_dsk, 0, "PE1", p.Sec, "1,2,4,3,1,2,4,3", p.Shl[shl]+" "+p.Chn[chn_dsk], 0.15,0.35, 0.15,0.5);
 	  c.push_back(can);
 	  // save_canvas_(can,"/home/common/Plotok_Viktornak/TimingScan12/");
 	  // save_canvas_(can,"/afs/kfki.hu/home/jkarancs/public/Scans/TimingScan12/");
@@ -2854,7 +3020,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
 	  delay_rog->h1d(shl,8+chn_dsk,0,0)->GetXaxis()->SetRangeUser(8,21);
 	  delay_rog->h1d(shl,8+chn_dsk,0,0)->GetYaxis()->SetRangeUser(0.9,1.02);
 	  can = custom_can_(delay_rog->h1d(shl,8+chn_dsk,0,0),"eff_vs_"+delay_rog->histoname()+p.shl[shl]+p.dsk[chn_dsk], "2012 April Data", "Delay [ns]", "Efficiency", 1,1);
-	  delay_rog->multidraw_with_legend_(shl, 8+chn_dsk, "0-3", 0, "PE1", p.Rog, "1,2,4,3", p.Shl[shl]+" "+p.Dsk[chn_dsk], 0.15,0.35, 0.15,0.5);
+	  delay_rog->multidraw_with_legend(shl, 8+chn_dsk, "0-3", 0, "PE1", p.Rog, "1,2,4,3", p.Shl[shl]+" "+p.Dsk[chn_dsk], 0.15,0.35, 0.15,0.5);
 	  c.push_back(can);
 	  // save_canvas_(can,"/home/common/Plotok_Viktornak/TimingScan12/");
 	  // save_canvas_(can,"/afs/kfki.hu/home/jkarancs/public/Scans/TimingScan12/");
@@ -2866,7 +3032,7 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       ah.delay11->h1d(det,0)->GetXaxis()->SetRangeUser(6,28);
       ah.delay11->h1d(det,0)->GetYaxis()->SetRangeUser(0.5,1.1);
       c.push_back(custom_can_(ah.delay11->h1d(det,0),"scans_eff"+p.det[det], "Timing Scans 2011-2012", "Delay [ns]", "Efficiency", 1,1));
-      TLegend* leg = ah.delay11->multidraw_with_legend_(det, "0", "PE1", Scan, "1", p.Det[det], 0.2,0.4, 0.3,0.5);
+      TLegend* leg = ah.delay11->multidraw_with_legend(det, "0", "PE1", Scan, "1", p.Det[det], 0.2,0.4, 0.3,0.5);
       ah.delay12->h1d(det,0)->SetMarkerStyle(21);
       ah.delay3->h1d(det,0)->SetMarkerStyle(22);
       ah.delay4->h1d(det,0)->SetMarkerStyle(23);
@@ -2960,10 +3126,10 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
     std::stringstream hv_l3full;
     std::stringstream hv_d1full;
     std::stringstream hv_d2full;
-    hv_l1<<"1-"<<(p.hv_l1.size()-1);
+    hv_l1<<"1-"<<(p.hv_l1.size()-1); // 0: l1-d1 conflict
     hv_l2<<"0-"<<(p.hv_l2.size()-1);
     hv_l3<<"0-"<<(p.hv_l3.size()-1);
-    hv_d1<<"0,2-"<<(p.hv_d1.size()-1);
+    hv_d1<<"0,2-"<<(p.hv_d1.size()-1); // 1: l1-d1 conflict
     hv_l1full<<"0-"<<(p.hv_l1full.size()-1);
     hv_l2full<<"0-"<<(p.hv_l2full.size()-1);
     hv_l3full<<"0-"<<(p.hv_l3full.size()-1);
@@ -2993,77 +3159,116 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       // 1 HV Group Scans
       ah.hv_l1->h1d(1,i*2)->GetYaxis()->SetRangeUser(0, i ? 30 : 1.2);
       c.push_back(custom_can_(ah.hv_l1->h1d(1,i*2),"hv_l1"+pf, "Layer 1 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      //ah.hv_l1->multidraw_with_legend_(hv_l1.str(), i*2, opt, p.Hv_l1, col, "Bpix_BmO_SEC6_LYR1-2_HV1", 0.4,0.6, 0.12,0.12+(p.hv_l1.size()+1)*0.04);
-      ah.hv_l1->multidraw_with_legend_(hv_l1.str(), i*2, opt, p.Hv_l1, gradcolz ? col_l1 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l1.size()-1)*0.03);
+      //ah.hv_l1->multidraw_with_legend(hv_l1.str(), i*2, opt, p.Hv_l1, col, "Bpix_BmO_SEC6_LYR1-2_HV1", 0.4,0.6, 0.12,0.12+(p.hv_l1.size()+1)*0.04);
+      ah.hv_l1->multidraw_with_legend(hv_l1.str(), i*2, opt, p.Hv_l1, gradcolz ? col_l1 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l1.size()-1)*0.03);
       prelim_lat_(-2.5, 152.5, 0, i ? 30 : 1.2, 1, 0);
       //TLatex* cms_lat = new TLatex(144.75, i ? 26 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
       
       ah.hv_l2->h1d(0,i*2)->GetYaxis()->SetRangeUser(0, i ? 26 : 1.2);
       c.push_back(custom_can_(ah.hv_l2->h1d(0,i*2),"hv_l2"+pf, "Layer 2 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      //ah.hv_l3->multidraw_with_legend_(hv_l3.str(), i*2, opt, p.Hv_l3, col, "Bpix_BpI_SEC7_LYR1-2_HV2", 0.4,0.6, 0.12,0.12+(p.hv_l2.size()+1)*0.04);
-      ah.hv_l2->multidraw_with_legend_(hv_l2.str(), i*2, opt, p.Hv_l2, gradcolz ? col_l2 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l2.size())*0.03);
+      //ah.hv_l3->multidraw_with_legend(hv_l3.str(), i*2, opt, p.Hv_l3, col, "Bpix_BpI_SEC7_LYR1-2_HV2", 0.4,0.6, 0.12,0.12+(p.hv_l2.size()+1)*0.04);
+      ah.hv_l2->multidraw_with_legend(hv_l2.str(), i*2, opt, p.Hv_l2, gradcolz ? col_l2 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l2.size())*0.03);
       prelim_lat_(-2.5, 152.5, 0, i ? 26 : 1.2, 1, 0);
       //cms_lat = new TLatex(144.75, i ? 23 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
       
       ah.hv_l3->h1d(0,i*2)->GetYaxis()->SetRangeUser(0, i ? 25 : 1.2);
       c.push_back(custom_can_(ah.hv_l3->h1d(0,i*2),"hv_l3"+pf, "Layer 3 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      //ah.hv_l3->multidraw_with_legend_(hv_l3.str(), i*2, opt, p.Hv_l3, col, "Bpix_BpO_SEC2_LYR3_HV1", 0.4,0.6, 0.12,0.12+(p.hv_l3.size()+1)*0.04);
-      ah.hv_l3->multidraw_with_legend_(hv_l3.str(), i*2, opt, p.Hv_l3, gradcolz ? col_l3 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l3.size())*0.03);
+      //ah.hv_l3->multidraw_with_legend(hv_l3.str(), i*2, opt, p.Hv_l3, col, "Bpix_BpO_SEC2_LYR3_HV1", 0.4,0.6, 0.12,0.12+(p.hv_l3.size()+1)*0.04);
+      ah.hv_l3->multidraw_with_legend(hv_l3.str(), i*2, opt, p.Hv_l3, gradcolz ? col_l3 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_l3.size())*0.03);
       prelim_lat_(-2.5, 152.5, 0, i ? 25 : 1.2, 1, 0);
       //cms_lat = new TLatex(144.75, i ? 26 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
       
       ah.hv_d1->h1d(0,i*2)->GetXaxis()->SetRangeUser(0, 150);
       ah.hv_d1->h1d(0,i*2)->GetYaxis()->SetRangeUser(0,i ? 20 : 1.2);
       c.push_back(custom_can_(ah.hv_d1->h1d(0,i*2),"hv_d1"+pf, "Disk -1 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      //ah.hv_d1->multidraw_with_legend_(hv_d1.str(), i*2, opt, p.Hv_d1, col, "FPix_BmO_D1_ROG1_HV1", 0.4,0.6, 0.12,0.12+(p.hv_d1.size()+1)*0.04);
-      ah.hv_d1->multidraw_with_legend_(hv_d1.str(), i*2, opt, p.Hv_d1, gradcolz ? col_d1 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d1.size()-1)*0.03);
+      //ah.hv_d1->multidraw_with_legend(hv_d1.str(), i*2, opt, p.Hv_d1, col, "FPix_BmO_D1_ROG1_HV1", 0.4,0.6, 0.12,0.12+(p.hv_d1.size()+1)*0.04);
+      ah.hv_d1->multidraw_with_legend(hv_d1.str(), i*2, opt, p.Hv_d1, gradcolz ? col_d1 : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d1.size()-1)*0.03);
       prelim_lat_(-2.5, 152.5, 0, i ? 20 : 1.2, 1, 0);
       //cms_lat = new TLatex(144.75, i ? 18 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
       
       // Full layer Scans
       c.push_back(custom_can_(ah.hv_l1full->h1d(0,0,i*2),"hv_l1full"+pf, "Full Layer 1 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      ah.hv_l1full->multidraw_with_legend_(hv_l1full.str(), 0, i*2, opt, p.Hv_l1full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l1full.size())*0.03);
+      ah.hv_l1full->multidraw_with_legend(hv_l1full.str(), 0, i*2, opt, p.Hv_l1full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l1full.size())*0.03);
       
       c.push_back(custom_can_(ah.hv_l2full->h1d(0,0,i*2),"hv_l2full"+pf, "Full Layer 2 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      ah.hv_l2full->multidraw_with_legend_(hv_l2full.str(), 0, i*2, opt, p.Hv_l2full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l2full.size())*0.03);
+      ah.hv_l2full->multidraw_with_legend(hv_l2full.str(), 0, i*2, opt, p.Hv_l2full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l2full.size())*0.03);
       
       c.push_back(custom_can_(ah.hv_l3full->h1d(0,0,i*2),"hv_l3full"+pf, "Full Layer 3 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      ah.hv_l3full->multidraw_with_legend_(hv_l3full.str(), 0, i*2, opt, p.Hv_l3full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l3full.size())*0.03);
+      ah.hv_l3full->multidraw_with_legend(hv_l3full.str(), 0, i*2, opt, p.Hv_l3full, col, "", 0.57,0.77, 0.12,0.12+(p.hv_l3full.size())*0.03);
       
       ah.hv_d1full->h1d(0,0,i*2)->GetXaxis()->SetRangeUser(0, 150);
       ah.hv_d1full->h1d(0,0,i*2)->GetYaxis()->SetRangeUser(i ? 4 : 0, i ? 20 : 1.2);
       c.push_back(custom_can_(ah.hv_d1full->h1d(0,0,i*2),"hv_d1full"+pf, "Full Disk 1 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      ah.hv_d1full->multidraw_with_legend_(hv_d1full.str(), 0, i*2, opt, p.Hv_d1full, gradcolz ? col_d1full : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d1full.size())*0.03);
+      ah.hv_d1full->multidraw_with_legend(hv_d1full.str(), 0, i*2, opt, p.Hv_d1full, gradcolz ? col_d1full : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d1full.size())*0.03);
       prelim_lat_(-2.5, 152.5, i? 4:0, i ? 20 : 1.2, 1, 0);
       //cms_lat = new TLatex(144.75, i ? 18 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
       
       ah.hv_d2full->h1d(0,0,i*2)->GetXaxis()->SetRangeUser(0, 150);
       ah.hv_d2full->h1d(0,0,i*2)->GetYaxis()->SetRangeUser(i ? 4 : 0, i ? 20 : 1.2);
       c.push_back(custom_can_(ah.hv_d2full->h1d(0,0,i*2),"hv_d2full"+pf, "Full Disk 2 HV Bias Scans", "Bias Voltage [V]", title, 1,1));
-      ah.hv_d2full->multidraw_with_legend_(hv_d2full.str(), 0, i*2, opt, p.Hv_d2full, gradcolz ? col_d2full : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d2full.size())*0.03);
+      ah.hv_d2full->multidraw_with_legend(hv_d2full.str(), 0, i*2, opt, p.Hv_d2full, gradcolz ? col_d2full : col, "", 0.57,0.77, 0.12,0.12+(p.hv_d2full.size())*0.03);
       prelim_lat_(-2.5, 152.5, i? 4:0, i ? 20 : 1.2, 1, 0);
       //cms_lat = new TLatex(144.75, i ? 18 : 0.9, "CMS preliminary"); cms_lat->SetTextAlign(32); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
     }
     // V_Turnon Plot
     ah.vturnon_totlumi->h1d(0,0)->GetYaxis()->SetRangeUser(0,75);
-    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,0),"vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2012 [fb^{-1}]", "V_{Turnon}", 1,1));
-    ah.vturnon_totlumi->multidraw_with_legend_("0-4", 0, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
+    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,0),"vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2013 [fb^{-1}]", "V_{99% Hit Efficiency} [V]", 1,1));
+    ah.vturnon_totlumi->multidraw_with_legend("0-4", 0, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
     prelim_lat_(-0.1, 30, 0, 75, 1, 0);
+    ah.vturnon_totlumi->h1d(2,0)->SetMarkerSize(1.2);
+    ah.vturnon_totlumi->h1d(3,0)->SetMarkerSize(1.2);
+    ah.vturnon_totlumi->h1d(4,0)->SetMarkerSize(1.5);
+    // Lines
+    // l1                    (2011) 0.045 - 6.18 (2012) 6.20 - 28.97 (2013) 29.48;
+    // l2                    (2011) 2.08         (2012) 6.20 - 28.97 (2013) 29.48;
+    // l3 (2010) 0.00 - 0.04 (2011) 0.045 -!1.82 (2012) 6.20 - 28.97 (2013) 29.48;
+    // d1 (2010) 0.00        (2011) 0.045 - 6.18 (2012) 6.20 - 28.97 (2013) 29.48;
+    // d2                                       (2012) 6.20 - 28.97
+    double  low[5][4] = { { 0,    0,   6.2, 29 }, { 0, 1.58,   6.2, 29 }, {    0, 0.045,   6.2, 29 }, {     0, 0.045,   6.2, 29 }, { 0, 0,   6.2, 0} };
+    double high[5][4] = { { 0, 6.18, 28.97, 30 }, { 0, 2.58, 28.97, 30 }, { 0.04,  1.82, 28.97, 30 }, {  0.04,  6.18, 28.97, 30 }, { 0, 0, 28.97, 0} };
+    int    npol[5][4] = { { 0,    2,     2,  0 }, { 0,    0,     2,  0 }, {    0,     1,     2,  0 }, {     0,     2,     2,  0 }, { 0, 0,     2, 0} };
+    int linecol[5] = { 2, 4, 3, 1, 6 };
+    TF1* f2;
+    for (int det=0; det<5; det++) {
+      //TGraph* tg = tg_(ah.vturnon_totlumi->h1d(det,0));
+      //tg->SetLineColor(linecol[det]);
+      //tg->Draw("PL");
+      for (int year=0; year<4; year++) {
+	if (!((det<2&&year==0)||(det==4&&year!=2))) {
+	  std::stringstream name;
+	  std::stringstream poln;
+	  name<<"fit_"<<det<<"_"<<year;
+	  poln<<"pol"<<npol[det][year];
+	  TF1* f = new TF1(name.str().c_str(), poln.str().c_str(), low[det][year], high[det][year]);
+	  if (det==2&&year==2) f2 = f;
+	  f->SetLineColor(linecol[det]);
+	  ah.vturnon_totlumi->h1d(det,0)->Fit(name.str().c_str(),"RQ0");
+	  if ((det==2||det==3)&&year==0) f->SetRange(0,0.75);
+	  f->Draw("SAME");
+	}
+      }
+    }
+    // Redrawing markers to better distinguish them
+    f2->Draw("SAME");
+    ah.vturnon_totlumi->h1d(2,0)->Draw("SAME");
+    ah.vturnon_totlumi->h1d(4,0)->Draw("SAME");
+    ah.vturnon_totlumi->h1d(1,0)->Draw("SAME");
+    ah.vturnon_totlumi->h1d(0,0)->Draw("SAME");
     
     ah.vturnon_totlumi->h1d(0,1)->GetYaxis()->SetRangeUser(0,22);
-    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,1),"mpv_vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2012 [fb^{-1}]", "Norm Charge MPV at 99% Eff [ke]", 1,1));
-    ah.vturnon_totlumi->multidraw_with_legend_("0-4", 1, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
+    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,1),"mpv_vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2013 [fb^{-1}]", "Norm. Charge MPV at 99% Eff [ke]", 1,1));
+    ah.vturnon_totlumi->multidraw_with_legend("0-4", 1, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
     prelim_lat_(-0.1, 30, 0, 22, 1, 0);
     
     ah.vturnon_totlumi->h1d(0,2)->GetYaxis()->SetRangeUser(0,1.2);
-    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,2),"cce_vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2012 [fb^{-1}]", "Charge Coll. Eff. at 99% Hit Efficiency", 1,1));
-    ah.vturnon_totlumi->multidraw_with_legend_("0-4", 2, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
+    c.push_back(custom_can_(ah.vturnon_totlumi->h1d(0,2),"cce_vturnon_totlumi", "All HV Bias Scans", "Total Int. Luminosity - 2010-2013 [fb^{-1}]", "Charge Coll. Eff. at 99% Hit Efficiency", 1,1));
+    ah.vturnon_totlumi->multidraw_with_legend("0-4", 2, "P9E1", p.Det5, "2,4,3,1,6", "", 0.7,0.9, 0.7,0.9);
     
     // FPix HV Groups - Turnon
     for (size_t d1scan=0; d1scan<p.hv_d1full.size(); d1scan++) {
       ah.vturnon_fpix->h1d(d1scan, 0)->GetYaxis()->SetRangeUser(0,40);
       c.push_back(custom_can_(ah.vturnon_fpix->h1d(d1scan, 0),"vturnon_fpix_hv"+p.hv_d1full[d1scan], "", "HV Groups", "V_{Turnon}", 0,1));
-      ah.vturnon_fpix->multidraw_with_legend_(d1scan, "0-3", "P", p.Fpix_grp, "1,2,4,3", p.Hv_d1full[d1scan], 0.5,0.7, 0.12,0.32);
+      ah.vturnon_fpix->multidraw_with_legend(d1scan, "0-3", "P", p.Fpix_grp, "1,2,4,3", p.Hv_d1full[d1scan], 0.5,0.7, 0.12,0.32);
     }
     for (int lay=0; lay<3; lay++) {
       std::string scanrange = (lay==0) ? hv_l1full.str() : (lay==1) ? hv_l2full.str() : hv_l3full.str();
@@ -3071,11 +3276,11 @@ void multidraw_with_legend_(Histograms* h, std::string val, int j, std::string o
       // Sector
       ah.vturnon_bpix->h1d(lay, 0, 0)->GetYaxis()->SetRangeUser(0,70);
       c.push_back(custom_can_(ah.vturnon_bpix->h1d(lay, 0, 0),"vturnon_sec"+p.det[3+lay], "", "Sector", "V_{Turnon}", 0,1));
-      ah.vturnon_bpix->multidraw_with_legend_(lay, scanrange, 0, "P", legendvec, col2, p.Det[3+lay], 0.3,0.5, 0.75,0.95);
+      ah.vturnon_bpix->multidraw_with_legend(lay, scanrange, 0, "P", legendvec, col2, p.Det[3+lay], 0.3,0.5, 0.75,0.95);
       // Ring
       ah.vturnon_bpix->h1d(lay, 0, 1)->GetYaxis()->SetRangeUser(0, (lay==0) ? 60 : 70);
       c.push_back(custom_can_(ah.vturnon_bpix->h1d(lay, 0, 1),"vturnon_ring"+p.det[3+lay], "", "Ring", "V_{Turnon}", 0,1));
-      ah.vturnon_bpix->multidraw_with_legend_(lay, scanrange, 1, "P", legendvec, col2, p.Det[3+lay], 0.5,0.7, 0.12,0.32);
+      ah.vturnon_bpix->multidraw_with_legend(lay, scanrange, 1, "P", legendvec, col2, p.Det[3+lay], 0.5,0.7, 0.12,0.32);
       if (!lay) { TLatex* cms_lat = new TLatex(-4, 65, "CMS preliminary"); cms_lat->SetTextAlign(12); cms_lat->SetLineWidth(2); cms_lat->Draw(); }
     }
   }
@@ -3114,7 +3319,7 @@ public:
       ah.mod->load(f_in);
       ah.roc->load(f_in);
       ah.time->load(f_in);
-      ah.run->load(f_in);
+      //ah.run->load(f_in);
       ah.totlumi->load(f_in);
       //ah.nvtx->load(f_in);
       ah.instlumi->load(f_in);
@@ -3123,11 +3328,13 @@ public:
       ah.il_l1rate->load(f_in);
       ah.l1rate->load(f_in);
       //ah.time2->load(f_in);
-      ah.dynamic_ineff->load(f_in);
-      ah.rocmap->load(f_in);
-      ah.angle->load(f_in);
-      ah.angle2d->load(f_in);
+      //ah.dynamic_ineff->load(f_in);
+      //ah.rocmap->load(f_in);
 #ifdef COMPLETE
+      ah.occup->load(f_in);
+      ah.occup_mod->load(f_in);
+      ah.occup_roc->load(f_in);
+#elif VERSION2 >= 34 && SPLIT > 0
       ah.occup->load(f_in);
       ah.occup_mod->load(f_in);
       ah.occup_roc->load(f_in);
@@ -3141,6 +3348,7 @@ public:
       ah.roceff_dist->load(f_in);
       ah.nbadroc->load(f_in);
       ah.badroc->load(f_in);
+      //ah.roceff_time->load(f_in);
 #endif
       ah.pt->load(f_in);
       ah.nstrip->load(f_in);
@@ -3151,9 +3359,13 @@ public:
       ah.fid_lxly->load(f_in);
       ah.fid_lx->load(f_in);
       ah.fid_ly->load(f_in);
-      //++ah.hithit->load(f_in);
-      //++ah.hitclu->load(f_in);
-      //++ah.cluclu->load(f_in);
+#if NOTE == 3
+      ah.hithit->load(f_in);
+      ah.hitclu->load(f_in);
+      ah.cluclu->load(f_in);
+      ah.angle->load(f_in);
+      ah.angle2d->load(f_in);
+#endif
       // Complete
       // ah.vtxd0->load(f_in);
       // ah.vtxz->load(f_in);
@@ -3258,7 +3470,7 @@ public:
     // }
 
     year_ = "2011";
-    date_ = "2011 March";
+    date_ = "2012";
 
     color_schemes_();
 /* hh_dist->DrawNormalized() */
@@ -3267,6 +3479,28 @@ public:
 /* h->DrawNormalized("same") */
 /* f.Close(); */
 
+
+    // From tdrStyle
+    // For the fit/function:
+    //gStyle->SetOptFit(1);
+    //gStyle->SetFitFormat("5.4g");
+    //gStyle->SetFuncColor(2);
+    //gStyle->SetFuncStyle(1);
+    //gStyle->SetFuncWidth(1);
+    
+    // For the statistics box:
+    //gStyle->SetOptFile();
+    //gStyle->SetOptStat(0); // To display the mean and RMS:   SetOptStat("mr");
+    //gStyle->SetStatColor(kWhite);
+    //gStyle->SetStatFont(42);
+    //gStyle->SetStatFontSize(0.025);
+    //gStyle->SetStatTextColor(1);
+    //gStyle->SetStatFormat("6.4g");
+    //gStyle->SetStatBorderSize(1);
+    //gStyle->SetStatH(0.1);
+    //gStyle->SetStatW(0.15);
+
+    gStyle->SetPaperSize(20.,20.);
 
     //TStyle* myStyle = new TStyle("myStyle","histo Styling");
     gStyle->SetTitleFont(42,"xyz");
@@ -3346,15 +3580,17 @@ public:
 #endif
 #ifdef COMPLETE
       occup_can_(Eff, ah, v, p);
+#elif VERSION2 >= 34 && SPLIT > 0
+      occup_can_(Eff, ah, v, p);
 #endif
-      dynamic_ineff_can_(Eff, ah, v, p);
+      //dynamic_ineff_can_(Eff, ah, v, p);
       //time2_can_(Eff, ah.time2, v, p);
       // lay_can_(Eff,ah.det);
       // mod_can_(Eff,ah.mod);
       // roc_can_(Eff,ah.roc);
       // time_can_(Eff,ah.time);
       // bx_can_(Eff, ah.bx);
-      // il_can_(Eff, ah.instlumi, ah.il_l1rate);
+      //il_can_(Eff, ah.instlumi, ah.il_l1rate);
     }
 
     std::vector<TCanvas*> Scans;

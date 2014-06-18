@@ -45,7 +45,7 @@ public:
   std::map<unsigned long int, double> runls_pileup;
   double lumi_pileup;
   double lumi_instlumi;
-  double instlumi_p1;
+  int instlumi_p1;
   
   // lumi variables
   std::vector<int> lumi_run;
@@ -57,7 +57,7 @@ public:
   std::map<int, unsigned int> lumi_fillstart;
   std::vector<std::vector<int> > lumi_runs_in_fill;
   std::map<int, int> lumi_fill_index;
-  int lumi_nfill;
+  //int lumi_nfill;
   std::map<int, int> filldef;
   int lumi_fill;
   std::map<int, TH1D*> instlumi_ls_map;
@@ -392,7 +392,7 @@ public:
     evt_federr_mult.resize(19);
     evt_federr_type[0]=1;
     evt_federr_mult[0]=1;
-    lumi_nfill = 0;
+    //lumi_nfill = 0;
     run_nfill = 0;
   }
 
@@ -582,7 +582,7 @@ public:
     int r = e.run;
     if ((totallumi.count(r))) evt_totlumi = totallumi[r]/1000000.0;
     else if (r>160404) { while(!(totallumi.count(r))) r--; evt_totlumi = totallumi[r]/1000000.0; }
-    else { std::cout<<"Warning: 2010 run (before 160404)"<<std::endl; evt_totlumi = NOVAL_F; }
+    else if (r!=1) { std::cout<<"Warning: 2010 run (before 160404): "<<e.run<<std::endl; evt_totlumi = NOVAL_F; }
     // int r = e.run-1;
     // if ((totallumi.count(r))) evt_totlumi = (totallumi[r] + lumi.intlumi/10.0)/1000000.0;
     // else {
@@ -619,6 +619,7 @@ public:
       evt_federr_type[e.federrs[i][1]-22] = 1;
   }
 
+  // Same as TimingStudy::get_RocID_from_local_coords
   int roc_(const float &lx, const float &ly, const ModuleData &m) {
     if (m.det==0) {
       if (fabs(ly)<3.24&&((m.half==0&&fabs(lx)<0.8164)||(m.half==1&&fabs(lx)<0.4082))) {
@@ -639,6 +640,7 @@ public:
     } else return NOVAL_I;
   }
 
+  // Same as TimingStudy::get_RocID_from_cluster_coords
   int clu_roc_(const float &x, const float &y, const ModuleData &m) {
     if (x!=NOVAL_F&&y!=NOVAL_F) {
       if (m.det==0) {
@@ -748,7 +750,7 @@ public:
 //#endif
     
 #if VERSION1 > 30
-    traj_instlumi = (e.run==1) ? 221.995*e.pileup : e.instlumi_ext;
+    traj_instlumi = (e.run==1) ? 221.995*(e.pileup-1) : e.instlumi_ext;
     // Generate random l1rate for MC
     if(e.run==1) { // MC
       double sigma=0.0;
