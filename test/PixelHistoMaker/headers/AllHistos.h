@@ -1799,14 +1799,17 @@ class AllHistos {
           double sig_dx_l1 = fittp0(l1_xbin_slice, save_fit_to_png);
           double sig_dx_l2 = fittp0(l2_xbin_slice, save_fit_to_png);
           double sig_dx_l3 = fittp0(l3_xbin_slice, save_fit_to_png);
-	  double res_dx_l1=sqrt((-sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2+5*sig_dx_l3*sig_dx_l3))/3;
-          double res_dx_l2=sqrt((-sig_dx_l1*sig_dx_l1+14*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3))/3;
-          double res_dx_l3=sqrt((5*sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3))/3;
+	  double val_l1=-sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2+5*sig_dx_l3*sig_dx_l3;
+          double val_l2=-sig_dx_l1*sig_dx_l1+14*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3;
+          double val_l3=5*sig_dx_l1*sig_dx_l1-10*sig_dx_l2*sig_dx_l2-sig_dx_l3*sig_dx_l3;
+	  double res_dx_l1= (val_l1 >=0) ? sqrt(val_l1)/3 : NOVAL_F;
+          double res_dx_l2= (val_l2 >=0) ? sqrt(val_l2)/3 : NOVAL_F;
+          double res_dx_l3= (val_l3 >=0) ? sqrt(val_l3)/3 : NOVAL_F;
 	  std::cout<<"Sigma      dx: Lay1 = "<<sig_dx_l1<<" Lay2 = "<<sig_dx_l2<<" Lay3 = "<<sig_dx_l3<<std::endl;
 	  std::cout<<"Resolution dx: Lay1 = "<<res_dx_l1<<" Lay2 = "<<res_dx_l2<<" Lay3 = "<<res_dx_l3<<std::endl;
-          l1_1d->SetBinContent(binx, res_dx_l1);
-          l2_1d->SetBinContent(binx, res_dx_l2);
-          l3_1d->SetBinContent(binx, res_dx_l3);
+          if (res_dx_l1>0) l1_1d->SetBinContent(binx, res_dx_l1);
+          if (res_dx_l2>0) l2_1d->SetBinContent(binx, res_dx_l2);
+          if (res_dx_l3>0) l3_1d->SetBinContent(binx, res_dx_l3);
         }
         delete l1_xbin_slice;
         delete l2_xbin_slice;

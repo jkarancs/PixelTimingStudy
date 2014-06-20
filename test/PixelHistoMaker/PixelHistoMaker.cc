@@ -696,20 +696,20 @@ int main(int argc, char* argv[]) {
   ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 4, 4, 3, p.resol2, 1, 3, 3, 100,    1, 2);
   ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 5, 5, 3, p.resol2, 1, 3, 3, 100,    0, 1);
   ah.resid->add(p.ineff, 1, 1, 3, 0, p.det, 0, 6, 6, 3, p.resol2, 1, 3, 3, 100,    1, 2);
-  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 1, 1, 6, -3.0, 3.0, 100, -150, 150); // 2D plots
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 2, 2, 6, -3.0, 3.0, 100, -300, 300);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 1, 1, 6, -180, 180, 100, -150, 150);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 2, 2, 6, -180, 180, 100, -300, 300);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 1, 1, 200, 0, 20, 100, -150, 150);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 2, 2, 200, 0, 20, 100, -300, 300);
+  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 1, 1, 30, -3.0, 3.0, 100, -150, 150); // 2D plots
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 2, 2, 30, -3.0, 3.0, 100, -300, 300);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 1, 1, 40, -180, 180, 100, -150, 150);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 2, 2, 40, -180, 180, 100, -300, 300);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 1, 1, 40, 0, 20, 100, -150, 150);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 2, 2, 40, 0, 20, 100, -300, 300);
   ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 4, 4, 0, p.resol2, 1, 1, 1, 100, 0, 50, 100, -150, 150);
   ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 4, 4, 0, p.resol2, 1, 2, 2, 100, 0, 50, 100, -300, 300);
-  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 4, 4, 6, -3.0, 3.0); // 1D plots (made from 2D plots)
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 5, 5, 6, -3.0, 3.0);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 4, 4, 6, -180, 180);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 5, 5, 6, -180, 180);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 4, 4, 200, 0, 20);
-  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 5, 5, 200, 0, 20);
+  ah.resol->add(p.ineff, 1, 1, 3, 0, p.det, 1, 4, 6, 3, p.resol1, 1, 1, 1, 0, p.resol2, 1, 4, 4, 30, -3.0, 3.0); // 1D plots (made from 2D plots)
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 1, 1, 0, p.resol2, 1, 5, 5, 30, -3.0, 3.0);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 2, 2, 0, p.resol2, 1, 4, 4, 40, -180, 180);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 2, 2, 0, p.resol2, 1, 5, 5, 40, -180, 180);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 3, 3, 0, p.resol2, 1, 4, 4, 40, 0, 20);
+  ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 3, 3, 0, p.resol2, 1, 5, 5, 40, 0, 20);
   ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 1, 4, 4, 0, p.resol2, 1, 4, 4, 100, 0, 50);
   ah.resol->add(p.ineff, 0, 1, 3, 0, p.det, 0, 4, 6, 3, p.resol1, 0, 4, 4, 0, p.resol2, 1, 5, 5, 100, 0, 50);
   
