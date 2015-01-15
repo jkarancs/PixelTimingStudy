@@ -21,14 +21,16 @@ process.source = cms.Source("PoolSource",
         # cern
         #'/store/caf/user/jkarancs/MinBias_TuneZ2star_8TeV_GENSIM_CMSSW_7_1_0pre1/MinBias_8TeV_GEN_SIM_2000k_1_1_FQV.root'
         # ui3 local
-        'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
+        #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/A4846C0D-0B86-E311-8B2E-003048FEB9EE.root'
         #'file:/data/store/relval/CMSSW_7_0_0_pre8/GEN-SIM/00E8DCE5-3459-E311-A9FB-0025905A608A.root'
         #'file:/data/store/relval/CMSSW_7_1_0_pre1/GEN-SIM/88CDC2A6-1186-E311-A9F5-02163E00E5C7.root'
+        #13TeV                                                                                                   
+        'file:/data/store/user/hazia/minbias_13tev/ahazi/MinBias_13TeV_GEN_SIM_7_1_0/MinBias_13TeV_GEN_SIM_7_1_0/9cb32faabd78efe327c9c841fa706583/MinBias_13TeV_GENSIM_100_1_bOe.root'
     )
 )
 # GEN-SIM Input file with MinBias events
 #PileupInput = process.source.fileNames
-from SimGeneral.MixingModule.mixPoolSource_cfi import *
+from DPGAnalysis.PixelTimingStudy.PoolSource_13Tev_Andras import *
 PileupInput = FileNames
 #PileupInput = cms.untracked.vstring(
 #    # cern
@@ -52,7 +54,9 @@ PileupHistoName=cms.untracked.string('mc_input')
 # --------------------- GlobalTag ----------------------
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 # For MC
-process.GlobalTag.globaltag = "MC_70_V1::All"
+#process.GlobalTag.globaltag = "MC_70_V1::All"
+from Configuration.AlCa.GlobalTag import GlobalTag                                                                
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:startup', '')
 
 
 # ---------------------- BeamSpot ----------------------
@@ -76,7 +80,7 @@ process.load("IOMC.RandomEngine.IOMC_cff") # RandomNumberGeneratorService
 # configuration to model pileup for initial physics phase
 # mix
 #process.load("SimGeneral.MixingModule.mixNoPU_cfi") # No Pileup
-process.load('SimGeneral.MixingModule.mix_2012_201278_1_cfi') # Silvias pileup mixing
+process.load('SimGeneral.MixingModule.mix_Phys14_50ns_PoissonOOTPU_cfi') # Silvias pileup mixing
 
 # Change MinBias input file and Input Pileup Distribution
 process.mix.input = cms.SecSource("PoolSource",
@@ -90,6 +94,11 @@ process.mix.input = cms.SecSource("PoolSource",
     OOT_type = cms.untracked.string('Poisson'),
     fileNames = PileupInput
 )
+# change bunch spacing if needed
+#process.mix.bunchspace = cms.int32(25)
+# Automatic addition of the Digi customisation function from SLHCUpgradeSimulations.Configuration.postLS1Customs
+from SLHCUpgradeSimulations.Configuration.postLS1Customs import customise_Digi
+process = customise_Digi(process)
 
 process.load('Configuration.StandardSequences.Digi_cff') # pdigi
 
@@ -161,7 +170,7 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      extrapolateTo = cms.int32(1),
                                      keepOriginalMissingHit = cms.bool(False),
                                      usePixelCPE= cms.bool(True),
-                                     #minNStripHits = cms.int32(0),
+                                     minNStripHits = cms.int32(0),
                                      triggerNames=cms.vstring("HLT_ZeroBias",
                                                               "HLT_Physics",
                                                               "HLT_Random",
@@ -209,9 +218,10 @@ process.Raw_to_Digi = cms.Sequence( #process.RawToDigi
      process.gtEvmDigis
 )
 process.Digi_to_Reco = cms.Sequence( #process.reconstruction
-    process.L1Reco +
+    #process.L1Reco +
     ( process.offlineBeamSpot +
       process.trackerlocalreco ) *
+    process.siPixelClusterShapeCache*
     process.recopixelvertexing *
     process.MeasurementTrackerEvent *
     #process.ckftracks*
@@ -226,13 +236,13 @@ process.Ntuplizer = cms.Sequence(
 process.p1 = cms.Path(
     # GEN-SIM ->
     process.Digi*
-    process.L1_Sim*
-    process.Digi_to_Raw*
+    #process.L1_Sim*
+    process.Digi_to_Raw*  #process.DigiToRaw*
     # GEN-SIM-RAW ->
     #process.SiStripDigiToRaw
     # RAW ->
-    process.Raw_to_Digi*
-    process.Digi_to_Reco*
+    process.Raw_to_Digi*  #process.RawToDigi*
+    process.Digi_to_Reco* #process.reconstruction*
     # RECO ->
     #process.MeasurementTrackerEvent*
     process.Ntuplizer

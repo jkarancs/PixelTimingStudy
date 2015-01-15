@@ -10,7 +10,8 @@
 // CMSSW Version:
 //#define CMSSW_VER 53 // CMSSW_5_3_X
 //#define CMSSW_VER 70 // CMSSW_7_0_X
-#define CMSSW_VER 71 // CMSSW_7_1_0_pre7 and later
+//#define CMSSW_VER 71 // CMSSW_7_1_0_pre7 and later
+#define CMSSW_VER 73
 
 #if CMSSW_VER >= 71
 #include "FWCore/Framework/interface/EDAnalyzer.h"
