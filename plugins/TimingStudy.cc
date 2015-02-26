@@ -371,8 +371,15 @@ void TimingStudy::beginJob()
   trajTree_->Branch("track_highPurity",      &trajmeas.trk.highPurity,  "highPurity/I");
   //   trajTree_->Branch("track_fromVtx",         &trajmeas.trk.fromVtx,     "fromVtx/I"); // old
   #endif
-    
+  
   #ifdef COMPLETE
+  TrackData track_;
+  trackTree_ = new TTree("trackTree", "The track in the event");
+  //trackTree_->SetDirectory(outfile_);
+  //trackTree_->AutoSave();
+  trackTree_->Branch("event", &evt_, evt_.list.data());
+  trackTree_->Branch("track", &track_, track_.list.data());
+  
   Cluster clust;
   clustTree_ = new TTree("clustTree", "Pixel clusters");
   //clustTree_->SetDirectory(outfile_);
@@ -2449,14 +2456,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   eventTree_->SetBranchAddress("event", &evt_);
   eventTree_->Fill();
 
-  #ifndef SPLIT
   #ifdef COMPLETE
   for (size_t i=0; i<tracks_.size(); i++) {
     trackTree_->SetBranchAddress("event", &evt_);
     trackTree_->SetBranchAddress("track", &tracks_[i]);
     trackTree_->Fill();
   }
-  #endif
   #endif
 
   #ifdef COMPLETE
