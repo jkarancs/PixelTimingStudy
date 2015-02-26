@@ -1,0 +1,28 @@
+cmsDriver.py guides:
+https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCmsDriver
+https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideFastSimulationExamples
+https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideGlobalHLT#Dumping_the_latest_HLT_menu_conf
+
+# L1 and HLT should agree - L1 menu is specified in the GlobalTag
+$CMSSW_RELEASE_BASE/src/Configuration/StandardSequences/python/SimL1Emulator_cff.py
+#CMSSW_RELEASE_BASE/src/L1Trigger/Configuration/python/SimL1Emulator_cff.py
+eg.:
+cmsDriver ... -s GEN,...,HLT:7E33v4 --conditions auto:startup_7E33v4
+
+#Do not work:
+cmsDriver.py MinBias_13TeV_cfi.py -s GEN,SIM,DIGI,L1,DIGI2RAW,HLT:GRun --conditions auto:startup_GRun --customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1  --pileup=NoPileUp -n 10
+
+# Get an example config file:
+1) Go to das and fine a dataset of your choice
+eg.
+https://cmsweb.cern.ch/das/request?view=list&limit=100&instance=prod%2Fglobal&input=dataset%3D%2FMinBias*%2F*%2FGEN-SIM+|+sort+dataset.creation_time
+2) Go to mcm: https://cms-pdmv.cern.ch/mcm/
+3) --> Request --> Output dataset: type it here
+4) Actions --> Get test command
+5) Find cmsDriver.py line, run it, modify script accordint to your likes
+eg:
+cmsDriver.py Configuration/GenProduction/python/FSQ-RunIIWinter15GS-00004-fragment.py --fileout file:FSQ-RunIIWinter15GS-00004.root --mc --eventcontent RAWSIM --customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1,Configuration/DataProcessing/Utils.addMonitoring --datatier GEN-SIM --conditions MCRUN2_71_V1::All --beamspot NominalCollision2015 --step GEN,SIM --magField 38T_PostLS1 --python_filename FSQ-RunIIWinter15GS-00004_1_cfg.py --no_exec -n 183
+
+
+# working recipe (generate GEN-SIM + HLT)
+cmsDriver.py MinBias_13TeV_cfi.py -s GEN,SIM,DIGI,L1,DIGI2RAW,HLT --mc --conditions auto:run2_mc --pileup=NoPileUp --beamspot NominalCollision2015 --magField 38T_PostLS1 --customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1 -n 10
