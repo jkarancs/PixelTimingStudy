@@ -62,7 +62,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 # Other statements
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run1_data', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 
 # Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
@@ -118,7 +118,7 @@ process.reconstruction_Tracker_only_step = cms.Path(
 # TimingStudy
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     trajectoryInput = cms.string('earlyGeneralTracks'),
-    fileName = cms.string("Ntuple_Simple.root"),
+    fileName = cms.string("Ntuple.root"),
     extrapolateFrom = cms.int32(2),
     extrapolateTo = cms.int32(1),
     keepOriginalMissingHit = cms.bool(False),
