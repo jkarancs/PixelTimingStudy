@@ -1705,7 +1705,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       //------------------------------------------------------------------------------------
       
       TrackData track_;
-      //trajmeas_.clear();
+      trajmeas_.clear();
       std::vector<TrajMeasurement> trajmeas;
       //
       // Read track info - USED BY TrajMeasurement!!!
