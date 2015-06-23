@@ -2457,52 +2457,156 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   eventTree_->Fill();
 
   #ifdef COMPLETE
+  TrackData trk;
+  trackTree_->SetBranchAddress("event", &evt_);
+  trackTree_->SetBranchAddress("track", &trk);
   for (size_t i=0; i<tracks_.size(); i++) {
-    trackTree_->SetBranchAddress("event", &evt_);
-    trackTree_->SetBranchAddress("track", &tracks_[i]);
+    trk = tracks_[i];
     trackTree_->Fill();
   }
   #endif
 
   #ifdef COMPLETE
+  Cluster clu;
+  #ifndef SPLIT
+  clustTree_->SetBranchAddress("event", &evt_);
+  clustTree_->SetBranchAddress("clust", &clu);
+  clustTree_->SetBranchAddress("clust_pix", &clu.pix);
+  clustTree_->SetBranchAddress("module", &clu.mod);
+  clustTree_->SetBranchAddress("module_on", &clu.mod_on);
+  #else
+  // Split mode
+  // Non-splitted branches
+  clustTree_->SetBranchAddress("event", &evt_);
+  clustTree_->SetBranchAddress("module_on", &clu.mod_on);
+  
+  // clust
+  // Paired branches
+  clustTree_->SetBranchAddress("clust_xy",              &clu.x);
+  clustTree_->SetBranchAddress("clust_sizeXY",          &clu.sizeX);
+  // Split-mode branches
+  clustTree_->SetBranchAddress("clust_i",               &clu.i);
+  clustTree_->SetBranchAddress("clust_edge",            &clu.edge);
+  clustTree_->SetBranchAddress("clust_badpix",          &clu.badpix);
+  clustTree_->SetBranchAddress("clust_tworoc",          &clu.tworoc);
+  clustTree_->SetBranchAddress("clust_size",            &clu.size);
+  clustTree_->SetBranchAddress("clust_charge",          &clu.charge);
+  clustTree_->SetBranchAddress("clust_adc",             &clu.adc);
+  clustTree_->SetBranchAddress("clust_pix",             &clu.pix);
+  #endif
   for (size_t i=0; i<clusts_.size(); i++) {
-    #ifndef SPLIT
-    clustTree_->SetBranchAddress("event", &evt_);
-    clustTree_->SetBranchAddress("clust", &clusts_[i]);
-    clustTree_->SetBranchAddress("clust_pix", &clusts_[i].pix);
-    clustTree_->SetBranchAddress("module", &clusts_[i].mod);
-    clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
-    #else
-    // Split mode
-    // Non-splitted branches
-    clustTree_->SetBranchAddress("event", &evt_);
-    clustTree_->SetBranchAddress("module_on", &clusts_[i].mod_on);
-    
-    // clust
-    // Paired branches
-    clustTree_->SetBranchAddress("clust_xy",              &clusts_[i].x);
-    clustTree_->SetBranchAddress("clust_sizeXY",          &clusts_[i].sizeX);
-    // Split-mode branches
-    clustTree_->SetBranchAddress("clust_i",               &clusts_[i].i);
-    clustTree_->SetBranchAddress("clust_edge",            &clusts_[i].edge);
-    clustTree_->SetBranchAddress("clust_badpix",          &clusts_[i].badpix);
-    clustTree_->SetBranchAddress("clust_tworoc",          &clusts_[i].tworoc);
-    clustTree_->SetBranchAddress("clust_size",            &clusts_[i].size);
-    clustTree_->SetBranchAddress("clust_charge",          &clusts_[i].charge);
-    clustTree_->SetBranchAddress("clust_adc",             &clusts_[i].adc);
-    clustTree_->SetBranchAddress("clust_pix",             &clusts_[i].pix);
-    #endif
+    clu = clusts_[i];
     clustTree_->Fill();
   }
 
   #ifndef SPLIT
+  Digi dig;
+  digiTree_->SetBranchAddress("event", &evt_);
+  digiTree_->SetBranchAddress("digi", &dig);
+  digiTree_->SetBranchAddress("module", &dig.mod);
+  digiTree_->SetBranchAddress("module_on", &dig.mod_on);
   for (size_t i=0; i<digis_.size(); i++) {
-    digiTree_->SetBranchAddress("event", &evt_);
-    digiTree_->SetBranchAddress("digi", &digis_[i]);
-    digiTree_->SetBranchAddress("module", &digis_[i].mod);
-    digiTree_->SetBranchAddress("module_on", &digis_[i].mod_on);
+    dig = digis_[i];
     digiTree_->Fill();
   }
+  #endif
+  #endif
+
+  TrajMeasurement traj;
+  #ifndef SPLIT
+  trajTree_->SetBranchAddress("event", &evt_);
+  trajTree_->SetBranchAddress("traj", &traj);
+  #ifdef COMPLETE
+  trajTree_->SetBranchAddress("module", &traj.mod);
+  #endif
+  trajTree_->SetBranchAddress("module_on", &traj.mod_on);
+  trajTree_->SetBranchAddress("clust", &traj.clu);
+  trajTree_->SetBranchAddress("clust_pix", &traj.clu.pix);
+  trajTree_->SetBranchAddress("track", &traj.trk);
+  #else
+  // Split mode
+  // Non-splitted branches
+  trajTree_->SetBranchAddress("event",                 &evt_);
+  trajTree_->SetBranchAddress("module_on",             &traj.mod_on);
+        
+  // traj
+  // Non-splitted branch
+  trajTree_->SetBranchAddress("traj",                  &traj);
+  #if SPLIT > 0
+  // Paired branches
+  trajTree_->SetBranchAddress("traj_occup",            &traj.nclu_mod);
+  trajTree_->SetBranchAddress("traj_alphabeta",        &traj.alpha);
+  trajTree_->SetBranchAddress("traj_dxy_cl",           &traj.dx_cl);
+  trajTree_->SetBranchAddress("traj_dxy_hit",          &traj.dx_hit);
+  #endif
+  // Split-mode branches
+  trajTree_->SetBranchAddress("traj_norm_charge",      &traj.norm_charge);
+  #ifdef COMPLETE
+  trajTree_->SetBranchAddress("traj_lz",               &traj.lz);
+  trajTree_->SetBranchAddress("traj_glx",              &traj.glx);
+  trajTree_->SetBranchAddress("traj_gly",              &traj.gly);
+  trajTree_->SetBranchAddress("traj_glz",              &traj.glz);
+  trajTree_->SetBranchAddress("traj_lxmatch",          &traj.lxmatch);
+  trajTree_->SetBranchAddress("traj_lymatch",          &traj.lymatch);
+  trajTree_->SetBranchAddress("traj_i",                &traj.i);
+  trajTree_->SetBranchAddress("traj_onedge",           &traj.onedge);
+  trajTree_->SetBranchAddress("traj_inactive",         &traj.inactive);
+  trajTree_->SetBranchAddress("traj_badhit",           &traj.badhit);
+  //   trajTree_->SetBranchAddress("traj_telescope",        &traj.telescope);
+  //   trajTree_->SetBranchAddress("traj_telescope_valid",  &traj.telescope_valid);
+  //   trajTree_->SetBranchAddress("traj_dmodule",          &traj.dmodule);
+  //   trajTree_->SetBranchAddress("traj_dladder",          &traj.dladder);
+  //   trajTree_->SetBranchAddress("traj_glmatch",          &traj.glmatch);
+  //   trajTree_->SetBranchAddress("traj_lx_err",           &traj.lx_err);
+  //   trajTree_->SetBranchAddress("traj_ly_err",           &traj.ly_err);
+  //   trajTree_->SetBranchAddress("traj_lz_err",           &traj.lz_err);
+  //   trajTree_->SetBranchAddress("traj_lxymatch",         &traj.lxymatch);
+  //   trajTree_->SetBranchAddress("traj_res_hit",          &traj.res_hit);
+  //   trajTree_->SetBranchAddress("traj_sig_hit",          &traj.sig_hit);
+  //   trajTree_->SetBranchAddress("traj_d_cl",             &traj.d_cl);
+  #endif
+  
+  // clust
+  // Paired branches
+  #if SPLIT > 1
+  trajTree_->SetBranchAddress("clust_xy",              &traj.clu.x);
+  trajTree_->SetBranchAddress("clust_sizeXY",          &traj.clu.sizeX);
+  #endif
+  // Split-mode branches
+  #ifdef COMPLETE
+  //   trajTree_->SetBranchAddress("clust_i",               &traj.clu.i);
+  trajTree_->SetBranchAddress("clust_edge",            &traj.clu.edge);
+  trajTree_->SetBranchAddress("clust_badpix",          &traj.clu.badpix);
+  trajTree_->SetBranchAddress("clust_tworoc",          &traj.clu.tworoc);
+  #endif
+  trajTree_->SetBranchAddress("clust_size",            &traj.clu.size);
+  trajTree_->SetBranchAddress("clust_adc",             &traj.clu.adc);
+  #if SPLIT > 1
+  trajTree_->SetBranchAddress("clust_charge",          &traj.clu.charge);
+  trajTree_->SetBranchAddress("clust_pix",             &traj.clu.pix);
+  #endif
+  
+  
+  // track
+  // Non-splitted branch
+  trajTree_->SetBranchAddress("track",                 &traj.trk);
+  // Paired branches
+  trajTree_->SetBranchAddress("track_ndofchi2",        &traj.trk.ndof);
+  // Split-mode branches
+  trajTree_->SetBranchAddress("track_eta",             &traj.trk.eta);
+  trajTree_->SetBranchAddress("track_phi",             &traj.trk.phi);
+  #ifdef COMPLETE
+  trajTree_->SetBranchAddress("track_theta",           &traj.trk.theta);
+  trajTree_->SetBranchAddress("track_p",               &traj.trk.p);
+  trajTree_->SetBranchAddress("track_algo",            &traj.trk.algo);
+  trajTree_->SetBranchAddress("track_i",               &traj.trk.i);
+  trajTree_->SetBranchAddress("track_pix",             &traj.trk.pix);
+  trajTree_->SetBranchAddress("track_pixhit",          &traj.trk.pixhit);
+  trajTree_->SetBranchAddress("track_validpixhit",     &traj.trk.validpixhit);
+  trajTree_->SetBranchAddress("track_fpix",            &traj.trk.fpix);
+  trajTree_->SetBranchAddress("track_bpix",            &traj.trk.bpix);
+  trajTree_->SetBranchAddress("track_highPurity",      &traj.trk.highPurity);
+  //   trajTree_->SetBranchAddress("track_fromVtx",         &traj.trk.fromVtx);
   #endif
   #endif
 
@@ -2713,102 +2817,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       
       trajmeas_[itrk][i].pass_effcuts = nvtx && federr && hp && pt && nstrip && d0 && dz && pixhit && goodroc && lx_fid && ly_fid && valmis && hitsep;
       
-      #ifndef SPLIT
-      trajTree_->SetBranchAddress("event", &evt_);
-      trajTree_->SetBranchAddress("traj", &trajmeas_[itrk][i]);
-      #ifdef COMPLETE
-      trajTree_->SetBranchAddress("module", &trajmeas_[itrk][i].mod);
-      #endif
-      trajTree_->SetBranchAddress("module_on", &trajmeas_[itrk][i].mod_on);
-      trajTree_->SetBranchAddress("clust", &trajmeas_[itrk][i].clu);
-      trajTree_->SetBranchAddress("clust_pix", &trajmeas_[itrk][i].clu.pix);
-      trajTree_->SetBranchAddress("track", &trajmeas_[itrk][i].trk);
-      #else
-      // Split mode
-      // Non-splitted branches
-      trajTree_->SetBranchAddress("event",                 &evt_);
-      trajTree_->SetBranchAddress("module_on",             &trajmeas_[itrk][i].mod_on);
-            
-      // traj
-      // Non-splitted branch
-      trajTree_->SetBranchAddress("traj",                  &trajmeas_[itrk][i]);
-      #if SPLIT > 0
-      // Paired branches
-      trajTree_->SetBranchAddress("traj_occup",            &trajmeas_[itrk][i].nclu_mod);
-      trajTree_->SetBranchAddress("traj_alphabeta",        &trajmeas_[itrk][i].alpha);
-      trajTree_->SetBranchAddress("traj_dxy_cl",           &trajmeas_[itrk][i].dx_cl);
-      trajTree_->SetBranchAddress("traj_dxy_hit",          &trajmeas_[itrk][i].dx_hit);
-      #endif
-      // Split-mode branches
-      trajTree_->SetBranchAddress("traj_norm_charge",      &trajmeas_[itrk][i].norm_charge);
-      #ifdef COMPLETE
-      trajTree_->SetBranchAddress("traj_lz",               &trajmeas_[itrk][i].lz);
-      trajTree_->SetBranchAddress("traj_glx",              &trajmeas_[itrk][i].glx);
-      trajTree_->SetBranchAddress("traj_gly",              &trajmeas_[itrk][i].gly);
-      trajTree_->SetBranchAddress("traj_glz",              &trajmeas_[itrk][i].glz);
-      trajTree_->SetBranchAddress("traj_lxmatch",          &trajmeas_[itrk][i].lxmatch);
-      trajTree_->SetBranchAddress("traj_lymatch",          &trajmeas_[itrk][i].lymatch);
-      trajTree_->SetBranchAddress("traj_i",                &trajmeas_[itrk][i].i);
-      trajTree_->SetBranchAddress("traj_onedge",           &trajmeas_[itrk][i].onedge);
-      trajTree_->SetBranchAddress("traj_inactive",         &trajmeas_[itrk][i].inactive);
-      trajTree_->SetBranchAddress("traj_badhit",           &trajmeas_[itrk][i].badhit);
-      //   trajTree_->SetBranchAddress("traj_telescope",        &trajmeas_[itrk][i].telescope);
-      //   trajTree_->SetBranchAddress("traj_telescope_valid",  &trajmeas_[itrk][i].telescope_valid);
-      //   trajTree_->SetBranchAddress("traj_dmodule",          &trajmeas_[itrk][i].dmodule);
-      //   trajTree_->SetBranchAddress("traj_dladder",          &trajmeas_[itrk][i].dladder);
-      //   trajTree_->SetBranchAddress("traj_glmatch",          &trajmeas_[itrk][i].glmatch);
-      //   trajTree_->SetBranchAddress("traj_lx_err",           &trajmeas_[itrk][i].lx_err);
-      //   trajTree_->SetBranchAddress("traj_ly_err",           &trajmeas_[itrk][i].ly_err);
-      //   trajTree_->SetBranchAddress("traj_lz_err",           &trajmeas_[itrk][i].lz_err);
-      //   trajTree_->SetBranchAddress("traj_lxymatch",         &trajmeas_[itrk][i].lxymatch);
-      //   trajTree_->SetBranchAddress("traj_res_hit",          &trajmeas_[itrk][i].res_hit);
-      //   trajTree_->SetBranchAddress("traj_sig_hit",          &trajmeas_[itrk][i].sig_hit);
-      //   trajTree_->SetBranchAddress("traj_d_cl",             &trajmeas_[itrk][i].d_cl);
-      #endif
-      
-      // clust
-      // Paired branches
-      #if SPLIT > 1
-      trajTree_->SetBranchAddress("clust_xy",              &trajmeas_[itrk][i].clu.x);
-      trajTree_->SetBranchAddress("clust_sizeXY",          &trajmeas_[itrk][i].clu.sizeX);
-      #endif
-      // Split-mode branches
-      #ifdef COMPLETE
-      //   trajTree_->SetBranchAddress("clust_i",               &trajmeas_[itrk][i].clu.i);
-      trajTree_->SetBranchAddress("clust_edge",            &trajmeas_[itrk][i].clu.edge);
-      trajTree_->SetBranchAddress("clust_badpix",          &trajmeas_[itrk][i].clu.badpix);
-      trajTree_->SetBranchAddress("clust_tworoc",          &trajmeas_[itrk][i].clu.tworoc);
-      #endif
-      trajTree_->SetBranchAddress("clust_size",            &trajmeas_[itrk][i].clu.size);
-      trajTree_->SetBranchAddress("clust_adc",             &trajmeas_[itrk][i].clu.adc);
-      #if SPLIT > 1
-      trajTree_->SetBranchAddress("clust_charge",          &trajmeas_[itrk][i].clu.charge);
-      trajTree_->SetBranchAddress("clust_pix",             &trajmeas_[itrk][i].clu.pix);
-      #endif
-      
-      
-      // track
-      // Non-splitted branch
-      trajTree_->SetBranchAddress("track",                 &trajmeas_[itrk][i].trk);
-      // Paired branches
-      trajTree_->SetBranchAddress("track_ndofchi2",        &trajmeas_[itrk][i].trk.ndof);
-      // Split-mode branches
-      trajTree_->SetBranchAddress("track_eta",             &trajmeas_[itrk][i].trk.eta);
-      trajTree_->SetBranchAddress("track_phi",             &trajmeas_[itrk][i].trk.phi);
-      #ifdef COMPLETE
-      trajTree_->SetBranchAddress("track_theta",           &trajmeas_[itrk][i].trk.theta);
-      trajTree_->SetBranchAddress("track_p",               &trajmeas_[itrk][i].trk.p);
-      trajTree_->SetBranchAddress("track_algo",            &trajmeas_[itrk][i].trk.algo);
-      trajTree_->SetBranchAddress("track_i",               &trajmeas_[itrk][i].trk.i);
-      trajTree_->SetBranchAddress("track_pix",             &trajmeas_[itrk][i].trk.pix);
-      trajTree_->SetBranchAddress("track_pixhit",          &trajmeas_[itrk][i].trk.pixhit);
-      trajTree_->SetBranchAddress("track_validpixhit",     &trajmeas_[itrk][i].trk.validpixhit);
-      trajTree_->SetBranchAddress("track_fpix",            &trajmeas_[itrk][i].trk.fpix);
-      trajTree_->SetBranchAddress("track_bpix",            &trajmeas_[itrk][i].trk.bpix);
-      trajTree_->SetBranchAddress("track_highPurity",      &trajmeas_[itrk][i].trk.highPurity);
-      //   trajTree_->SetBranchAddress("track_fromVtx",         &trajmeas_[itrk][i].trk.fromVtx);
-      #endif
-      #endif
+      traj = trajmeas_[itrk][i];
       trajTree_->Fill();
     }
   }

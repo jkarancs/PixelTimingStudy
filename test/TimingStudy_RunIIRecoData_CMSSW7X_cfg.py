@@ -26,7 +26,8 @@ process.maxEvents = cms.untracked.PSet(
 # Input source
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        '/store/data/Commissioning2015/ZeroBias1/RECO/PromptReco-v1/000/245/194/00000/7EC1244A-3201-E511-B973-02163E011817.root'
+        #'/store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/247/398/00000/18DEC26E-1E0F-E511-84CB-02163E0125CE.root'
+        'file:/data/store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/247/398/00000/18DEC26E-1E0F-E511-84CB-02163E0125CE.root'
         ),
     secondaryFileNames = cms.untracked.vstring()
 )
