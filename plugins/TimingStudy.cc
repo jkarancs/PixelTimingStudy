@@ -215,6 +215,7 @@ void TimingStudy::beginJob()
 
     calcWeights_ = true;
   }
+  clu_stat_counter_=0;
 
 //   es.get<TrackerDigiGeometryRecord>().get(tkGeom_);
 //   es.get<IdealMagneticFieldRecord>().get(magneticField_);
@@ -372,14 +373,6 @@ void TimingStudy::beginJob()
   //   trajTree_->Branch("track_fromVtx",         &trajmeas.trk.fromVtx,     "fromVtx/I"); // old
   #endif
   
-  #ifdef COMPLETE
-  TrackData track_;
-  trackTree_ = new TTree("trackTree", "The track in the event");
-  //trackTree_->SetDirectory(outfile_);
-  //trackTree_->AutoSave();
-  trackTree_->Branch("event", &evt_, evt_.list.data());
-  trackTree_->Branch("track", &track_, track_.list.data());
-  
   Cluster clust;
   clustTree_ = new TTree("clustTree", "Pixel clusters");
   //clustTree_->SetDirectory(outfile_);
@@ -402,6 +395,14 @@ void TimingStudy::beginJob()
   clustTree_->Branch("clust_charge",          &clust.charge,          "charge/F");
   clustTree_->Branch("clust_adc",             &clust.adc,             "adc[size]/F");
   clustTree_->Branch("clust_pix",             &clust.pix,             "pix[size][2]/F");
+  
+  #ifdef COMPLETE
+  TrackData track_;
+  trackTree_ = new TTree("trackTree", "The track in the event");
+  //trackTree_->SetDirectory(outfile_);
+  //trackTree_->AutoSave();
+  trackTree_->Branch("event", &evt_, evt_.list.data());
+  trackTree_->Branch("track", &track_, track_.list.data());
   #endif
   #endif
 
@@ -1705,7 +1706,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       //------------------------------------------------------------------------------------
       
       TrackData track_;
-      trajmeas_.clear();
       std::vector<TrajMeasurement> trajmeas;
       //
       // Read track info - USED BY TrajMeasurement!!!
@@ -2466,7 +2466,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
   #endif
 
-  #ifdef COMPLETE
   Cluster clu;
   #ifndef SPLIT
   clustTree_->SetBranchAddress("event", &evt_);
@@ -2496,9 +2495,15 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   #endif
   for (size_t i=0; i<clusts_.size(); i++) {
     clu = clusts_[i];
+    #ifdef COMPLETE
     clustTree_->Fill();
+    #else
+    // Save only nth fraction of clusters to save space
+    if (clu_stat_counter_%10==0) clustTree_->Fill();
+    ++clu_stat_counter_;
+    #endif
   }
-
+  
   #ifndef SPLIT
   Digi dig;
   digiTree_->SetBranchAddress("event", &evt_);
@@ -2509,7 +2514,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     dig = digis_[i];
     digiTree_->Fill();
   }
-  #endif
   #endif
 
   TrajMeasurement traj;

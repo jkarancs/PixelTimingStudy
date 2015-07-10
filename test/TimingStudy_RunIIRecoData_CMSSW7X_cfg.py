@@ -27,7 +27,9 @@ process.maxEvents = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
         #'/store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/247/398/00000/18DEC26E-1E0F-E511-84CB-02163E0125CE.root'
-        'file:/data/store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/247/398/00000/18DEC26E-1E0F-E511-84CB-02163E0125CE.root'
+        #'file:/data/store/data/Run2015A/ZeroBias1/RECO/PromptReco-v1/000/247/398/00000/18DEC26E-1E0F-E511-84CB-02163E0125CE.root'
+        # 3.8T data
+        'file:/data/store/data/Run2015B/ZeroBias1/RECO/PromptReco-v1/000/251/028/00000/5E2082E5-1B26-E511-B368-02163E0129A2.root'
         ),
     secondaryFileNames = cms.untracked.vstring()
 )
@@ -60,7 +62,8 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
 
 # Other statements
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
+#process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
 
 # Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
@@ -76,6 +79,9 @@ process.RECOoutput_step = cms.EndPath(process.RECOoutput)
 # Added for TimingStudy
 # Comment out line 69 (schedule)
 # Add a Refitter for tracks
+print process.GlobalTag.globaltag
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
+process.MessageLogger.cerr.threshold = 'INFO'
 
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
 process.Refitter = process.TrackRefitterP5.clone()

@@ -109,6 +109,8 @@ class TimingStudy : public edm::EDAnalyzer
 
   std::set<int> badroc_list_;
 
+  Long64_t clu_stat_counter_;
+
  public:
 
   // Event info
