@@ -2849,29 +2849,7 @@ void TimingStudy::correctHitTypeAssignment(TrajMeasurement& meas,
     if (JKDEBUG) std::cout<<"RecHits is _valid_";
   }  
   if (JKDEBUG) std::cout<<" ("<<meas.validhit<<","<<meas.missing<<","<<meas.inactive<<","
-			<<meas.badhit<<")";
-  
-  // Exceptions:
-  // One full module on layer 1 is out. Need to fix classification here, because
-  // the trajectory propagation does not include this
-  if (meas.mod_on.det==0&&meas.mod_on.layer==1&&meas.mod_on.ladder==9&&meas.mod_on.module==2) {
-    if (JKDEBUG) std::cout<<" (reclassified as inactive by hand)";
-    meas.validhit = 0;
-    meas.missing = 0;
-    meas.inactive = 1;
-    meas.badhit = 0;
-  }
-
-  // One full module on layer 2, because it is not in the database yet
-  if (meas.mod_on.det==0&&meas.mod_on.layer==2&&meas.mod_on.ladder==-8&&meas.mod_on.module==-4) {
-    if (JKDEBUG) std::cout<<" (reclassified as inactive by hand)";
-    meas.validhit = 0;
-    meas.missing = 0;
-    meas.inactive = 1;
-    meas.badhit = 0;
-  }
-  
-  
+			<<meas.badhit<<")";  
 }
 
 
