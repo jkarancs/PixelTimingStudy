@@ -702,7 +702,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     std::cout<<"DONE: Initializing event variables\n";
     w.Print();
   }
-  iSetup.get<TrackerDigiGeometryRecord>().get(tkGeom_);
+  //iSetup.get<TrackerDigiGeometryRecord>().get(tkGeom_);
   iSetup.get<IdealMagneticFieldRecord>().get(magneticField_);
 
 

@@ -67,7 +67,7 @@ class TimingStudy : public edm::EDAnalyzer
 
  private:
   edm::ParameterSet iConfig_;
-  edm::ESHandle<TrackerGeometry> tkGeom_;
+  //edm::ESHandle<TrackerGeometry> tkGeom_;
   edm::ESHandle<MagneticField> magneticField_;
 
   TTree* eventTree_;
