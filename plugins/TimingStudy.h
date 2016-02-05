@@ -11,7 +11,7 @@
 //#define CMSSW_VER 53 // CMSSW_5_3_X
 //#define CMSSW_VER 70 // CMSSW_7_0_X
 //#define CMSSW_VER 71 // CMSSW_7_1_0_pre7 and later
-#define CMSSW_VER 73
+#define CMSSW_VER 76
 
 #if CMSSW_VER >= 71
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -34,6 +34,17 @@
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
+#include "TrackingTools/PatternTools/interface/TrajTrackAssociation.h"
+#include <DataFormats/Common/interface/EDCollection.h>
+#include "DataFormats/SiPixelRawData/interface/SiPixelRawDataError.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+#if CMSSW_VER != 53
+#include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
+#endif
+
 #include "TObject.h"
 #include "TH1D.h"
 #include "TFile.h"
@@ -110,6 +121,18 @@ class TimingStudy : public edm::EDAnalyzer
   std::set<int> badroc_list_;
 
   Long64_t clu_stat_counter_;
+
+  // Tokens needed after 76X
+#if CMSSW_VER >= 76
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo> > pileupSummaryToken_;
+  edm::EDGetTokenT<Level1TriggerScalersCollection> l1tscollectionToken_;
+  edm::EDGetTokenT<TrajTrackAssociationCollection> trajTrackCollToken_;
+  edm::EDGetTokenT<edm::EDCollection<DetId> > trackingErrorToken_;
+  edm::EDGetTokenT<edm::DetSetVector<SiPixelRawDataError> > rawDataErrorToken_;
+  edm::EDGetTokenT<reco::VertexCollection> primaryVerticesToken_;
+  edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > clustersToken_;
+  edm::EDGetTokenT<MeasurementTrackerEvent> measTrackerEvtToken_;
+#endif
 
  public:
 

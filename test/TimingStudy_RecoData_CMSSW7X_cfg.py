@@ -142,6 +142,8 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
                                      #dataPileupFile = cms.string("data/PileupHistogram_test.root"),
                                      #mcPileupHistoName = cms.string("mcpileup"),
                                      #dataPileupHistoName = cms.string("pileup")
+                                     mcLumiScale = cms.double(0.37935), # 2012 (1368b): 0.222, 2015 (2232b): 0.3136, 2016 (2700b) pred: 0.37935
+                                     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
 )
 
 # For the three cases:

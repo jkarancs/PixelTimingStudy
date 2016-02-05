@@ -2,10 +2,12 @@
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: -s GEN,SIM,DIGI,DIGI2RAW,RAW2DIGI,RECO --mc --conditions auto:run2_mc --beamspot NominalCollision2015 --magField 38T_PostLS1 --evt_type SingleNuE10_cfi --pileup=Flat_0_50_25ns --filein=/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10000/004CC894-4877-E511-A11E-0025905C3DF8.root --customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1,Configuration/DataProcessing/Utils.addMonitoring --python_filename=test/TimingStudy_GenNu_DynIneffDB_cfg.py -n 10 --no_exec
+# with command line options: -s GEN,SIM,DIGI,L1,DIGI2RAW,RAW2DIGI,RECO --mc --evt_type SingleNuE10_cfi --era Run2_25ns --conditions auto:run2_mc --beamspot NominalCollision2015 --magField 38T_PostLS1 --pileup=Flat_0_50_25ns --filein=/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10000/004CC894-4877-E511-A11E-0025905C3DF8.root --pileup_input=/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10002/082C3FE4-7479-E511-BCC5-0025904C8254.root --fileout file:GENSIMRECO.root --python_filename=test/TimingStudy_GenNu_DynIneffDB_cfg.py -n 10 --no_exec
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process('RECO')
+from Configuration.StandardSequences.Eras import eras
+
+process = cms.Process('RECO',eras.Run2_25ns)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -21,6 +23,7 @@ process.load('IOMC.EventVertexGenerators.VtxSmearedNominalCollision2015_cfi')
 process.load('GeneratorInterface.Core.genFilterSummary_cff')
 process.load('Configuration.StandardSequences.SimIdeal_cff')
 process.load('Configuration.StandardSequences.Digi_cff')
+process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
@@ -79,7 +82,7 @@ process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
-    fileName = cms.untracked.string('SingleNuE10_cfi_GEN_SIM_DIGI_DIGI2RAW_RAW2DIGI_RECO_PU.root'),
+    fileName = cms.untracked.string('file:GENSIMRECO.root'),
     outputCommands = process.RECOSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -87,6 +90,7 @@ process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
 # Additional output definition
 
 # Other statements
+process.mix.input.fileNames = cms.untracked.vstring(['/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10002/082C3FE4-7479-E511-BCC5-0025904C8254.root'])
 process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc', '')
@@ -112,6 +116,7 @@ process.generator = cms.EDProducer("FlatRandomEGunProducer",
 process.generation_step = cms.Path(process.pgen)
 process.simulation_step = cms.Path(process.psim)
 process.digitisation_step = cms.Path(process.pdigi)
+process.L1simulation_step = cms.Path(process.SimL1Emulator)
 process.digi2raw_step = cms.Path(process.DigiToRaw)
 process.raw2digi_step = cms.Path(process.RawToDigi)
 process.reconstruction_step = cms.Path(process.reconstruction)
@@ -120,26 +125,10 @@ process.endjob_step = cms.EndPath(process.endOfProcess)
 process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.digitisation_step,process.digi2raw_step,process.raw2digi_step,process.reconstruction_step,process.endjob_step,process.RECOSIMoutput_step)
+process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.simulation_step,process.digitisation_step,process.L1simulation_step,process.digi2raw_step,process.raw2digi_step,process.reconstruction_step,process.endjob_step,process.RECOSIMoutput_step)
 # filter all path with the production filter sequence
 for path in process.paths:
 	getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
-
-# customisation of the process.
-
-# Automatic addition of the customisation function from SLHCUpgradeSimulations.Configuration.postLS1Customs
-from SLHCUpgradeSimulations.Configuration.postLS1Customs import customisePostLS1 
-
-#call to customisation function customisePostLS1 imported from SLHCUpgradeSimulations.Configuration.postLS1Customs
-process = customisePostLS1(process)
-
-# Automatic addition of the customisation function from Configuration.DataProcessing.Utils
-from Configuration.DataProcessing.Utils import addMonitoring 
-
-#call to customisation function addMonitoring imported from Configuration.DataProcessing.Utils
-process = addMonitoring(process)
-
-# End of customisation functions
 
 
 #--------------- Added for TimingStudy ---------------
@@ -147,29 +136,34 @@ process = addMonitoring(process)
 #---------------------------
 #  MessageLogger
 #---------------------------
-process.MessageLogger.cerr.FwkReport.reportEvery = 100
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 #---------------------------
 #  Pile-up (RunIISummer15GS)
 #---------------------------
-from DPGAnalysis.PixelTimingStudy.PoolSource_13TeV_RunIISummer15GS import *
-process.mix.input.fileNames = pileupFileNames
+runOnGrid = False
+
+if runOnGrid:
+    from DPGAnalysis.PixelTimingStudy.PoolSource_13TeV_RunIISummer15GS import *
+    process.mix.input.fileNames = pileupFileNames
+else:
+    process.mix.input.fileNames = cms.untracked.vstring(
+        'file:/data/store/mc/RunIISummer15GS_/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10002/082C3FE4-7479-E511-BCC5-0025904C8254.root',
+    )
 
 #---------------------------
 #  DynIneff from DB
 #---------------------------
-useSqlite = True
+useSqlite = False
 
 if useSqlite:
+    from CondCore.DBCommon.CondDBSetup_cfi import *
     process.DynIneffDBSource = cms.ESSource("PoolDBESSource",
-        DBParameters = cms.PSet(
-            messageLevel = cms.untracked.int32(0),
-            authenticationPath = cms.untracked.string('')
-        ),
-        connect = cms.string('sqlite_file:dcol80.db'),
+        CondDBSetup,
+        connect = cms.string('sqlite_file:siPixelDynamicInefficiency.db'),
         toGet = cms.VPSet(cms.PSet(
-            record = cms.string("SiPixelDynamicInefficiencyRcd"),
-            tag = cms.string("SiPixelDynamicInefficiency_v1")
+            record = cms.string('SiPixelDynamicInefficiencyRcd'),
+            tag = cms.string('SiPixelDynamicInefficiency_v1')
         ))
     )
     process.es_prefer_DynIneffDBSource = cms.ESPrefer("PoolDBESSource","DynIneffDBSource")
@@ -217,15 +211,15 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     #mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
     #dataPileupHistoName = cms.string("pileup"),
     #mcPileupHistoName = cms.string("mcpileup"),
-    mcLumiScale = cms.double(0.37935) # 2016 prediction
+    mcLumiScale = cms.double(0.37935), # 2012 (1368b): 0.222, 2015 (2232b): 0.3136, 2016 (2700b) pred: 0.37935
+    instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
 )
 
 #---------------------------
 #  Path/Schedule
 #---------------------------
-
 process.TimingStudy_step = cms.Path(process.TrackRefitterP5*process.TimingStudy)
 process.schedule.remove(process.RECOSIMoutput_step)
 process.schedule.remove(process.endjob_step)
+process.schedule.remove(process.genfiltersummary_step)
 process.schedule.append(process.TimingStudy_step)
-

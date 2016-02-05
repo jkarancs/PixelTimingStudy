@@ -1,15 +1,13 @@
 # This file explains how to download and create a text file with
-# the offical instlumi/pileup values for 2012 Data ordered by Run, Ls
+# the offical instlumi/pileup values for 2015 Data ordered by Run, Ls
 # Official Twiki page you can check for latest info
-# https://twiki.cern.ch/twiki/bin/view/CMS/LumiCalc
+# http://cms-service-lumi.web.cern.ch/cms-service-lumi/brilwsdoc.html
 
-cd ../..
-cvs co -r V04-02-03 RecoLuminosity/LumiDB
-scram b
-cmsenv
+# install brilcalc
+lxplus
+ssh -YX lxplus.cern.ch
+setenv PATH $HOME/.local/bin:/afs/cern.ch/cms/lumi/brilconda-1.0.3/bin:$PATH
+pip install --install-option="--prefix=$HOME/.local" brilws
 
-# Run lumiCalc2.py script and reformat output to
-# [Run] [LumiSection] [InstLumi (delivered - nb-1/LS)] [Pileup]
-RecoLuminosity/LumiDB/scripts/lumiCalc2.py --begin "01/01/10 00:00:00" --end "05/09/13 12:00:00" --nowarning -b stable overview | grep -v WARNING | grep -v n/a | tail -n+13 | head -n-6 | sed "s;:; ;;s;(/mb);0.001;;s;(/ub);1;;s;(/nb);1000;;s;(/pb);1000000;" | awk '{ printf "%d %f\n", $2, $7*$8 }' > ! DPGAnalysis/PixelTimingStudy/run_ls_instlumi_pileup_2012.txt
-
-cd -
+# create txt file
+brilcalc lumi --byls -u /nb --begin 3819 --end 4647 | grep "STABLE BEAMS" | sed "s;:; ;g;" | awk '{ printf "%d %d %f %f\n", $2, $5, $18, $22 }' > ! run_ls_instlumi_pileup_2015.txt

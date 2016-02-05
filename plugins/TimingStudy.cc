@@ -16,7 +16,6 @@
 #include "RecoMuon/GlobalTrackingTools/interface/GlobalMuonTrackMatcher.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
 #include "DataFormats/Math/interface/deltaR.h"
-#include "DataFormats/SiPixelRawData/interface/SiPixelRawDataError.h"
 #include "DataFormats/SiPixelDetId/interface/PXBDetId.h"
 #include "DataFormats/SiPixelDetId/interface/PXFDetId.h"
 #include "DataFormats/SiStripDetId/interface/TIBDetId.h"
@@ -31,7 +30,6 @@
 #include "TrackingTools/PatternTools/interface/Trajectory.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrack.h"
-#include "TrackingTools/PatternTools/interface/TrajTrackAssociation.h"
 #include "RecoLocalTracker/ClusterParameterEstimator/interface/PixelClusterParameterEstimator.h"
 #include "TimingStudy.h"
 //#include "Geometry/TrackerTopology/interface/RectangularPixelTopology.h"
@@ -42,12 +40,7 @@
 #include "PhysicsTools/FWLite/interface/TFileService.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
-#include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "RecoTracker/MeasurementDet/interface/MeasurementTracker.h"
-#if CMSSW_VER != 53
-#include "RecoTracker/MeasurementDet/interface/MeasurementTrackerEvent.h"
-#endif
 #include "RecoTracker/Record/interface/CkfComponentsRecord.h"
 #include "TrackingTools/KalmanUpdators/interface/Chi2MeasurementEstimator.h"
 #include "TrackingTools/DetLayers/interface/DetLayer.h"
@@ -57,14 +50,11 @@
 #include "DataFormats/Common/interface/ConditionsInEdm.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
-#include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
-#include <DataFormats/Common/interface/EDCollection.h>
 #include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 #include "CLHEP/Random/RandPoissonQ.h"
 // SimDataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
-#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 // For ROOT
 #include <TROOT.h>
@@ -132,6 +122,19 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 
   isNewLS_ = false;
   lumi_.init(); // ctor of lumi_ should take care of this, but just to be sure
+
+  // Tokens needed after 76X
+#if CMSSW_VER >= 76
+  pileupSummaryToken_=consumes<std::vector<PileupSummaryInfo> >(edm::InputTag("addPileupInfo"));
+  l1tscollectionToken_=consumes<Level1TriggerScalersCollection>(edm::InputTag("scalersRawToDigi"));
+  std::string trajTrackCollectionInput = iConfig.getParameter<std::string>("trajectoryInput");
+  trajTrackCollToken_=consumes<TrajTrackAssociationCollection>(edm::InputTag(trajTrackCollectionInput));
+  trackingErrorToken_=consumes<edm::EDCollection<DetId> >(edm::InputTag("siPixelDigis"));
+  rawDataErrorToken_=consumes<edm::DetSetVector<SiPixelRawDataError> >(edm::InputTag("siPixelDigis"));
+  primaryVerticesToken_=consumes<reco::VertexCollection>(edm::InputTag("offlinePrimaryVertices"));
+  clustersToken_=consumes<edmNew::DetSetVector<SiPixelCluster> >(edm::InputTag("siPixelClusters"));
+  measTrackerEvtToken_=consumes<MeasurementTrackerEvent>(edm::InputTag("MeasurementTrackerEvent"));
+#endif
 }
 
 
@@ -199,6 +202,9 @@ void TimingStudy::beginJob()
     mcLumiScale_=iConfig_.getParameter<double>("mcLumiScale");
     std::cout<<"NON-DEFAULT PARAMETER: mcLumiScale= "<<mcLumiScale_<<std::endl;
   }
+  
+  // Read instantaneous luminosity and average pileup for data externally from a txt file
+  std::string instlumi_txt = iConfig_.getUntrackedParameter<std::string>("instlumiTextFile", "run_ls_instlumi_pileup_2015.txt");
 
   // Pileup reweighting
   if (iConfig_.exists("mcPileupFile")&&iConfig_.exists("mcPileupHistoName")&&
@@ -516,10 +522,10 @@ void TimingStudy::beginJob()
   unsigned long int runls = 0;
   double instlumi = 0.0;
   double pileup = 0.0;
-  FILE * input = fopen ("run_ls_instlumi_pileup_2012.txt","r");
-  if (input) std::cout<<"Reading run_ls_instlumi_pileup_2012.txt"<<std::endl;
+  FILE * input = fopen (instlumi_txt.c_str(),"r");
+  if (input) std::cout<<"Reading "<<instlumi_txt<<std::endl;
   else {
-    std::cout<<"run_ls_instlumi_pileup_2012.txt not included,"<<std::endl;
+    std::cout<<instlumi_txt<<" not found,"<<std::endl;
     std::cout<<"instlumi_ext and pileup variables not filled."<<std::endl;
   }
   int a = (input!=0);
@@ -743,7 +749,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
 
   edm::Handle<Level1TriggerScalersCollection> l1trig;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(l1tscollectionToken_, l1trig);
+#else
   iEvent.getByLabel("scalersRawToDigi", l1trig);
+#endif
   if (l1trig.isValid() && l1trig->size()!=0) {
     evt_.l1_rate=l1trig->begin()->gtTriggersRate();
   } else {
@@ -756,7 +766,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   if (evt_.run==1) {
     edm::Handle<std::vector<PileupSummaryInfo> > puInfo;
+#if CMSSW_VER >= 76
+    iEvent.getByToken(pileupSummaryToken_, puInfo);
+#else
     iEvent.getByLabel("addPileupInfo", puInfo);
+#endif
     
     if (puInfo.isValid()) {
       // look for the intime PileupSummaryInfo
@@ -772,9 +786,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
 
       if(pu0!=puInfo->end()) {
-	evt_.pileup = pu0->getTrueNumInteractions();
-	evt_.instlumi = pu0->getTrueNumInteractions() * mcLumiScale_;
-	if (calcWeights_) evt_.weight = LumiWeights_.weight(pu0->getTrueNumInteractions());
+	float pileup = pu0->getTrueNumInteractions();
+	evt_.pileup = pileup;
+	evt_.instlumi = pileup * mcLumiScale_;
+	if (calcWeights_) evt_.weight = LumiWeights_.weight(pileup);
       } else {
 	std::cout<<"** ERROR: Cannot find the in-time pileup info\n";
       }
@@ -846,10 +861,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   if (JKDEBUG) w.Start();
   edm::Handle<TrajTrackAssociationCollection> trajTrackCollectionHandle;
-  std::string trajTrackCollectionInput=
-    iConfig_.getParameter<std::string>("trajectoryInput");
+#if CMSSW_VER >= 76
+  iEvent.getByToken(trajTrackCollToken_, trajTrackCollectionHandle);
+#else
+  std::string trajTrackCollectionInput= iConfig_.getParameter<std::string>("trajectoryInput");
   iEvent.getByLabel(trajTrackCollectionInput, trajTrackCollectionHandle);
-
+#endif
 
   if (trajTrackCollectionHandle.isValid()||1) {
     if (JKDEBUG) std::cout << "\n\nRun " << evt_.run << " Event " << evt_.evt;
@@ -857,12 +874,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
     evt_.ntracks=trajTrackCollectionHandle->size();
 
-    if (trajTrackCollectionInput=="ctfRefitter") {
+    //if (trajTrackCollectionInput=="ctfRefitter") {
       //
       // Consider events with exactly one track
       //
       //if (trajTrackCollectionHandle->size()!=1) return;
-    }
+    //}
   }
 
   evt_.ntrackFPix[0]=evt_.ntrackFPix[1]=0;
@@ -885,7 +902,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   if (JKDEBUG) w.Start();
   edm::Handle<edm::DetSetVector<SiPixelRawDataError> >  siPixelRawDataErrorCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(rawDataErrorToken_, siPixelRawDataErrorCollectionHandle);
+#else
   iEvent.getByLabel("siPixelDigis", siPixelRawDataErrorCollectionHandle);
+#endif
   
   if (siPixelRawDataErrorCollectionHandle.isValid()) {
     const edm::DetSetVector<SiPixelRawDataError>& siPixelRawDataErrorCollection = *siPixelRawDataErrorCollectionHandle;
@@ -926,7 +947,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     
     // Tracking Error list
     edm::Handle<edm::EDCollection<DetId> > TrackingErrorDetIdCollectionHandle;
+#if CMSSW_VER >= 76
+    iEvent.getByToken(trackingErrorToken_, TrackingErrorDetIdCollectionHandle);
+#else
     iEvent.getByLabel("siPixelDigis", TrackingErrorDetIdCollectionHandle);
+#endif
     
     if (TrackingErrorDetIdCollectionHandle.isValid()) {
       const edm::EDCollection<DetId>& TrackingErrorDetIdCollection = *TrackingErrorDetIdCollectionHandle;
@@ -1074,7 +1099,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Vertex
   //
   edm::Handle<reco::VertexCollection> vertexCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(primaryVerticesToken_, vertexCollectionHandle);
+#else
   iEvent.getByLabel("offlinePrimaryVertices", vertexCollectionHandle);
+#endif
 
   evt_.nvtx=0;
   const reco::VertexCollection & vertices = *vertexCollectionHandle.product();
@@ -1186,7 +1215,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   std::map<unsigned long int, int> npix_roc;
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(clustersToken_, clusterCollectionHandle);
+#else
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
+#endif
 
   if (clusterCollectionHandle.isValid()) {
     const edmNew::DetSetVector<SiPixelCluster>& clusterCollection=*clusterCollectionHandle;
@@ -1750,7 +1783,10 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       ESHandle<MeasurementTracker> measurementTrackerHandle;
       iSetup.get<CkfComponentsRecord>().get(measurementTrackerHandle);
       
-#if CMSSW_VER != 53
+#if CMSSW_VER >= 76
+      Handle<MeasurementTrackerEvent> measurementTrackerEventHandle;
+      iEvent.getByToken(measTrackerEvtToken_, measurementTrackerEventHandle);
+#elif CMSSW_VER != 53
       Handle<MeasurementTrackerEvent> measurementTrackerEventHandle;
       iEvent.getByLabel("MeasurementTrackerEvent", measurementTrackerEventHandle);
 #endif
@@ -2499,7 +2535,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     clustTree_->Fill();
     #else
     // Save only nth fraction of clusters to save space
-    if (clu_stat_counter_%10==0) clustTree_->Fill();
+    if (clu_stat_counter_%100==0) clustTree_->Fill();
     ++clu_stat_counter_;
     #endif
   }
