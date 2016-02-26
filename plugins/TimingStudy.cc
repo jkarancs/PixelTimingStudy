@@ -104,6 +104,7 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   keepOriginalMissingHit_=true;
 
   usePixelCPE_=false;
+  nthClusterToSave_=100;
   minNStripHits_=0;
   minTrkPt_=0.6;
   useClosestVtx_=false;
@@ -190,6 +191,10 @@ void TimingStudy::beginJob()
   if (iConfig_.exists("usePixelCPE")) {
     usePixelCPE_=iConfig_.getParameter<bool>("usePixelCPE");
     std::cout<<"NON-DEFAULT PARAMETER: usePixelCPE= "<<usePixelCPE_<<std::endl;
+  }
+  if (iConfig_.exists("nthClusterToSave")) {
+    nthClusterToSave_=iConfig_.getParameter<int>("nthClusterToSave");
+    std::cout<<"NON-DEFAULT PARAMETER: nthClusterToSave= "<<nthClusterToSave_<<std::endl;
   }
   if (iConfig_.exists("minNStripHits")) {
     minNStripHits_=iConfig_.getParameter<int>("minNStripHits");
@@ -2615,7 +2620,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     clustTree_->Fill();
     #else
     // Save only nth fraction of clusters to save space
-    if (clu_stat_counter_%100==0) clustTree_->Fill();
+    if (clu_stat_counter_%nthClusterToSave_==0) clustTree_->Fill();
     ++clu_stat_counter_;
     #endif
   }

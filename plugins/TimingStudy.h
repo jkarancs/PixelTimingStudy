@@ -105,6 +105,7 @@ class TimingStudy : public edm::EDAnalyzer
   bool keepOriginalMissingHit_;
   bool usePixelCPE_;
   bool useClosestVtx_;
+  int nthClusterToSave_;
   int minNStripHits_;
   double minTrkPt_;
   double mcLumiScale_;

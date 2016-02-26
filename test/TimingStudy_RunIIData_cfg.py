@@ -101,9 +101,10 @@ else:
 process.maxEvents.input = 100
 
 # TimingStudy Settings
-minNStripHits = 0     # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
-minTrkPt = 0.6        # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
-useClosestVtx = False # Default: False (New option, default is using best vertex, closest vtx needs more study)
+nthClusterToSave = 100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
+minNStripHits = 0      # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
+minTrkPt = 0.6         # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
+useClosestVtx = False  # Default: False (New option, default is using best vertex, closest vtx needs more study)
 
 #---------------------------
 #  MessageLogger
@@ -161,9 +162,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     #mcPileupHistoName = cms.string("mcpileup"),
     mcLumiScale = cms.double(0.384408), # 2012 (1368b): 0.222, 2015 (2232b): 0.3136, 2016 (2736b) pred: 0.384408
     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
-    minNStripHits = cms.int32(minNStripHits),
-    minPtHits  = cms.double(minTrkPt),
-    useClosestVtx = cms.bool(useClosestVtx),
+    nthClusterToSave = cms.int32(nthClusterToSave),
+    minNStripHits    = cms.int32(minNStripHits),
+    minPtHits        = cms.double(minTrkPt),
+    useClosestVtx    = cms.bool(useClosestVtx),
 )
 
 #---------------------------
