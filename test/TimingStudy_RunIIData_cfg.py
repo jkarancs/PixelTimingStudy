@@ -90,6 +90,19 @@ process = customiseDataRun2Common_25ns(process)
 
 # RAW or RECO
 runOnRAW = False   # True: RAW, False: RECO
+setAutoGT = True
+
+if setAutoGT:
+    print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
+else:
+    process.GlobalTag.globaltag = '76X_dataRun2_v16'
+    print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
+
+# TimingStudy Settings
+nthClusterToSave =   100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
+minNStripHits    =     0 # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
+minTrkPt         =   0.6 # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
+useClosestVtx    = False # Default: False (New option, default is using best vertex, closest vtx needs more study)
 
 # Input file
 if runOnRAW:
@@ -100,15 +113,7 @@ else:
 # Number of events
 process.maxEvents.input = 100
 
-# TimingStudy Settings
-nthClusterToSave = 100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
-minNStripHits = 0      # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
-minTrkPt = 0.6         # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
-useClosestVtx = False  # Default: False (New option, default is using best vertex, closest vtx needs more study)
-
-#---------------------------
-#  MessageLogger
-#---------------------------
+# MessageLogger
 if runOnRAW:
     process.MessageLogger.cerr.FwkReport.reportEvery = 1
 else:
