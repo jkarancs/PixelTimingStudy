@@ -164,7 +164,7 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
     nthClusterToSave = cms.int32(nthClusterToSave),
     minNStripHits    = cms.int32(minNStripHits),
-    minPtHits        = cms.double(minTrkPt),
+    minTrkPt         = cms.double(minTrkPt),
     useClosestVtx    = cms.bool(useClosestVtx),
 )
 
