@@ -31,7 +31,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
@@ -141,7 +141,39 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1
 #---------------------------
 #  Pile-up (RunIISummer15GS)
 #---------------------------
-runOnGrid = False
+runOnGrid = True
+process.mix.input = cms.SecSource("EmbeddedRootSource",                                                      
+    OOT_type = cms.untracked.string('Poisson'),                                                  
+    fileNames = cms.untracked.vstring('/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10002/082C3FE4-7479-E511-BCC5-0025904C8254.root'),                                                                                                
+    manage_OOT = cms.untracked.bool(True),                                                                                           
+    nbPileupEvents = cms.PSet(                                                                                                       
+        histoFileName = cms.untracked.string('histProbFunction.root'),                                                               
+        probFunctionVariable = cms.vint32(0, 1, 2, 3, 4,                                                                             
+            5, 6, 7, 8, 9,                                                                                                           
+            10, 11, 12, 13, 14,                                                                                                      
+            15, 16, 17, 18, 19,                                                                                                      
+            20, 21, 22, 23, 24,                                                                                                      
+            25, 26, 27, 28, 29,                                                                                                      
+            30, 31, 32, 33, 34,                                                                                                      
+            35, 36, 37, 38, 39,                                                                                                      
+            40, 41, 42, 43, 44,                                                                                                      
+            45, 46, 47, 48, 49,                                                                                                      
+            50),                                                                                                                     
+        probValue = cms.vdouble(0, 0, 0, 0, 0,                                                    
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            0, 0, 0, 0, 0,                                                                        
+            1.0)                                                                                                                
+    ),                                                                                                                               
+    sequential = cms.untracked.bool(False),                                                                                          
+    type = cms.string('probFunction')                                                                                                
+)
 
 if runOnGrid:
     from DPGAnalysis.PixelTimingStudy.PoolSource_13TeV_RunIISummer15GS import *
@@ -154,7 +186,7 @@ else:
 #---------------------------
 #  DynIneff from DB
 #---------------------------
-useSqlite = False
+useSqlite = True
 
 if useSqlite:
     from CondCore.DBCommon.CondDBSetup_cfi import *

@@ -8,7 +8,6 @@
 // ------------------------------------------------------------------------------------------------
 //
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
-#include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonTime.h"
 #include "DataFormats/MuonDetId/interface/DTChamberId.h"
 #include "DataFormats/MuonDetId/interface/MuonSubdetId.h"
@@ -46,9 +45,6 @@
 #include "TrackingTools/DetLayers/interface/DetLayer.h"
 #include "RecoTracker/TkDetLayers/interface/GeometricSearchTracker.h"
 #include "TrackingTools/MeasurementDet/interface/LayerMeasurements.h"
-#include "DataFormats/Luminosity/interface/LumiSummary.h"
-#include "DataFormats/Common/interface/ConditionsInEdm.h"
-#include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 #include "CLHEP/Random/RandPoissonQ.h"
@@ -108,7 +104,9 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
   keepOriginalMissingHit_=true;
 
   usePixelCPE_=false;
-  minNStripHits_=11;
+  minNStripHits_=0;
+  minTrkPt_=0.6;
+  useClosestVtx_=false;
 
   mcLumiScale_=1.0;
 
@@ -125,11 +123,22 @@ TimingStudy::TimingStudy(edm::ParameterSet const& iConfig) :
 
   // Tokens needed after 76X
 #if CMSSW_VER >= 76
+  condInRunBlockToken_=mayConsume<edm::ConditionsInRunBlock, InRun >(edm::InputTag("conditionsInEdm"));
+  condInLumiBlockToken_=mayConsume<edm::ConditionsInLumiBlock, InLumi >(edm::InputTag("conditionsInEdm"));
+  lumiSummaryToken_=mayConsume<LumiSummary, InLumi >(edm::InputTag("lumiProducer"));
+  if (iConfig_.exists("triggerTag")) {
+    triggerTag_=iConfig_.getParameter<edm::InputTag>("triggerTag");
+    std::cout<<"NON-DEFAULT PARAMETER: triggerTag= "<<triggerTag_<<std::endl;
+  } else triggerTag_=edm::InputTag("TriggerResults","", "HLT");
+  triggerResultsToken_=consumes<edm::TriggerResults>(triggerTag_);
+  muonCollectionToken_=consumes<reco::MuonCollection>(edm::InputTag("muonsWitht0Correction"));
   pileupSummaryToken_=consumes<std::vector<PileupSummaryInfo> >(edm::InputTag("addPileupInfo"));
   l1tscollectionToken_=consumes<Level1TriggerScalersCollection>(edm::InputTag("scalersRawToDigi"));
   std::string trajTrackCollectionInput = iConfig.getParameter<std::string>("trajectoryInput");
   trajTrackCollToken_=consumes<TrajTrackAssociationCollection>(edm::InputTag(trajTrackCollectionInput));
+  pixelDigiCollectionToken_=consumes<edm::DetSetVector<PixelDigi> >(edm::InputTag("siPixelDigis"));
   trackingErrorToken_=consumes<edm::EDCollection<DetId> >(edm::InputTag("siPixelDigis"));
+  userErrorToken_=consumes<edm::EDCollection<DetId> >(edm::InputTag("siPixelDigis", "UserErrorModules"));
   rawDataErrorToken_=consumes<edm::DetSetVector<SiPixelRawDataError> >(edm::InputTag("siPixelDigis"));
   primaryVerticesToken_=consumes<reco::VertexCollection>(edm::InputTag("offlinePrimaryVertices"));
   clustersToken_=consumes<edmNew::DetSetVector<SiPixelCluster> >(edm::InputTag("siPixelClusters"));
@@ -186,12 +195,22 @@ void TimingStudy::beginJob()
     minNStripHits_=iConfig_.getParameter<int>("minNStripHits");
     std::cout<<"NON-DEFAULT PARAMETER: minNStripHits= "<<minNStripHits_<<std::endl;
   }
+  if (iConfig_.exists("minTrkPt")) {
+    minTrkPt_=iConfig_.getParameter<double>("minTrkPt");
+    std::cout<<"NON-DEFAULT PARAMETER: minTrkPt= "<<minTrkPt_<<std::endl;
+  }
+  if (iConfig_.exists("useClosestVtx")) {
+    useClosestVtx_=iConfig_.getParameter<bool>("useClosestVtx");
+    std::cout<<"NON-DEFAULT PARAMETER: useClosestVtx= "<<useClosestVtx_<<std::endl;
+  }
+#if CMSSW_VER < 76
   if (iConfig_.exists("triggerTag")) {
     triggerTag_=iConfig_.getParameter<edm::InputTag>("triggerTag");
     std::cout<<"NON-DEFAULT PARAMETER: triggerTag= "<<triggerTag_<<std::endl;
   } else {
     triggerTag_=edm::InputTag("TriggerResults","", "HLT");
   }
+#endif
   if (iConfig_.exists("triggerNames")) {
     triggerNames_=iConfig_.getParameter<std::vector<std::string> >("triggerNames");
     std::cout<<"NON-DEFAULT PARAMETER: triggerNames= ";
@@ -560,7 +579,11 @@ void TimingStudy::beginRun(edm::Run const& iRun,
   
   // get ConditionsInRunBlock for fill number
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
+#if CMSSW_VER >= 76
+  iRun.getByToken(condInRunBlockToken_, condInRunBlock);
+#else
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
+#endif
   if (condInRunBlock.isValid()) {
     run_.fill = condInRunBlock->lhcFillNumber;
   } else if (run_.run==1) {
@@ -592,7 +615,11 @@ void TimingStudy::endRun(edm::Run const& iRun,
 			   edm::EventSetup const& iSetup){
   // get ConditionsInRunBlock
   edm::Handle<edm::ConditionsInRunBlock> condInRunBlock;
+#if CMSSW_VER >= 76
+  iRun.getByToken(condInRunBlockToken_, condInRunBlock);
+#else
   iRun.getByLabel("conditionsInEdm", condInRunBlock);
+#endif
   if (!condInRunBlock.isValid()) {
     std::cout<<"** ERROR (endRun): no condInRunBlock info is available\n";
   } else {
@@ -624,7 +651,11 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
   //   assert(isNewLS_==false);
 
   edm::Handle<LumiSummary> lumi;
+#if CMSSW_VER >= 76
+  iLumi.getByToken(lumiSummaryToken_, lumi);
+#else
   iLumi.getByLabel("lumiProducer", lumi);
+#endif
   if (!lumi.isValid()) {
     std::cout<<"** WARNING: no LumiSummary info is available, are you running on RAW or ReReco?\n";
     lumi_.init();
@@ -647,7 +678,11 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
 
   // get ConditionsInLumiBlock
   edm::Handle<edm::ConditionsInLumiBlock> cond;
+#if CMSSW_VER >= 76
+  iLumi.getByToken(condInLumiBlockToken_, cond);
+#else
   iLumi.getByLabel("conditionsInEdm", cond);
+#endif
   if (!cond.isValid()) {
     std::cout<<"** ERROR: no ConditionsInLumiBlock info is available\n";
     return;
@@ -723,7 +758,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   edm::LuminosityBlock const& iLumi = iEvent.getLuminosityBlock();
   edm::Handle<LumiSummary> lumi;
+#if CMSSW_VER >= 76
+  iLumi.getByToken(lumiSummaryToken_, lumi);
+#else
   iLumi.getByLabel("lumiProducer", lumi);
+#endif
   // This will only work when running on RECO until they fix the bug in the FW.
   // When running on RAW and reconstructing the LumiSummary, it will not appear
   // in the event before reaching endLuminosityBlock(). Therefore, it is not
@@ -739,7 +778,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   }
 
   edm::Handle<edm::ConditionsInLumiBlock> cond;
+#if CMSSW_VER >= 76
+  iLumi.getByToken(condInLumiBlockToken_, cond);
+#else
   iLumi.getByLabel("conditionsInEdm", cond);
+#endif
   if (cond.isValid()) {
     evt_.beamint[0]=cond->totalIntensityBeam1;
     evt_.beamint[1]=cond->totalIntensityBeam2;
@@ -831,7 +874,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   
   evt_.trig=NOVAL_I;
   edm::Handle<edm::TriggerResults> triggerResults;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(triggerResultsToken_, triggerResults);
+#else
   iEvent.getByLabel(triggerTag_, triggerResults);
+#endif
   if (triggerResults.isValid()) {
     evt_.trig=0;
     const edm::TriggerNames& triggerNames = iEvent.triggerNames(*triggerResults);
@@ -963,7 +1010,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     
     // User Error List (Overflow only by default)
     edm::Handle<edm::EDCollection<DetId> > UserErrorDetIdCollectionHandle;
+#if CMSSW_VER >= 76
+    iEvent.getByToken(userErrorToken_, UserErrorDetIdCollectionHandle);
+#else
     iEvent.getByLabel("siPixelDigis", "UserErrorModules", UserErrorDetIdCollectionHandle);
+#endif
     
     if (UserErrorDetIdCollectionHandle.isValid()) {
       const edm::EDCollection<DetId>& UserErrorDetIdCollection = *UserErrorDetIdCollectionHandle;
@@ -1042,8 +1093,12 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   if (JKDEBUG) w.Start();
 
-  edm::Handle<MuonCollection> muonCollectionHandle;
+  edm::Handle<reco::MuonCollection> muonCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(muonCollectionToken_, muonCollectionHandle);
+#else
   iEvent.getByLabel("muonsWitht0Correction", muonCollectionHandle);
+#endif
 
   if (muonCollectionHandle.isValid() && muonCollectionHandle->size()>=1) {
     const MuonCollection& muons=*muonCollectionHandle;
@@ -1140,7 +1195,11 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if (JKDEBUG) w.Start();
 
   edm::Handle<edm::DetSetVector<PixelDigi> >  digiCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(pixelDigiCollectionToken_, digiCollectionHandle);
+#else
   iEvent.getByLabel("siPixelDigis", digiCollectionHandle);
+#endif
 
   if (digiCollectionHandle.isValid()) {
     const edm::DetSetVector<PixelDigi>& digiCollection = *digiCollectionHandle;
@@ -1737,7 +1796,23 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
       // End of Resolution stuff
       //------------------------------------------------------------------------------------
-      
+
+      // New on 02.25.2016 (JK)
+      // Find closest vertex to the track
+      reco::VertexCollection::const_iterator closestVtx=vertices.end();
+      double min_distance = 9999;
+      for(reco::VertexCollection::const_iterator it=vertices.begin() ; it!=vertices.end() ; ++it) {
+	if (!it->isValid()) continue;
+	double trk_vtx_d0 = track.dxy(it->position())*-1.0;
+	double trk_vtx_dz = track.dz(it->position());
+	double trk_vtx_dB = sqrt(trk_vtx_d0*trk_vtx_d0 + trk_vtx_dz*trk_vtx_dz);
+	if (trk_vtx_dB<min_distance) {
+	  min_distance = trk_vtx_dB;
+	  closestVtx=it;
+	}
+      }
+      // End of JK
+
       TrackData track_;
       std::vector<TrajMeasurement> trajmeas;
       //
@@ -1752,8 +1827,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       track_.validpixhit[1]=0;
       track_.ndof=track.ndof();
       track_.chi2=track.chi2();
-      track_.d0=track.dxy(bestVtx->position())*-1.0;
-      track_.dz=track.dz(bestVtx->position());
+      if (useClosestVtx_) {
+	track_.d0=track.dxy(closestVtx->position())*-1.0;
+	track_.dz=track.dz(closestVtx->position());
+      } else {
+	track_.d0=track.dxy(bestVtx->position())*-1.0;
+	track_.dz=track.dz(bestVtx->position());
+      }
       track_.pt=track.pt();
       track_.p=track.p();
       track_.eta=track.eta();
@@ -2654,6 +2734,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     for (size_t i=0; i<trajmeas_[itrk].size(); i++) {
       #ifndef COMPLETE
       if (trajmeas_[itrk][i].trk.strip<minNStripHits_) continue;
+      if (trajmeas_[itrk][i].trk.pt<minTrkPt_) continue;
       #endif
       
       // Search for closest other trajmeas before saving it
@@ -2906,7 +2987,11 @@ void TimingStudy::findClosestClusters(const edm::Event& iEvent, const edm::Event
   const TrackerGeometry *tkgeom = &(*tracker);
 
   edm::Handle<edmNew::DetSetVector<SiPixelCluster> > clusterCollectionHandle;
+#if CMSSW_VER >= 76
+  iEvent.getByToken(clustersToken_, clusterCollectionHandle);
+#else
   iEvent.getByLabel("siPixelClusters", clusterCollectionHandle);
+#endif
   if (!clusterCollectionHandle.isValid()) return;
 
   const edmNew::DetSetVector<SiPixelCluster>& clusterCollection=*clusterCollectionHandle;

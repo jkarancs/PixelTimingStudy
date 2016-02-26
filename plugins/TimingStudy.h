@@ -34,6 +34,10 @@
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
+#include "DataFormats/Common/interface/ConditionsInEdm.h"
+#include "DataFormats/Luminosity/interface/LumiSummary.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/MuonReco/interface/Muon.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include <DataFormats/Scalers/interface/Level1TriggerScalers.h>
 #include "TrackingTools/PatternTools/interface/TrajTrackAssociation.h"
@@ -100,7 +104,9 @@ class TimingStudy : public edm::EDAnalyzer
   float maxlymatch_;
   bool keepOriginalMissingHit_;
   bool usePixelCPE_;
+  bool useClosestVtx_;
   int minNStripHits_;
+  double minTrkPt_;
   double mcLumiScale_;
 
   std::vector<std::string> triggerNames_; // Max 20 trigger names
@@ -124,10 +130,17 @@ class TimingStudy : public edm::EDAnalyzer
 
   // Tokens needed after 76X
 #if CMSSW_VER >= 76
+  edm::EDGetTokenT<edm::ConditionsInRunBlock> condInRunBlockToken_;
+  edm::EDGetTokenT<edm::ConditionsInLumiBlock> condInLumiBlockToken_;
+  edm::EDGetTokenT<LumiSummary> lumiSummaryToken_;
+  edm::EDGetTokenT<edm::TriggerResults> triggerResultsToken_;
+  edm::EDGetTokenT<reco::MuonCollection> muonCollectionToken_;
   edm::EDGetTokenT<std::vector<PileupSummaryInfo> > pileupSummaryToken_;
   edm::EDGetTokenT<Level1TriggerScalersCollection> l1tscollectionToken_;
   edm::EDGetTokenT<TrajTrackAssociationCollection> trajTrackCollToken_;
+  edm::EDGetTokenT<edm::DetSetVector<PixelDigi> > pixelDigiCollectionToken_;
   edm::EDGetTokenT<edm::EDCollection<DetId> > trackingErrorToken_;
+  edm::EDGetTokenT<edm::EDCollection<DetId> > userErrorToken_;
   edm::EDGetTokenT<edm::DetSetVector<SiPixelRawDataError> > rawDataErrorToken_;
   edm::EDGetTokenT<reco::VertexCollection> primaryVerticesToken_;
   edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > clustersToken_;
