@@ -96,7 +96,7 @@ if setAutoGT:
     print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
 else:
     process.GlobalTag.globaltag = '76X_dataRun2_v16'
-    print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
+    print "GlobalTag: "+str(process.GlobalTag.globaltag)
 
 # TimingStudy Settings
 nthClusterToSave =   100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
@@ -165,7 +165,7 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     #mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
     #dataPileupHistoName = cms.string("pileup"),
     #mcPileupHistoName = cms.string("mcpileup"),
-    mcLumiScale = cms.double(0.384408), # 2012 (1368b): 0.222, 2015 (2232b): 0.3136, 2016 (2736b) pred: 0.384408
+    mcLumiScale = cms.double(0.384408), # 2012 (1368b): 0.222, 2015 (2232b): 0.313596, 2016 (2736b) pred: 0.384408
     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
     nthClusterToSave = cms.int32(nthClusterToSave),
     minNStripHits    = cms.int32(minNStripHits),

@@ -31,7 +31,7 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(10)
 )
 
 # Input source
@@ -134,47 +134,34 @@ for path in process.paths:
 #--------------- Added for TimingStudy ---------------
 
 #---------------------------
-#  MessageLogger
+#  Settings
 #---------------------------
+
+setAutoGT = True
+runOnGrid = True
+useSqlite = True
+
+if setAutoGT:
+    print "GlobalTag (auto:run2_mc): "+str(process.GlobalTag.globaltag)
+else:
+    process.GlobalTag.globaltag = '76X_mcRun2_asymptotic_v14'
+    print "GlobalTag: "+str(process.GlobalTag.globaltag)
+
+# TimingStudy Settings
+nthClusterToSave =   100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
+minNStripHits    =     0 # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
+minTrkPt         =   0.6 # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
+useClosestVtx    = False # Default: False (New option, default is using best vertex, closest vtx needs more study)
+
+# Number of events
+process.maxEvents.input = 100
+
+# MessageLogger
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 #---------------------------
 #  Pile-up (RunIISummer15GS)
 #---------------------------
-runOnGrid = True
-process.mix.input = cms.SecSource("EmbeddedRootSource",                                                      
-    OOT_type = cms.untracked.string('Poisson'),                                                  
-    fileNames = cms.untracked.vstring('/store/mc/RunIISummer15GS/MinBias_TuneCUETP8M1_13TeV-pythia8/GEN-SIM/MCRUN2_71_V1-v2/10002/082C3FE4-7479-E511-BCC5-0025904C8254.root'),                                                                                                
-    manage_OOT = cms.untracked.bool(True),                                                                                           
-    nbPileupEvents = cms.PSet(                                                                                                       
-        histoFileName = cms.untracked.string('histProbFunction.root'),                                                               
-        probFunctionVariable = cms.vint32(0, 1, 2, 3, 4,                                                                             
-            5, 6, 7, 8, 9,                                                                                                           
-            10, 11, 12, 13, 14,                                                                                                      
-            15, 16, 17, 18, 19,                                                                                                      
-            20, 21, 22, 23, 24,                                                                                                      
-            25, 26, 27, 28, 29,                                                                                                      
-            30, 31, 32, 33, 34,                                                                                                      
-            35, 36, 37, 38, 39,                                                                                                      
-            40, 41, 42, 43, 44,                                                                                                      
-            45, 46, 47, 48, 49,                                                                                                      
-            50),                                                                                                                     
-        probValue = cms.vdouble(0, 0, 0, 0, 0,                                                    
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            0, 0, 0, 0, 0,                                                                        
-            1.0)                                                                                                                
-    ),                                                                                                                               
-    sequential = cms.untracked.bool(False),                                                                                          
-    type = cms.string('probFunction')                                                                                                
-)
-
 if runOnGrid:
     from DPGAnalysis.PixelTimingStudy.PoolSource_13TeV_RunIISummer15GS import *
     process.mix.input.fileNames = pileupFileNames
@@ -186,13 +173,11 @@ else:
 #---------------------------
 #  DynIneff from DB
 #---------------------------
-useSqlite = True
-
 if useSqlite:
     from CondCore.DBCommon.CondDBSetup_cfi import *
     process.DynIneffDBSource = cms.ESSource("PoolDBESSource",
         CondDBSetup,
-        connect = cms.string('sqlite_file:siPixelDynamicInefficiency.db'),
+        connect = cms.string('sqlite_file:siPixelDynamicInefficiency_13TeV_v2.db'),
         toGet = cms.VPSet(cms.PSet(
             record = cms.string('SiPixelDynamicInefficiencyRcd'),
             tag = cms.string('SiPixelDynamicInefficiency_v1')
@@ -201,23 +186,15 @@ if useSqlite:
     process.es_prefer_DynIneffDBSource = cms.ESPrefer("PoolDBESSource","DynIneffDBSource")
 
 #---------------------------
-#  Track Refitter
-#---------------------------
-process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
-process.TrackRefitterP5.src = 'generalTracks'
-process.TrackRefitterP5.TrajectoryInEvent = True
-
-#---------------------------
 #  TimingStudy
 #---------------------------
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
-    trajectoryInput = cms.string('TrackRefitterP5'),
+    trajectoryInput = cms.string('generalTracks'),
     fileName = cms.string("Ntuple.root"),
     extrapolateFrom = cms.int32(2),
     extrapolateTo = cms.int32(1),
     keepOriginalMissingHit = cms.bool(False),
     usePixelCPE= cms.bool(True),
-    minNStripHits = cms.int32(0),
     triggerNames=cms.vstring(
         "HLT_ZeroBias",
         "HLT_Physics",
@@ -243,14 +220,18 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     #mcPileupFile   = cms.string("PileupHistogram_201278_flatpileupMC.root"),
     #dataPileupHistoName = cms.string("pileup"),
     #mcPileupHistoName = cms.string("mcpileup"),
-    mcLumiScale = cms.double(0.37935), # 2012 (1368b): 0.222, 2015 (2232b): 0.3136, 2016 (2700b) pred: 0.37935
+    mcLumiScale = cms.double(0.313596), # 2012 (1368b): 0.222, 2015 (2232b): 0.313596, 2016 (2736b) pred: 0.384408
     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
+    nthClusterToSave = cms.int32(nthClusterToSave),
+    minNStripHits    = cms.int32(minNStripHits),
+    minTrkPt         = cms.double(minTrkPt),
+    useClosestVtx    = cms.bool(useClosestVtx),
 )
 
 #---------------------------
 #  Path/Schedule
 #---------------------------
-process.TimingStudy_step = cms.Path(process.TrackRefitterP5*process.TimingStudy)
+process.TimingStudy_step = cms.Path(process.TimingStudy)
 process.schedule.remove(process.RECOSIMoutput_step)
 process.schedule.remove(process.endjob_step)
 process.schedule.remove(process.genfiltersummary_step)
