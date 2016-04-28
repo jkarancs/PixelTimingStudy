@@ -9,7 +9,7 @@ PTSdir = os.environ['CMSSW_BASE']+'/src/DPGAnalysis/PixelTimingStudy/'
 config.section_('General')
 config.General.transferOutputs = True
 config.General.transferLogs = True
-config.General.requestName = 'TimingScan16_ZB1_RAW' #can be anything
+config.General.requestName = 'TimingScan16_ZB1_RECO' #can be anything
 
 config.section_('JobType')
 config.JobType.allowUndistributedCMSSW = True
@@ -21,12 +21,12 @@ config.JobType.disableAutomaticOutputCollection = True
 #config.JobType.priority = -1
 
 config.section_('Data')
-config.Data.inputDataset = '/ZeroBias1/Run2016A-v1/RAW'
+config.Data.inputDataset = '/ZeroBias1/Run2016A-PromptReco-v2/RECO'
 #config.Data.lumiMask = 'https://cms-service-dqm.web.cern.ch/cms-service-dqm/CAF/certification/Collisions15/13TeV/Reprocessing/Cert_13TeV_16Dec2015ReReco_Collisions15_25ns_JSON_MuonPhys.txt'
 config.Data.outLFNDirBase = '/store/user/jkarancs/TimingStudy/Scans'
-config.Data.outputDatasetTag = 'v3936_INC_SPL1_def_805_80X_dataRun2_Prompt_v5_TimingScan16_ZB1_RAW'
+config.Data.outputDatasetTag = 'v3936_INC_SPL1_def_805p1_80X_dataRun2_Prompt_v6_TimingScan16_ZB1_RECO'
 config.Data.splitting = 'LumiBased'
-config.Data.unitsPerJob = 1
+config.Data.unitsPerJob = 2
 #config.Data.totalUnits = 2
 config.Data.runRange = '271188,271191,271192,271193'
 

@@ -365,7 +365,6 @@ void TimingStudy::beginJob()
   // Paired branches
   #if SPLIT > 1
   trajTree_->Branch("clust_xy",              &trajmeas.clu.x,           "x/F:y");
-  trajTree_->Branch("clust_sizeXY",          &trajmeas.clu.sizeX,       "sizeX/I:sizeY");
   #endif
   // Split-mode branches
   #ifdef COMPLETE
@@ -375,6 +374,7 @@ void TimingStudy::beginJob()
   trajTree_->Branch("clust_tworoc",          &trajmeas.clu.tworoc,      "tworoc/I");
   #endif
   trajTree_->Branch("clust_size",            &trajmeas.clu.size,        "size/I");
+  trajTree_->Branch("clust_sizeXY",          &trajmeas.clu.sizeX,       "sizeX/I:sizeY");
   trajTree_->Branch("clust_adc",             &trajmeas.clu.pix,         "adc[size]/F");
   #if SPLIT > 1
   trajTree_->Branch("clust_charge",          &trajmeas.clu.charge,      "charge/F");
@@ -415,13 +415,13 @@ void TimingStudy::beginJob()
   // clust
   // Paired branches
   clustTree_->Branch("clust_xy",              &clust.x,               "x/F:y");
-  clustTree_->Branch("clust_sizeXY",          &clust.sizeX,           "sizeX/I:sizeY");
   // Split-mode branches
   clustTree_->Branch("clust_i",               &clust.i,               "i/I");
   clustTree_->Branch("clust_edge",            &clust.edge,            "edge/I");
   clustTree_->Branch("clust_badpix",          &clust.badpix,          "badpix/I");
   clustTree_->Branch("clust_tworoc",          &clust.tworoc,          "tworoc/I");
   clustTree_->Branch("clust_size",            &clust.size,            "size/I");
+  clustTree_->Branch("clust_sizeXY",          &clust.sizeX,           "sizeX/I:sizeY");
   clustTree_->Branch("clust_charge",          &clust.charge,          "charge/F");
   clustTree_->Branch("clust_adc",             &clust.adc,             "adc[size]/F");
   clustTree_->Branch("clust_pix",             &clust.pix,             "pix[size][2]/F");
@@ -2603,13 +2603,13 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // clust
   // Paired branches
   clustTree_->SetBranchAddress("clust_xy",              &clu.x);
-  clustTree_->SetBranchAddress("clust_sizeXY",          &clu.sizeX);
   // Split-mode branches
   clustTree_->SetBranchAddress("clust_i",               &clu.i);
   clustTree_->SetBranchAddress("clust_edge",            &clu.edge);
   clustTree_->SetBranchAddress("clust_badpix",          &clu.badpix);
   clustTree_->SetBranchAddress("clust_tworoc",          &clu.tworoc);
   clustTree_->SetBranchAddress("clust_size",            &clu.size);
+  clustTree_->SetBranchAddress("clust_sizeXY",          &clu.sizeX);
   clustTree_->SetBranchAddress("clust_charge",          &clu.charge);
   clustTree_->SetBranchAddress("clust_adc",             &clu.adc);
   clustTree_->SetBranchAddress("clust_pix",             &clu.pix);
@@ -2695,7 +2695,6 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Paired branches
   #if SPLIT > 1
   trajTree_->SetBranchAddress("clust_xy",              &traj.clu.x);
-  trajTree_->SetBranchAddress("clust_sizeXY",          &traj.clu.sizeX);
   #endif
   // Split-mode branches
   #ifdef COMPLETE
@@ -2705,6 +2704,7 @@ void TimingStudy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   trajTree_->SetBranchAddress("clust_tworoc",          &traj.clu.tworoc);
   #endif
   trajTree_->SetBranchAddress("clust_size",            &traj.clu.size);
+  trajTree_->SetBranchAddress("clust_sizeXY",          &traj.clu.sizeX);
   trajTree_->SetBranchAddress("clust_adc",             &traj.clu.adc);
   #if SPLIT > 1
   trajTree_->SetBranchAddress("clust_charge",          &traj.clu.charge);

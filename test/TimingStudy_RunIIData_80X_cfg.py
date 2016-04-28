@@ -89,13 +89,13 @@ process = customiseDataRun2Common_25ns(process)
 #---------------------------
 
 # RAW or RECO
-runOnRAW = True   # True: RAW, False: RECO
+runOnRAW = False  # True: RAW, False: RECO
 setAutoGT = False
 
 if setAutoGT:
     print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
 else:
-    process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v5'
+    process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v6'
     print "GlobalTag: "+str(process.GlobalTag.globaltag)
 
 # TimingStudy Settings
@@ -108,10 +108,10 @@ useClosestVtx    = False # Default: False (New option, default is using best ver
 if runOnRAW:
     process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016A/ZeroBias1/RAW/v1/000/271/188/00000/50E65AD2-B909-E611-96DB-02163E011D1F.root')
 else:
-    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2015D/ZeroBias/RECO/16Dec2015-v1/60000/00CBB0FD-26AA-E511-AF86-002590A2CD68.root')
+    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016A/ZeroBias1/RECO/PromptReco-v2/000/271/193/00000/02DE527C-AD0B-E611-8841-02163E014758.root')
 
 # Number of events
-process.maxEvents.input = 100
+process.maxEvents.input = 20
 
 # MessageLogger
 if runOnRAW:
