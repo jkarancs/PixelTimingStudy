@@ -111,7 +111,7 @@ else:
     process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016A/ZeroBias1/RECO/PromptReco-v2/000/271/193/00000/02DE527C-AD0B-E611-8841-02163E014758.root')
 
 # Number of events
-process.maxEvents.input = 20
+process.maxEvents.input = 100
 
 # MessageLogger
 if runOnRAW:
