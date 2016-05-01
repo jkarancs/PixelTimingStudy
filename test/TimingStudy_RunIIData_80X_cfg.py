@@ -95,7 +95,7 @@ setAutoGT = False
 if setAutoGT:
     print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
 else:
-    process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v6'
+    process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v8'
     print "GlobalTag: "+str(process.GlobalTag.globaltag)
 
 # TimingStudy Settings
