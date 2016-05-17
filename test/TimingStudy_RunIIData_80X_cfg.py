@@ -85,36 +85,68 @@ process = customiseDataRun2Common_25ns(process)
 #--------------- Added for TimingStudy ---------------
 
 #---------------------------
-#  Settings
+#  Options
 #---------------------------
+import FWCore.ParameterSet.VarParsing as opts
 
-# RAW or RECO
-runOnRAW = False  # True: RAW, False: RECO
-setAutoGT = False
+options = opts.VarParsing ('analysis')
 
-if setAutoGT:
+options.register('globalTag',        '',
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
+                 'Global Tag, Default="" which uses auto:run2_data')
+
+options.register('runOnRAW',         False,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.bool,
+                 'True: RAW, False: RECO/Express')
+
+options.register('useClosestVtx',    False,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.bool,
+                 'True: use best Vtx for d0/dz, True: use closest, Default=False')
+
+options.register('nthClusterToSave', 100,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.int,
+                 'Only save each Nth of inclusive clusters, Default=100 (shown to offer enough stats (17% of on-trk clu with pt>1.0))')
+
+options.register('minNStripHits',    0,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.int,
+                 'Save only hits with a track that has at least N stip detector hits (Default: 0, old was 11 for efficiency)')
+
+options.register('minTrkPt',         0.6,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.float,
+                 'Default=0.6, chosen to be below eff cut and common cluster cutsGlobal Tag')
+
+options.register('outputFileName',   'Ntuple.root',
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
+                 'Name of the output root file')
+
+options.parseArguments()
+
+print "TimingStudy Options: "
+print "  globalTag        = "+str(options.globalTag)
+print "  runOnRAW         = "+str(options.runOnRAW)
+print "  useClosestVtx    = "+str(options.useClosestVtx)
+print "  nthClusterToSave = "+str(options.nthClusterToSave)
+print "  minNStripHits    = "+str(options.minNStripHits)
+print "  minTrkPt         = "+str(options.minTrkPt)
+print "  outputFileName   = "+str(options.outputFileName)
+
+if options.globalTag == '':
     print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
 else:
-    process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v8'
+    process.GlobalTag.globaltag = options.globalTag
     print "GlobalTag: "+str(process.GlobalTag.globaltag)
 
-# TimingStudy Settings
-nthClusterToSave =   100 # Default: 100   (New option, default chosen is shown to offer enough stats (17% of on-trk clu with pt>1.0))
-minNStripHits    =     0 # Default: 0     (New - old value was 11, for efficiency, but affected eta dsitribution)
-minTrkPt         =   0.6 # Default: 0.6   (New option, default chosen to be below eff cut and common cluster cuts)
-useClosestVtx    = False # Default: False (New option, default is using best vertex, closest vtx needs more study)
-
 # Input file
-if runOnRAW:
-    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016A/ZeroBias1/RAW/v1/000/271/188/00000/50E65AD2-B909-E611-96DB-02163E011D1F.root')
+if options.runOnRAW:
+    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root') #273158 RAW
 else:
-    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016A/ZeroBias1/RECO/PromptReco-v2/000/271/193/00000/02DE527C-AD0B-E611-8841-02163E014758.root')
+    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root') #273158 RECO (same LS)
 
 # Number of events
 process.maxEvents.input = 100
 
 # MessageLogger
-if runOnRAW:
+if options.runOnRAW:
     process.MessageLogger.cerr.FwkReport.reportEvery = 1
 else:
     process.MessageLogger.cerr.FwkReport.reportEvery = 100
@@ -122,20 +154,18 @@ else:
 #---------------------------
 #  Track Refitter
 #---------------------------
-if runOnRAW:
+if options.runOnRAW:
     trajInput = cms.string('generalTracks')
 else:
     process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
-    process.TrackRefitterP5.src = 'generalTracks'
-    process.TrackRefitterP5.TrajectoryInEvent = True
-    trajInput = cms.string('TrackRefitterP5')
+    trajInput = cms.string('TrackRefitter')
 
 #---------------------------
 #  TimingStudy
 #---------------------------
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     trajectoryInput = trajInput,
-    fileName = cms.string("Ntuple.root"),
+    fileName = cms.string(options.outputFileName),
     extrapolateFrom = cms.int32(2),
     extrapolateTo = cms.int32(1),
     keepOriginalMissingHit = cms.bool(False),
@@ -167,10 +197,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
     #mcPileupHistoName = cms.string("mcpileup"),
     mcLumiScale = cms.double(0.384408), # 2012 (1368b): 0.222, 2015 (2232b): 0.313596, 2016 (2736b) pred: 0.384408
     instlumiTextFile = cms.untracked.string("run_ls_instlumi_pileup_2015.txt"),
-    nthClusterToSave = cms.int32(nthClusterToSave),
-    minNStripHits    = cms.int32(minNStripHits),
-    minTrkPt         = cms.double(minTrkPt),
-    useClosestVtx    = cms.bool(useClosestVtx),
+    nthClusterToSave = cms.int32(options.nthClusterToSave),
+    minNStripHits    = cms.int32(options.minNStripHits),
+    minTrkPt         = cms.double(options.minTrkPt),
+    useClosestVtx    = cms.bool(options.useClosestVtx),
 )
 
 #---------------------------
@@ -179,10 +209,10 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
 process.schedule.remove(process.RECOoutput_step)
 process.schedule.remove(process.endjob_step)
 
-if runOnRAW:
+if options.runOnRAW:
     process.TimingStudy_step = cms.Path(process.TimingStudy)
 else:
-    process.TimingStudy_step = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitterP5*process.TimingStudy)
+    process.TimingStudy_step = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter*process.TimingStudy)
     process.schedule.remove(process.reconstruction_step)
     process.schedule.remove(process.L1Reco_step)
     process.schedule.remove(process.raw2digi_step)
