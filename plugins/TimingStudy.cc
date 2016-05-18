@@ -690,7 +690,9 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
 #endif
   if (!cond.isValid()) {
     std::cout<<"** ERROR: no ConditionsInLumiBlock info is available\n";
-    return;
+  } else {
+    lumi_.beamint[0]=cond->totalIntensityBeam1;
+    lumi_.beamint[1]=cond->totalIntensityBeam2;
   }
 
   // check that this lumiblock info is consistent with the last event
@@ -710,8 +712,6 @@ void TimingStudy::endLuminosityBlock(edm::LuminosityBlock const& iLumi,
     (runls_instlumi_.count(runls) ? runls_instlumi_[runls] * 1000 / 23.3104 : NOVAL_F);
   lumi_.pileup = (lumi_.run==1) ? NOVAL_F : (runls_pileup_.count(runls) ? runls_pileup_[runls] : NOVAL_F);
   
-  lumi_.beamint[0]=cond->totalIntensityBeam1;
-  lumi_.beamint[1]=cond->totalIntensityBeam2;
   std::cout<< "New lumi block: Run "<<lumi_.run<<" LS = "<<lumi_.ls;
   std::cout << " inst lumi "<<lumi_.instlumi<<" int lumi "<<lumi_.intlumi<<std::endl;
   std::cout << " beam 1 int "<<lumi_.beamint[0]<<" beam 2 int "<<lumi_.beamint[1]<<std::endl;
