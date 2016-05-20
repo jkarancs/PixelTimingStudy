@@ -124,7 +124,7 @@ options.register('outputFileName',   'Ntuple.root',
                  'Name of the output root file')
 
 ### Events to process: 'maxEvents' is already registered by the framework
-options.setDefault('maxEvents', -1)
+options.setDefault('maxEvents', 100)
 
 options.parseArguments()
 
