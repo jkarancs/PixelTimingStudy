@@ -123,9 +123,8 @@ options.register('outputFileName',   'Ntuple.root',
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
                  'Name of the output root file')
 
-options.register('maxEvents', 100,
-                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.int,
-                 'Number of events to run on')
+### Events to process: 'maxEvents' is already registered by the framework
+options.setDefault('maxEvents', 100)
 
 options.parseArguments()
 
