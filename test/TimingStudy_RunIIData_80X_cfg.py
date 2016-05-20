@@ -115,9 +115,17 @@ options.register('minTrkPt',         0.6,
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.float,
                  'Default=0.6, chosen to be below eff cut and common cluster cutsGlobal Tag')
 
+options.register('inputFileName',   '',
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
+                 'Name of the input root file')
+
 options.register('outputFileName',   'Ntuple.root',
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
                  'Name of the output root file')
+
+options.register('maxEvents', 100,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.int,
+                 'Number of events to run on')
 
 options.parseArguments()
 
@@ -137,13 +145,16 @@ else:
     print "GlobalTag: "+str(process.GlobalTag.globaltag)
 
 # Input file
-if options.runOnRAW:
-    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root') #273158 RAW
+if options.inputFileName == '':
+    if options.runOnRAW:
+        process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root') #273158 RAW
+    else:
+        process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root') #273158 RECO (same LS)
 else:
-    process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root') #273158 RECO (same LS)
+    process.source.fileNames = cms.untracked.vstring(options.inputFileName)
 
 # Number of events
-process.maxEvents.input = 100
+process.maxEvents.input = options.maxEvents
 
 # MessageLogger
 if options.runOnRAW:
