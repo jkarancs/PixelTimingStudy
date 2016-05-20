@@ -50,7 +50,7 @@ echo "                                 Compiling ready"
 echo "                               Starting JOB ["$3"]"
 echo
 
-if ( $#argv >=5 ) then
+if ( $#argv > 4 ) then
     echo "cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$5\n"
     cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$5
 else
