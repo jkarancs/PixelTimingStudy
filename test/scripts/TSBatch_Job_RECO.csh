@@ -26,7 +26,6 @@ cmsrel $1
 cd $1/src
 cmsenv
 git clone https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
-scram b -j 20
 cd DPGAnalysis/PixelTimingStudy
 
 # Set SPLIT mode (current: INCOMPLETE, SPLIT 1)
@@ -39,7 +38,7 @@ set output="Ntuple_"$3".root"
 if ( $?5 ) then
     set nevt=$5
 else
-    set nevt=-1
+    set nevt="-1"
 endif
 
 echo
@@ -56,7 +55,11 @@ echo "                                 Compiling ready"
 echo "                               Starting JOB ["$3"]"
 echo
 
-cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$nevt
+if ( $?5 ) then
+    cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$5
+else
+    cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4
+endif
 
 echo
 echo "--------------------------------------------------------------------------------"
