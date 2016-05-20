@@ -21,41 +21,25 @@ echo "                          Creating JOB ["$3"]"
 echo
 
 source ${VO_CMS_SW_DIR}/cmsset_default.csh
-if ( $1 =~ "CMSSW_5_"* ) then
-    if ( $1 =~ "CMSSW_5_0_"* ) then
-	setenv SCRAM_ARCH slc5_amd64_gcc434
-    endif
-else
-    setenv SCRAM_ARCH slc5_amd64_gcc434
-endif
+setenv SCRAM_ARCH slc6_amd64_gcc530
 cmsrel $1
 cd $1/src
 cmsenv
-mkdir DPGAnalysis
-cd DPGAnalysis
-cvs co -d PixelTimingStudy UserCode/Debrecen/PixelTimingStudy
-cd PixelTimingStudy/
+git clone https://github.com/jkarancs/PixelTimingStudy DPGAnalysis/PixelTimingStudy
+scram b -j 20
+cd DPGAnalysis/PixelTimingStudy
 
-# Revert TimingStudy version to a previos one (eg for scans: v3029):
-#cvs update -r 1.30 plugins/TimingStudy.cc
-#cvs update -r 1.29 plugins/TimingStudy.h
-
-# Set SPLIT mode, number of strip hits stored (current: INCOMPLETE, SPLIT 1, Nstrip>0)
+# Set SPLIT mode (current: INCOMPLETE, SPLIT 1)
 #sed -i "s;#define SPLIT 1;#define SPLIT 2;" plugins/TimingStudy.cc
-sed -i "s;#minNStripHits = cms.int32(0),;minNStripHits = cms.int32(0),;" test/MB_RECO_cfg.py
 
-# Set GlobalTag:
-sed -i "s;GR_R_53_V9F;"$2";" test/MB_RECO_cfg.py
-
-# Input file:
-sed -i "s;fileNames = cms.untracked.vstring(;fileNames = cms.untracked.vstring(\'"$4"\';" test/MB_RECO_cfg.py
-
-# Set job number for output file:
-sed -i "s;MB_RECO.root;MB_RECO_"$3".root;" test/MB_RECO_cfg.py
+# output file
+set output="Ntuple_"$3".root"
 
 # Set Number of Events if specified (all by default):
-if ( $5 ) then
-    sed -i "s;input = cms.untracked.int32(-1);input = cms.untracked.int32("$5");" test/MB_RECO_cfg.py
+if ( $?5 ) then
+    set nevt=$5
+else
+    set nevt=-1
 endif
 
 echo
@@ -72,7 +56,7 @@ echo "                                 Compiling ready"
 echo "                               Starting JOB ["$3"]"
 echo
 
-cmsRun test/MB_RECO_cfg.py
+cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$nevt
 
 echo
 echo "--------------------------------------------------------------------------------"
@@ -81,20 +65,14 @@ echo "                            Writing output to EOS..."
 echo
 
 # Copy to Eos
-set USERDIR = "jkarancs/crab"
+set USERDIR = "userdir"
 set OUTDIR = "outdir"
-cmsLs /store/caf/user/$USERDIR | grep $OUTDIR > ! checkdir.txt
-if ( -z checkdir.txt ) then
-    cmsMkdir /store/caf/user/$USERDIR/$OUTDIR
-    echo "Created directory on EOS"
-endif
-rm checkdir.txt
-
-cmsStage MB_RECO_$3.root /store/caf/user/$USERDIR/$OUTDIR
+eos mkdir -p eos/cms/store/caf/user/$USERDIR/$OUTDIR
+cmsStage $output /store/caf/user/$USERDIR/$OUTDIR/$output
 
 echo
 echo "Output: "
-cmsLs /store/caf/user/$USERDIR/$OUTDIR/MB_RECO_$3.root
+eos ls -l eos/cms/store/caf/user/$USERDIR/$OUTDIR/$output
 
 cd ../../../..
 rm -r $1
