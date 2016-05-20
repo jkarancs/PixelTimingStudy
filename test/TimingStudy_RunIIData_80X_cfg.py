@@ -124,7 +124,7 @@ options.register('outputFileName',   'Ntuple.root',
                  'Name of the output root file')
 
 ### Events to process: 'maxEvents' is already registered by the framework
-options.setDefault('maxEvents', 100)
+options.setDefault('maxEvents', -1)
 
 options.parseArguments()
 
@@ -153,7 +153,7 @@ else:
     process.source.fileNames = cms.untracked.vstring(options.inputFileName)
 
 # Number of events
-process.maxEvents.input = options.maxEvents
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 
 # MessageLogger
 if options.runOnRAW:
