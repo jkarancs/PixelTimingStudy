@@ -20,7 +20,9 @@ echo "--------------------------------------------------------------------------
 echo "                          Creating JOB ["$3"]"
 echo
 
-source ${VO_CMS_SW_DIR}/cmsset_default.csh
+if ( $?VO_CMS_SW_DIR ) then
+    source ${VO_CMS_SW_DIR}/cmsset_default.csh
+endif
 setenv SCRAM_ARCH slc6_amd64_gcc530
 cmsrel $1
 cd $1/src
@@ -33,13 +35,6 @@ cd DPGAnalysis/PixelTimingStudy
 
 # output file
 set output="Ntuple_"$3".root"
-
-# Set Number of Events if specified (all by default):
-if ( $?5 ) then
-    set nevt=$5
-else
-    set nevt="-1"
-endif
 
 echo
 echo "--------------------------------------------------------------------------------"
@@ -55,10 +50,12 @@ echo "                                 Compiling ready"
 echo "                               Starting JOB ["$3"]"
 echo
 
-if ( $?5 ) then
+if ( $#argv > 4 ) then
+    echo "cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$5\n"
     cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=$5
 else
-    cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4
+    echo "cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=-1\n"
+    cmsRun test/TimingStudy_RunIIData_80X_cfg.py globalTag=$2 outputFileName=$output inputFileName=$4 maxEvents=-1
 endif
 
 echo
@@ -78,7 +75,7 @@ echo "Output: "
 eos ls -l eos/cms/store/caf/user/$USERDIR/$OUTDIR/$output
 
 cd ../../../..
-rm -r $1
+rm -rf $1
 
 echo
 echo "--------------------------------------------------------------------------------"
