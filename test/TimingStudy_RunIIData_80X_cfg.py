@@ -99,6 +99,10 @@ options.register('runOnRAW',         False,
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.bool,
                  'True: RAW, False: RECO/Express')
 
+options.register('filterZeroBias',   False,
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.bool,
+                 'Filter only events with trigger HLT_ZeroBias_v*')
+
 options.register('useClosestVtx',    False,
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.bool,
                  'True: use best Vtx for d0/dz, True: use closest, Default=False')
@@ -148,7 +152,11 @@ if options.inputFileName == '':
     if options.runOnRAW:
         process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root') #273158 RAW
     else:
-        process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root') #273158 RECO (same LS)
+        process.source.fileNames = cms.untracked.vstring(
+            #'file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root' #273158 RECO (same LS)
+            '/store/express/Run2016B/ExpressPhysics/FEVT/Express-v2/000/275/309/00000/008E9B65-B334-E611-BBA8-02163E013641.root' #275309 Express
+            )
+        
 else:
     process.source.fileNames = cms.untracked.vstring(options.inputFileName)
 
@@ -160,6 +168,19 @@ if options.runOnRAW:
     process.MessageLogger.cerr.FwkReport.reportEvery = 1
 else:
     process.MessageLogger.cerr.FwkReport.reportEvery = 100
+
+#---------------------------
+#  HLT Filter
+#---------------------------
+process.zerobiasTriggerFilter = cms.EDFilter( "TriggerResultsFilter",
+    triggerConditions = cms.vstring( 'HLT_ZeroBias_v* / 1' ),
+    hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+    l1tResults = cms.InputTag( "" ),
+    l1tIgnoreMask = cms.bool( False ),
+    l1techIgnorePrescales = cms.bool( True ),
+    daqPartitions = cms.uint32( 1 ),
+    throw = cms.bool( True )
+)
 
 #---------------------------
 #  Track Refitter
@@ -220,9 +241,15 @@ process.schedule.remove(process.RECOoutput_step)
 process.schedule.remove(process.endjob_step)
 
 if options.runOnRAW:
-    process.TimingStudy_step = cms.Path(process.TimingStudy)
+    if options.filterZeroBias:
+        process.TimingStudy_step = cms.Path(process.zerobiasTriggerFilter*process.TimingStudy)
+    else:
+        process.TimingStudy_step = cms.Path(process.TimingStudy)
 else:
-    process.TimingStudy_step = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter*process.TimingStudy)
+    if options.filterZeroBias:
+        process.TimingStudy_step = cms.Path(process.zerobiasTriggerFilter*process.MeasurementTrackerEvent*process.TrackRefitter*process.TimingStudy)
+    else:
+        process.TimingStudy_step = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter*process.TimingStudy)
     process.schedule.remove(process.reconstruction_step)
     process.schedule.remove(process.L1Reco_step)
     process.schedule.remove(process.raw2digi_step)
