@@ -40,11 +40,4 @@
   <use   name="TrackingTools/MeasurementDet"/>
   <use   name="FWCore/Utilities"/>
   <use   name="DataFormats/Luminosity"/>
-  <library   file="TimingStudy.cc" name="DPGAnalysisPixelTimingStudyPlugin">
-    <flags   EDM_PLUGIN="1"/>
-  </library>
-  <library   file="SplitClusterMerger.cc ../src/*.cc" name="SplitClusterMergerPlugin">
-    <flags CXXFLAGS="-g -D=EDM_ML_DEBUG"/>
-    <flags   EDM_PLUGIN="1"/>
-  </library>
 </environment>
