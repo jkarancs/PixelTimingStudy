@@ -23,9 +23,26 @@
 // Tools //
 ///////////
 
+// Trajectory measurements
+// #include "DataFormats/TrackReco/interface/Track.h"
+// #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+// #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+// #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+// #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHit.h"
+// #include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
+// #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+// Position
+#include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
+#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+
+
 ///////////
 // Other //
 ///////////
+
+// Clusters token
+#include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
 
 ////////////////////
 // Root libraries //
@@ -52,18 +69,18 @@ class SplitClusterMerger : public edm::EDAnalyzer
 		edm::ParameterSet iConfig;
 		// For debug
 		const edm::Event* currentEvent;
-
-		/////////////////
-		// Output file //
-		/////////////////
-
+		// Tokens
+		edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > clusters_token;
+		// Output file
 		// Default: "Ntuple_scm.root"
 		std::string ntuple_output_filename = "Ntuple_scm.root";
 		TFile*      ntuple_output_file;
 
-		///////////////////////////////////
-		// Tokens for accessing the data //
-		///////////////////////////////////
+		/////////////////////
+		// Data processing //
+		/////////////////////
+
+		void handle_clusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& cluster_collection_handle);
 
 		////////////////////
 		// Error handling //
