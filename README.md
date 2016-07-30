@@ -23,5 +23,5 @@ This plugin can be used to find clusters split by double column inefficiencies a
 If you are want to generate Ntuples for the Phase-I Pixel Detector, check out this repository (under development...): 
 https://github.com/jkarancs/PhaseIPixelNtuplizer
 
-### &#x1F539;
-Contact me: adam.hunyadi@cern.ch
+### &#x1F539; Contact me:
+E-mail: adam.hunyadi@cern.ch

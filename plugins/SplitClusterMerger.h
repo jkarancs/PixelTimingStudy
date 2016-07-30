@@ -9,7 +9,8 @@
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-// #include "FWCore/Framework/interface/ESHandle.h"
+// For the tracker topology handle
+#include "FWCore/Framework/interface/ESHandle.h"
 
 ////////////////////////////
 // Message logger service //
@@ -23,26 +24,35 @@
 // Tools //
 ///////////
 
-// Trajectory measurements
-// #include "DataFormats/TrackReco/interface/Track.h"
-// #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
-// #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
-// #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-// #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHit.h"
-// #include "DataFormats/SiPixelDetId/interface/PixelSubdetector.h"
-// #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
-// Position
-#include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
-#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
+// Fed errors
+#include "../interface/FedErrorFetcher.h"
+// Tree branching
+#include "../interface/ClusterDataTree.h"
+#include "../interface/MergingStatisticsTree.h"
+// Module data
+#include "../interface/ModuleDataProducer.h"
+// Tracker topology
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
-
+// Tracks
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "../interface/TrajAnalyzer.h"
+// Position
+// #include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
+// #include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
 
 ///////////
 // Other //
 ///////////
 
+// Errors token
+#include "DataFormats/SiPixelRawData/interface/SiPixelRawDataError.h"
+// Digi token
+#include "DataFormats/SiPixelDigi/interface/PixelDigi.h"
 // Clusters token
 #include "DataFormats/SiPixelCluster/interface/SiPixelCluster.h"
+// Tracjectories token
+#include "TrackingTools/PatternTools/interface/TrajTrackAssociation.h"
 
 ////////////////////
 // Root libraries //
@@ -62,6 +72,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <limits>
 
 class SplitClusterMerger : public edm::EDAnalyzer
 {
@@ -70,31 +81,49 @@ class SplitClusterMerger : public edm::EDAnalyzer
 		// For debug
 		const edm::Event* currentEvent;
 		// Tokens
-		edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> > clusters_token;
-		// Output file
+		edm::EDGetTokenT<edm::DetSetVector<SiPixelRawDataError>> rawDataErrorToken;
+		edm::EDGetTokenT<edm::DetSetVector<PixelDigi>>           pixelDigisToken;
+		edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>>   clustersToken;
+		edm::EDGetTokenT<TrajTrackAssociationCollection>         trajTrackCollectionToken;
+		// Output file path
 		// Default: "Ntuple_scm.root"
-		std::string ntuple_output_filename = "Ntuple_scm.root";
-		TFile*      ntuple_output_file;
+		std::string ntupleOutputFilename = "Ntuple_scm.root";
+		TFile*      ntupleOutputFile;
+		// Tree definition
+		TTree*                clusterTree;
+		Cluster               clusterField;
+		TTree*                mergeTree;
+		MergingStatisticsData mergeStatField;
+		// Data containers
+		// std::multimap<SiPixelCluster&, int> clusterMergeableDigis;
 
 		/////////////////////
 		// Data processing //
 		/////////////////////
 
-		void handle_clusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& cluster_collection_handle);
+		// void handleClusters(const edm::Handle<edm::DetSetVector<PixelDigi>>& digiCollectionHandle, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollectionHandle, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
+		std::map<Trajectory, SiPixelCluster> getTrajClosestClusterMap(const edm::Handle<TrajTrackAssociationCollection>& trajTrackCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology);
+		void                                 handleClusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollectionHandle, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
+		std::vector<SiPixelCluster::Pixel>   getDigisOnModule(const edmNew::DetSet<SiPixelCluster>& clusterSetOnModule);
+		static const SiPixelCluster*         findBestMergeableClusterCandidate(const SiPixelCluster& cluster, const edmNew::DetSet<SiPixelCluster>& clusterSet);
+		static int                           pixelXDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		static int                           pixelYDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		static int                           pixelSquareDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		void                                 saveClusterData(const SiPixelCluster& cluster, DetId detId, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
 
 		////////////////////
 		// Error handling //
 		////////////////////
 
-		void handle_default_error(const std::string& exception_type, const std::string& stream_type, std::string msg);
-		void handle_default_error(const std::string& exception_type, const std::string& stream_type, std::vector<std::string> msg);
-		void print_evt_info(const std::string& stream_type);
+		void handleDefaultError(const std::string& exceptionType, const std::string& streamType, std::string msg);
+		void handleDefaultError(const std::string& exceptionType, const std::string& streamType, std::vector<std::string> msg);
+		void printEvtInfo(const std::string& streamType);
 
 		/////////////
 		// Utility //
 		/////////////
 
-		// void clear_all_containers();
+		void clearAllContainers();
 
 	public:
 		SplitClusterMerger(edm::ParameterSet const& iConfig);
