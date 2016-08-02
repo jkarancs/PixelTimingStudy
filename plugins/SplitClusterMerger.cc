@@ -65,6 +65,11 @@ void SplitClusterMerger::analyze(const edm::Event& iEvent, const edm::EventSetup
 	edm::ESHandle<TrackerTopology> trackerTopologyHandle;
 	iSetup.get<TrackerTopologyRcd>().get(trackerTopologyHandle);
 	const TrackerTopology* const trackerTopology = trackerTopologyHandle.product();
+	// // Cluster Parameter Estimator
+	// edm::ESHandle<PixelClusterParameterEstimator> clusterParameterEstimatorHandle;
+	// iSetup.get<TkPixelCPERecord>().get("PixelCPEGeneric", clusterParameterEstimatorHandle);
+	// if(!clusterParameterEstimatorHandle.isValid()) return;
+	// const PixelClusterParameterEstimator& clusterParameterEstimator(*clusterParameterEstimatorHandle);
 	// FED errors
 	std::map<uint32_t, int> fedErrors = FedErrorFetcher::getFedErrors(iEvent, rawDataErrorToken);
 	// Fetching the digis by token
@@ -81,8 +86,8 @@ void SplitClusterMerger::analyze(const edm::Event& iEvent, const edm::EventSetup
 	if(!clusterCollection.isValid())   handleDefaultError("data access", "data_access", "Failed to fetch clusters.");
 	if(!trajTrackCollection.isValid()) handleDefaultError("data access", "data_access", "Failed to fetch trajectory measurements.");
 	// Preparing a trajectory to closest cluster map
-	std::map<Trajectory, SiPixelCluster> trajClosestClustMap;
-	// getTrajClosestClusterMap(trajTrackCollection, clusterCollection, trackerTopology);
+	TrajClusterMap trajClosestClustMap;
+	trajClosestClustMap = getTrajClosestClusterMap(trajTrackCollection, clusterCollection, trackerTopology);
 	// Processing data
 	ClusterDataTree::setClusterTreeDataFields(clusterTree, clusterField);
 	clusterField.init();
@@ -93,45 +98,89 @@ void SplitClusterMerger::analyze(const edm::Event& iEvent, const edm::EventSetup
 	clearAllContainers();
 }
 
-// std::map<Trajectory, SiPixelCluster> SplitClusterMerger::getTrajClosestClusterMap(const edm::Handle<TrajTrackAssociationCollection>& trajTrackCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology)
-// {
-// 	std::map<Trajectory, SiPixelCluster> trajClosestClustMap;
-// 	for(const auto& currentTrackKeypair: *trajTrackCollection)
-// 	{
-// 		// Trajectory segments + corresponding track informations
-// 		const edm::Ref<std::vector<Trajectory>> traj = currentTrackKeypair.key;
-// 		const reco::TrackRef track                   = currentTrackKeypair.val; // TrackRef is actually a pointer type
-// 		// Discarding tracks without pixel measurements
-// 		if(TrajAnalyzer::trajectoryHasPixelHit(traj)) continue;
-// 		// Looping again to check hit efficiency of pixel hits
-// 		for(auto& measurement: traj -> measurements())
-// 		{
-// 			// Check measurement validity
-// 			if(!measurement.updatedState().isValid()) continue;
-// 			auto hit = measurement.recHit();
-// 			// Det id
-// 			DetId detID = hit -> geographicalId();
-// 			uint32_t subdetid = (detID.subdetId());
-// 			// Looking for pixel hits
-// 			bool is_pixel_hit = false;
-// 			is_pixel_hit |= subdetid == PixelSubdetector::PixelBarrel;
-// 			is_pixel_hit |= subdetid == PixelSubdetector::PixelEndcap;
-// 			if(!is_pixel_hit) continue;
-// 			// Fetch the hit
-// 			const SiPixelRecHit* pixhit = dynamic_cast<const SiPixelRecHit*>(hit -> hit());
-// 			// Check hit qualty
-// 			if(!pixhit) continue;
-// 			// Position measurements
-// 			TrajectoryStateCombiner  trajStateComb;
-// 			TrajectoryStateOnSurface trajStateOnSurface = trajStateComb(measurement.forwardPredictedState(), measurement.backwardPredictedState());
-// 			auto localPosition = trajStateOnSurface.localPosition();
-// 			double lx = localPosition.x();
-// 			double ly = localPosition.y();
-// 			// double lz = localPosition.z();
-// 		}
-// 	}
-// 	return trajClosestClustMap;
-// }
+SplitClusterMerger::TrajClusterMap SplitClusterMerger::getTrajClosestClusterMap(const edm::Handle<TrajTrackAssociationCollection>& trajTrackCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology)
+{
+	auto mapComparator = [] (const TrajectoryMeasurement& lhs, const TrajectoryMeasurement& rhs)
+	{
+		return lhs.estimate() < rhs.estimate();
+	};
+	TrajClusterMap trajClosestClustMap(mapComparator);
+	for(const auto& currentTrackKeypair: *trajTrackCollection)
+	{
+		// Trajectory segments + corresponding track informations
+		const edm::Ref<std::vector<Trajectory>> traj = currentTrackKeypair.key;
+		const reco::TrackRef track                   = currentTrackKeypair.val; // TrackRef is actually a pointer type
+		// Discarding tracks without pixel measurements
+		if(TrajAnalyzer::trajectoryHasPixelHit(traj)) continue;
+		// Looping again to check hit efficiency of pixel hits
+		for(auto& measurement: traj -> measurements())
+		{
+			// Check measurement validity
+			if(!measurement.updatedState().isValid()) continue;
+			auto hit = measurement.recHit();
+			// Det id
+			DetId detId = hit -> geographicalId();
+			uint32_t subdetid = (detId.subdetId());
+			// Looking for pixel hits
+			bool is_pixel_hit = false;
+			is_pixel_hit |= subdetid == PixelSubdetector::PixelBarrel;
+			is_pixel_hit |= subdetid == PixelSubdetector::PixelEndcap;
+			if(!is_pixel_hit) continue;
+			// Fetch the hit
+			const SiPixelRecHit* pixhit = dynamic_cast<const SiPixelRecHit*>(hit -> hit());
+			// Check hit qualty
+			if(!pixhit) continue;
+			// Position measurements
+			TrajectoryStateCombiner  trajStateComb;
+			TrajectoryStateOnSurface trajStateOnSurface = trajStateComb(measurement.forwardPredictedState(), measurement.backwardPredictedState());
+			LocalPoint localPosition = trajStateOnSurface.localPosition();
+			float lx = localPosition.x();
+			float ly = localPosition.y();
+			SiPixelCluster closestCluster = findClosestCluster(clusterCollection, detId.rawId(), lx, ly);
+			// Do nothing if no cluster is found
+			if(closestCluster.minPixelRow() == SiPixelCluster::MAXPOS && closestCluster.minPixelCol() == SiPixelCluster::MAXPOS) continue;
+			// float lz = localPosition.z()
+			trajClosestClustMap.insert(std::pair<TrajectoryMeasurement, SiPixelCluster>(measurement, closestCluster));
+		}
+	}
+	return trajClosestClustMap;
+}
+
+SiPixelCluster SplitClusterMerger::findClosestCluster(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const uint32_t& rawId, const float& lx, const float& ly)
+{
+	auto getDistanceSquared = [] (float x1, float y1, float x2, float y2) { return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2); };
+	const SiPixelCluster* closestCluster = nullptr;
+	float minDistanceSquared;
+	// Looping on all the clusters
+	for(const auto& clusterSetOnModule: *clusterCollection)
+	{
+		DetId detId(clusterSetOnModule.id());
+		// Discarding clusters on a different module
+		if(detId.rawId() != rawId) continue;
+		unsigned int subdetId = detId.subdetId();
+		// Discarding non-pixel clusters
+		if(subdetId != PixelSubdetector::PixelBarrel && subdetId != PixelSubdetector::PixelEndcap) continue;
+		// Guess that the first cluster is the closest
+		closestCluster = clusterSetOnModule.begin();
+		// First set the minimum distance to the distance of the first cluster
+		minDistanceSquared = getDistanceSquared(closestCluster -> x(), closestCluster -> y(), lx, ly);
+		// Looping on clusters on the same detector_part
+		for(const auto& currentCluster: clusterSetOnModule)
+		{
+			float distanceSquared = getDistanceSquared(currentCluster.x(), currentCluster.y(), lx, ly);
+			if(distanceSquared < minDistanceSquared)
+			{
+				closestCluster = &currentCluster;
+				minDistanceSquared = distanceSquared;
+			}
+		}
+	}
+	if(closestCluster == nullptr) 
+	{
+		return SiPixelCluster();
+	}
+	return *closestCluster;
+}
 
 // void SplitClusterMerger::handleClusters(const edm::Handle<edm::DetSetVector<PixelDigi>>& digiCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& fedErrors)
 void SplitClusterMerger::handleClusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& fedErrors)

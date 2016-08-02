@@ -37,8 +37,11 @@
 // Tracks
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "../interface/TrajAnalyzer.h"
+// Hits
+#include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHit.h"
+
 // Position
-// #include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
+#include "TrackingTools/TrackFitters/interface/TrajectoryStateCombiner.h"
 // #include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
 
 ///////////
@@ -77,6 +80,8 @@
 class SplitClusterMerger : public edm::EDAnalyzer
 {
 	private:
+		// FIXME: This type is just plain ugly
+		typedef std::map<TrajectoryMeasurement, SiPixelCluster, std::function<bool(const TrajectoryMeasurement&, const TrajectoryMeasurement&)>> TrajClusterMap;
 		edm::ParameterSet iConfig;
 		// For debug
 		const edm::Event* currentEvent;
@@ -101,15 +106,15 @@ class SplitClusterMerger : public edm::EDAnalyzer
 		// Data processing //
 		/////////////////////
 
-		// void handleClusters(const edm::Handle<edm::DetSetVector<PixelDigi>>& digiCollectionHandle, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollectionHandle, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
-		std::map<Trajectory, SiPixelCluster> getTrajClosestClusterMap(const edm::Handle<TrajTrackAssociationCollection>& trajTrackCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology);
-		void                                 handleClusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollectionHandle, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
-		std::vector<SiPixelCluster::Pixel>   getDigisOnModule(const edmNew::DetSet<SiPixelCluster>& clusterSetOnModule);
-		static const SiPixelCluster*         findBestMergeableClusterCandidate(const SiPixelCluster& cluster, const edmNew::DetSet<SiPixelCluster>& clusterSet);
-		static int                           pixelXDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
-		static int                           pixelYDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
-		static int                           pixelSquareDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
-		void                                 saveClusterData(const SiPixelCluster& cluster, DetId detId, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
+		TrajClusterMap                     getTrajClosestClusterMap(const edm::Handle<TrajTrackAssociationCollection>& trajTrackCollection, const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const TrackerTopology* const trackerTopology);
+		SiPixelCluster                     findClosestCluster(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollection, const uint32_t& rawId, const float& lx, const float& ly);
+		void                               handleClusters(const edm::Handle<edmNew::DetSetVector<SiPixelCluster>>& clusterCollectionHandle, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
+		std::vector<SiPixelCluster::Pixel> getDigisOnModule(const edmNew::DetSet<SiPixelCluster>& clusterSetOnModule);
+		static const SiPixelCluster*       findBestMergeableClusterCandidate(const SiPixelCluster& cluster, const edmNew::DetSet<SiPixelCluster>& clusterSet);
+		static int                         pixelXDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		static int                         pixelYDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		static int                         pixelSquareDistance(SiPixelCluster::Pixel lhs, SiPixelCluster::Pixel rhs);
+		void                               saveClusterData(const SiPixelCluster& cluster, DetId detId, const TrackerTopology* const trackerTopology, const std::map<uint32_t, int>& federrors);
 
 		////////////////////
 		// Error handling //
