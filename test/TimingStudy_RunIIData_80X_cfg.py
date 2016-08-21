@@ -2,10 +2,12 @@
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: ReReco -s RAW2DIGI,L1Reco,RECO --data --scenario pp --conditions auto:run2_data --process NTUPLE --eventcontent RECO --datatier RECO --customise Configuration/DataProcessing/RecoTLR.customiseDataRun2Common_25ns --filein /store/data/Run2016A/ZeroBias1/RAW/v1/000/271/188/00000/50E65AD2-B909-E611-96DB-02163E011D1F.root --python_filename=test/TimingStudy_RunIIData_80X_cfg.py -n 100 --no_exec
+# with command line options: RECO -s RAW2DIGI,RECO --data --scenario pp --conditions auto:run2_data --era Run2_25ns --process NTUPLE --eventcontent RECO --datatier RECO --customise Configuration/DataProcessing/RecoTLR.customiseDataRun2Common_25ns --filein /store/data/Run2016D/ZeroBias/AOD/PromptReco-v2/000/276/317/00000/12A3F60B-1145-E611-83B1-02163E01431C.root --secondfilein /store/data/Run2016D/ZeroBias/RAW/v2/000/276/317/00000/46CDE349-0842-E611-A1F4-02163E012067.root --python_filename=test/TimingStudy_RunIIData_80X_AODplusRAW_cfg.py --runUnscheduled -n 100 --no_exec
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process('NTUPLE')
+from Configuration.StandardSequences.Eras import eras
+
+process = cms.Process('NTUPLE',eras.Run2_25ns)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -15,28 +17,27 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff')
 process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
-process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_Data_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(100)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/data/Run2016A/ZeroBias1/RAW/v1/000/271/188/00000/50E65AD2-B909-E611-96DB-02163E011D1F.root'),
-    secondaryFileNames = cms.untracked.vstring()
+    fileNames = cms.untracked.vstring('/store/data/Run2016D/ZeroBias/AOD/PromptReco-v2/000/276/317/00000/12A3F60B-1145-E611-83B1-02163E01431C.root'),
+    secondaryFileNames = cms.untracked.vstring('/store/data/Run2016D/ZeroBias/RAW/v2/000/276/317/00000/46CDE349-0842-E611-A1F4-02163E012067.root')
 )
 
 process.options = cms.untracked.PSet(
-
+    allowUnscheduled = cms.untracked.bool(True)
 )
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    annotation = cms.untracked.string('ReReco nevts:100'),
+    annotation = cms.untracked.string('RECO nevts:100'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
@@ -49,7 +50,7 @@ process.RECOoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(5242880),
-    fileName = cms.untracked.string('ReReco_RAW2DIGI_L1Reco_RECO.root'),
+    fileName = cms.untracked.string('RECO_RAW2DIGI_RECO.root'),
     outputCommands = process.RECOEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -62,13 +63,12 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 
 # Path and EndPath definitions
 process.raw2digi_step = cms.Path(process.RawToDigi)
-process.L1Reco_step = cms.Path(process.L1Reco)
 process.reconstruction_step = cms.Path(process.reconstruction)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.RECOoutput_step = cms.EndPath(process.RECOoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.endjob_step,process.RECOoutput_step)
+process.schedule = cms.Schedule(process.raw2digi_step,process.reconstruction_step,process.endjob_step,process.RECOoutput_step)
 
 # customisation of the process.
 
@@ -78,9 +78,9 @@ from Configuration.DataProcessing.RecoTLR import customiseDataRun2Common_25ns
 #call to customisation function customiseDataRun2Common_25ns imported from Configuration.DataProcessing.RecoTLR
 process = customiseDataRun2Common_25ns(process)
 
-# End of customisation functions
 
 
+# <--
 
 #--------------- Added for TimingStudy ---------------
 
@@ -119,9 +119,17 @@ options.register('minTrkPt',         0.6,
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.float,
                  'Default=0.6, chosen to be below eff cut and common cluster cutsGlobal Tag')
 
+options.register('dataTier',         'RECO',
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
+                 'Name of the AOD input root file')
+
 options.register('inputFileName',   '',
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
                  'Name of the input root file')
+
+options.register('secondaryInputFileName',   '',
+                 opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
+                 'Name of the RAW (parent) input root file')
 
 options.register('outputFileName',   'Ntuple.root',
                  opts.VarParsing.multiplicity.singleton, opts.VarParsing.varType.string,
@@ -133,13 +141,16 @@ options.setDefault('maxEvents', 100)
 options.parseArguments()
 
 print "TimingStudy Options: "
-print "  globalTag        = "+str(options.globalTag)
-print "  runOnRAW         = "+str(options.runOnRAW)
-print "  useClosestVtx    = "+str(options.useClosestVtx)
-print "  nthClusterToSave = "+str(options.nthClusterToSave)
-print "  minNStripHits    = "+str(options.minNStripHits)
-print "  minTrkPt         = "+str(options.minTrkPt)
-print "  outputFileName   = "+str(options.outputFileName)
+print "  globalTag               = "+str(options.globalTag)
+print "  runOnRAW                = "+str(options.runOnRAW)
+print "  useClosestVtx           = "+str(options.useClosestVtx)
+print "  nthClusterToSave        = "+str(options.nthClusterToSave)
+print "  minNStripHits           = "+str(options.minNStripHits)
+print "  minTrkPt                = "+str(options.minTrkPt)
+print "  dataTier                = "+str(options.dataTier)
+print "  inputFileName           = "+str(options.inputFileName)
+print "  secondaryInputFileName  = "+str(options.secondaryInputFileName)
+print "  outputFileName          = "+str(options.outputFileName)
 
 if options.globalTag == '':
     print "GlobalTag (auto:run2_data): "+str(process.GlobalTag.globaltag)
@@ -149,25 +160,38 @@ else:
 
 # Input file
 if options.inputFileName == '':
-    if options.runOnRAW:
-        process.source.fileNames = cms.untracked.vstring('file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root') #273158 RAW
+    if options.dataTier == 'RAW':
+        process.source = cms.Source("PoolSource",
+                                    fileNames = cms.untracked.vstring(
+                                        'file:/data/store/data/Run2016B/ZeroBias/RAW/v2/000/273/158/00000/C62669DA-7418-E611-A8FB-02163E01377A.root' #273158 RAW
+                                        )
+                                    )
+    elif options.dataTier == 'AOD':
+        process.source = cms.Source("PoolSource",
+                                    fileNames = cms.untracked.vstring('/store/data/Run2016D/ZeroBias/AOD/PromptReco-v2/000/276/317/00000/12A3F60B-1145-E611-83B1-02163E01431C.root'),
+                                    secondaryFileNames = cms.untracked.vstring('/store/data/Run2016D/ZeroBias/RAW/v2/000/276/317/00000/46CDE349-0842-E611-A1F4-02163E012067.root')
+                                    )
     else:
-        process.source.fileNames = cms.untracked.vstring(
-            #'file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root' #273158 RECO (same LS)
-            '/store/express/Run2016B/ExpressPhysics/FEVT/Express-v2/000/275/309/00000/008E9B65-B334-E611-BBA8-02163E013641.root' #275309 Express
-            )
-        
+        process.source = cms.Source("PoolSource",
+                                    fileNames = cms.untracked.vstring(
+                                        'file:/data/store/data/Run2016B/ZeroBias/RECO/PromptReco-v2/000/273/158/00000/0C460BA1-EB19-E611-A6ED-02163E0120AE.root' #273158 RECO (same LS)
+                                        #'/store/express/Run2016B/ExpressPhysics/FEVT/Express-v2/000/275/309/00000/008E9B65-B334-E611-BBA8-02163E013641.root' #275309 Express
+                                        )
+                                    )
 else:
-    process.source.fileNames = cms.untracked.vstring(options.inputFileName)
+    if options.secondaryInputFileName == '':
+        process.source = cms.Source("PoolSource",fileNames = cms.untracked.vstring(options.inputFileName))
+    else:
+        process.source = cms.Source("PoolSource",
+                                    fileNames = cms.untracked.vstring(options.inputFileName),
+                                    secondaryFileNames = cms.untracked.vstring(options.secondaryInputFileName)
+                                    )
 
 # Number of events
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 
 # MessageLogger
-if options.runOnRAW:
-    process.MessageLogger.cerr.FwkReport.reportEvery = 1
-else:
-    process.MessageLogger.cerr.FwkReport.reportEvery = 100
+process.MessageLogger.cerr.FwkReport.reportEvery = (1 if options.dataTier == 'RAW' else 100)
 
 #---------------------------
 #  HLT Filter
@@ -185,17 +209,17 @@ process.zerobiasTriggerFilter = cms.EDFilter( "TriggerResultsFilter",
 #---------------------------
 #  Track Refitter
 #---------------------------
-if options.runOnRAW:
-    trajInput = cms.string('generalTracks')
-else:
+if options.dataTier == 'RECO' or options.dataTier == 'FEVT':
     process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
-    trajInput = cms.string('TrackRefitter')
+    trajInput = 'TrackRefitter'
+else:
+    trajInput = 'generalTracks'
 
 #---------------------------
 #  TimingStudy
 #---------------------------
 process.TimingStudy = cms.EDAnalyzer("TimingStudy",
-    trajectoryInput = trajInput,
+    trajectoryInput = cms.string(trajInput),
     fileName = cms.string(options.outputFileName),
     extrapolateFrom = cms.int32(2),
     extrapolateTo = cms.int32(1),
@@ -240,7 +264,7 @@ process.TimingStudy = cms.EDAnalyzer("TimingStudy",
 process.schedule.remove(process.RECOoutput_step)
 process.schedule.remove(process.endjob_step)
 
-if options.runOnRAW:
+if options.dataTier == 'RAW' or options.dataTier == 'AOD':
     if options.filterZeroBias:
         process.TimingStudy_step = cms.Path(process.zerobiasTriggerFilter*process.TimingStudy)
     else:
@@ -251,7 +275,19 @@ else:
     else:
         process.TimingStudy_step = cms.Path(process.MeasurementTrackerEvent*process.TrackRefitter*process.TimingStudy)
     process.schedule.remove(process.reconstruction_step)
-    process.schedule.remove(process.L1Reco_step)
     process.schedule.remove(process.raw2digi_step)
 
 process.schedule.append(process.TimingStudy_step)
+
+# disbales an error message
+if options.dataTier == 'AOD': process.ecalRecHit.laserCorrection = False
+
+# --> Rest from the original script
+
+
+# End of customisation functions
+#do not add changes to your config after this point (unless you know what you are doing)
+from FWCore.ParameterSet.Utilities import convertToUnscheduled
+process=convertToUnscheduled(process)
+from FWCore.ParameterSet.Utilities import cleanUnscheduled
+process=cleanUnscheduled(process)
