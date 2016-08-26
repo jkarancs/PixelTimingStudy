@@ -9,7 +9,7 @@ SplitClusterAnalyzer::SplitClusterAnalyzer(edm::ParameterSet const& iConfig)
 {
 	// Tokens
 	rawDataErrorToken        = consumes<edm::DetSetVector<SiPixelRawDataError>>(edm::InputTag("siPixelDigis"));
-	digiFlagsToken           = consumes<edm::DetSetVector<PixelDigi>>          (edm::InputTag("dcolLostNeighbourDigiFlags"));
+	digiFlagsToken           = consumes<edm::DetSetVector<PixelDigi>>          (edm::InputTag("simSiPixelDigis", "dcolLostNeighbourDigiFlags"));
 	clustersToken            = consumes<edmNew::DetSetVector<SiPixelCluster>>  (edm::InputTag("siPixelClusters"));
 	trajTrackCollectionToken = consumes<TrajTrackAssociationCollection>(iConfig.getParameter<edm::InputTag>("trajectoryInput"));
 }
@@ -62,6 +62,8 @@ void SplitClusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSet
 	// Fetching the markers for digis that have a dcol lost digi next to them
 	edm::Handle<edm::DetSetVector<PixelDigi>> digiFlagsCollection;
 	iEvent.getByToken(digiFlagsToken,         digiFlagsCollection);
+	std::cout << "Succesfully fetched digiflags." << std::endl;
+	std::cout << "digiFlagsCollection -> size(): " << digiFlagsCollection -> size() << std::endl;
 	// Fetching the clusters by token
 	edm::Handle<edmNew::DetSetVector<SiPixelCluster>> clusterCollection;
 	iEvent.getByToken(clustersToken,                  clusterCollection);
@@ -284,52 +286,6 @@ void SplitClusterAnalyzer::handleClusters(const edm::Handle<edmNew::DetSetVector
 	std::cerr << "Num clusters: " << numClusters << std::endl;
 }
 
-bool SplitClusterAnalyzer::checkIfNextToDcolLostDigi(const SiPixelCluster& clusterToCheck, const edm::DetSet<PixelDigi>& digiFlags)
-{
-	std::cerr << "digiFlags.size(): " << digiFlags.size() << std::endl;
-	for(const auto& digi: clusterToCheck.pixels())
-	{
-		int channel = PixelDigi::pixelToChannel(digi.x, digi.y);
-		for(const auto& digiInSet: digiFlags)
-		{
-			int channelToCompareWith = digiInSet.channel();
-			if(channel == channelToCompareWith)
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool SplitClusterAnalyzer::checkIfNextToDcolLostDigi(const SiPixelCluster::Pixel& pixelToCheck, const edm::DetSet<PixelDigi>& digiFlags)
-{
-	int channel = PixelDigi::pixelToChannel(pixelToCheck.x, pixelToCheck.y);
-	for(const auto& digiInSet: digiFlags)
-	{
-		int channelToCompareWith = digiInSet.channel();
-		if(channel == channelToCompareWith)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool SplitClusterAnalyzer::checkIfDigiIsInDetSet(const PixelDigi& digi, const edm::DetSet<PixelDigi>& digiDetSet)
-{
-	int channel = digi.channel();
-	for(const auto& digiInSet: digiDetSet)
-	{
-		int channelToCompareWith = digiInSet.channel();
-		if(channel == channelToCompareWith)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 // std::vector<SiPixelCluster::Pixel> SplitClusterAnalyzer::getDigisOnModule(const edmNew::DetSet<SiPixelCluster>& clusterSetOnModule)
 // {
 // 	std::vector<SiPixelCluster::Pixel> pixelsOnModule;
@@ -500,18 +456,21 @@ void SplitClusterAnalyzer::fillEventPlot(const SiPixelCluster::Pixel& pixelToSav
     // Layers range: 1 - 3
 	// Module range: -4.5 - 4.5
 	// Ladders range: -22.5 - 22.5
-	int moduleCoordinate = mod_on.module * 52;
-	int ladderCoordinate = mod_on.ladder * 80;
+	int fillWeight = checkIfNextToDcolLostDigi(pixelToSave, digiFlagsCollection);
+	// int moduleCoordinate = mod_on.module * 52;
+	// int ladderCoordinate = mod_on.ladder * 80;
+	int ladderCoordinate = mod_on.ladder * 80 + pixelToSave.x;
+	int moduleCoordinate = mod_on.module * 52 + pixelToSave.y;
 	switch(mod_on.layer)
 	{
 		case 1:
-			currentEventPlotLayer1 -> Fill(moduleCoordinate, ladderCoordinate);
+			currentEventPlotLayer1 -> Fill(moduleCoordinate, ladderCoordinate, fillWeight);
 			break;
 		case 2:
-			currentEventPlotLayer2 -> Fill(moduleCoordinate, ladderCoordinate);
+			currentEventPlotLayer2 -> Fill(moduleCoordinate, ladderCoordinate, fillWeight);
 			break;
 		case 3:
-			currentEventPlotLayer3 -> Fill(moduleCoordinate, ladderCoordinate);
+			currentEventPlotLayer3 -> Fill(moduleCoordinate, ladderCoordinate, fillWeight);
 			break;
 		default:
 			handleDefaultError("data_analysis", "data_analysis", {"Failed to deduce the layer coordinate of a pixel: layer: ", std::to_string(mod_on.layer)});
@@ -539,6 +498,51 @@ bool SplitClusterAnalyzer::checkClusterPairOrder(const SiPixelCluster& lhs, cons
 	if(lhs.y() < rhs.y()) return true;
 	if(lhs.y() > rhs.y()) return false;
 	std::cerr << c_red << "Error: " << c_def << "SplitClusterMergerProducer::checkClusterPairOrder() called with the same cluster twice as argument. Check code!" << std::endl;
+	return false;
+}
+
+bool SplitClusterAnalyzer::checkIfNextToDcolLostDigi(const SiPixelCluster& clusterToCheck, const edm::DetSet<PixelDigi>& digiFlags)
+{
+	for(const auto& digi: clusterToCheck.pixels())
+	{
+		int channel = PixelDigi::pixelToChannel(digi.x, digi.y);
+		for(const auto& digiInSet: digiFlags)
+		{
+			int channelToCompareWith = digiInSet.channel();
+			if(channel == channelToCompareWith)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool SplitClusterAnalyzer::checkIfNextToDcolLostDigi(const SiPixelCluster::Pixel& pixelToCheck, const edm::DetSet<PixelDigi>& digiFlags)
+{
+	int channel = PixelDigi::pixelToChannel(pixelToCheck.x, pixelToCheck.y);
+	for(const auto& digiInSet: digiFlags)
+	{
+		int channelToCompareWith = digiInSet.channel();
+		if(channel == channelToCompareWith)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool SplitClusterAnalyzer::checkIfDigiIsInDetSet(const PixelDigi& digi, const edm::DetSet<PixelDigi>& digiDetSet)
+{
+	int channel = digi.channel();
+	for(const auto& digiInSet: digiDetSet)
+	{
+		int channelToCompareWith = digiInSet.channel();
+		if(channel == channelToCompareWith)
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
