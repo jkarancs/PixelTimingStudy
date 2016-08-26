@@ -111,8 +111,6 @@ class SplitClusterAnalyzer : public edm::EDAnalyzer
 		TTree*                mergeSnapshotTree;
 		TTree*                pixelTree;
 		Pixel                 pixelField;
-		// TTree*                mergeDecisionTreeSignalField;
-		// TTree*                mergeDecisionTreeBackgroundField;
 		int                   mergeSnapshotField[1024];
 		unsigned int          numSavedSnapshots   = 0;
 		unsigned int          maxSnapshotsToSave  = 10;

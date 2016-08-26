@@ -51,18 +51,8 @@ void SplitClusterAnalyzer::endJob()
 	LogDebug("file_operations") << "File succesfully closed: \"" << c_blue << ntupleOutputFilename << c_def << "\"." << std::endl;
 }
 
-// Steps:
-// 1. Loop on all modules and panels
-// 2. For all the clusters on the given detector part
-// 3. Get all the possible cluster-part positions
-// 4. Check if there is charge-deposit on them
-// 5. Perform checks for merging
-// 6. If the checks are passed, interpolate for charge deposition (Producer)
-// 7. Merge the pixels by setting inner charges (Producer)
-
 void SplitClusterAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-	// LogDebug("step") << "Executing SplitClusterAnalyzer::analyze()..." << std::endl;
 	// Accessing the tracker topology for module informations
 	edm::ESHandle<TrackerTopology> trackerTopologyHandle;
 	iSetup.get<TrackerTopologyRcd>().get(trackerTopologyHandle);
