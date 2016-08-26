@@ -1,3 +1,6 @@
+# Marked to be ignored
+*.ignore
+
 # Compressed Files
 *.root
 *.zip

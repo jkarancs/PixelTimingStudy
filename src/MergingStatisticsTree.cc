@@ -1,8 +1,8 @@
 #include "../interface/MergingStatisticsTree.h"
 
-////////////////////
-// Tree branching //
-////////////////////
+///////////////
+// Info tree //
+///////////////
 
 void MergingStatisticsTree::defineMergingStatTreeBranches(TTree*& mergeTree, MergingStatisticsData& mergeStatField)
 {
@@ -11,9 +11,6 @@ void MergingStatisticsTree::defineMergingStatTreeBranches(TTree*& mergeTree, Mer
 	mergeTree -> Branch("module_on",   &mergeStatField.mod_on, ModuleData::list.c_str());
 }
 
-////////////////////////////////////
-// Tree branch address assignment //
-////////////////////////////////////
 
 void MergingStatisticsTree::setMergingStatTreeDataFields (TTree*& mergeTree, MergingStatisticsData& mergeStatField)
 {
@@ -21,3 +18,19 @@ void MergingStatisticsTree::setMergingStatTreeDataFields (TTree*& mergeTree, Mer
 	mergeTree -> SetBranchAddress("module",      &mergeStatField.mod);
 	mergeTree -> SetBranchAddress("module_on",   &mergeStatField.mod_on);
 }
+
+///////////////////
+// Snapshot tree //
+///////////////////
+
+void MergingStatisticsTree::defineMergingSnapshotTreeBranches(TTree*& mergeSnapshotTree, int (&mergeSnapshotField)[1024])
+{
+	mergeSnapshotTree -> Branch("clusterMergingSnapshots", &mergeSnapshotField, "mergeSnapshotField[1024]/I");
+
+}
+
+void MergingStatisticsTree::setMergingSnapshotTreeDataFields (TTree*& mergeSnapshotTree, int (&mergeSnapshotField)[1024])
+{
+	mergeSnapshotTree -> SetBranchAddress("clusterMergingSnapshots", &mergeSnapshotField);
+}
+

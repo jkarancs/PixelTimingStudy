@@ -17,11 +17,11 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger = cms.Service("MessageLogger",
 	destinations = cms.untracked.vstring('cerr'),
 	cerr = cms.untracked.PSet(threshold  = cms.untracked.string('DEBUG')),
-	debugModules = cms.untracked.vstring('SplitClusterMergerPlugin'))
+	debugModules = cms.untracked.vstring('SplitClusterAnalyzerPlugin'))
 
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(10))
 process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring('file:/data/hunyadi/CMSSW/SplitClusterMerger/CMSSW_8_0_15/src/Data_for_testing/GENSIMRECO.root'),
+	fileNames = cms.untracked.vstring('file:./GENSIMRECO.root'),
 	secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -62,11 +62,12 @@ trajectoriesFromRefitter = cms.InputTag('TrackRefitter')
 #---------------------------
 #  Split Cluster Merger
 #---------------------------
-process.SplitClusterMergerPlugin = cms.EDAnalyzer('SplitClusterMerger',
+process.SplitClusterAnalyzerPlugin = cms.EDAnalyzer('SplitClusterAnalyzer',
 	rawDataCollection = cms.InputTag("rawDataCollector"),
 	# siPixelDigis      = cms.InputTag("siPixelDigis"),
 	# siPixelDigis      = cms.InputTag("rawDataCollector"),
-	siPixelDigis      = cms.InputTag("source"),
+	# siPixelDigis      = cms.InputTag("source"),
+	dcolLostNeighbourDigiFlags = cms.InputTag("simSiPixelDigis", "dcolLostNeighbourDigiFlags"),
 	siPixelClusters   = cms.InputTag("siPixelClusters"),
 	# trajectoryInput   = cms.InputTag('generalTracks')
 	trajectoryInput   = trajectoriesFromRefitter
@@ -85,7 +86,7 @@ process.SplitClusterMerger_step = cms.Path(
 	# process.zerobiasTriggerFilter * # Uncomment if running on data 
 	process.MeasurementTrackerEvent * 
 	process.TrackRefitter *
-	process.SplitClusterMergerPlugin
+	process.SplitClusterAnalyzerPlugin
 )
 
 # process.p = cms.Path(
