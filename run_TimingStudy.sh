@@ -1,6 +1,4 @@
 #!/bin/bash -f
-BADROC=1
-PHM=1
 
 echo " ---------------------------------------------------"
 for arg in "$@"; do
@@ -12,6 +10,9 @@ for arg in "$@"; do
         LFN=`grep "config.Data.outLFNDirBase" $CRAB_CFG | sed "s;';;g" | awk '{ print $3 }' | sed 's;/$;;'`
         TASKNAME=`grep "config.Data.outputDatasetTag" $CRAB_CFG | sed "s;';;g" | awk '{ print $3 }'`
 	AUTONAME=`echo $CRAB_CFG | sed "s;crab3_;;;s;.py;;"`
+	# decide if it is needed to create an SEU list first (BADROC list)
+	if [ -f PHM_out/HitEffMonitoring_"$AUTONAME"_BADROC.root ]; then BADROC=0; else BADROC=1; fi
+	PHM=1
 	# Set input/output directories
         DL_DIR=`echo $LFN/$TASKNAME | sed "s;/store/user;/data/gridout;"`
 	cd /data/jkarancs/CMSSW/PixelHistoMaker_git
